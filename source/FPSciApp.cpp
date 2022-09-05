@@ -986,6 +986,11 @@ void FPSciApp::onNetwork() {
 		if (enet_socket_send(m_unreliableSocket, &m_unreliableServerAddress, &enet_buff, 1) <= 0) {
 			logPrintf("Failed to send a packet to the server\n");
 		}
+		// Initialize ping measurment
+		if (!m_rttPacketInFlight) {
+			m_rttTimeStart = std::chrono::steady_clock::now();
+			m_rttPacketInFlight = true;
+		}
 	}
 
 	ENetAddress addr_from;
@@ -995,6 +1000,10 @@ void FPSciApp::onNetwork() {
 	buff.dataLength = ENET_HOST_DEFAULT_MTU;
 
 	while (enet_socket_receive(m_unreliableSocket, &addr_from, &buff, 1)) {
+		// Update Ping
+		m_RTT = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_rttTimeStart).count();
+		m_rttPacketInFlight = false;
+
 		char ip[16];
 		enet_address_get_host_ip(&addr_from, ip, 16);
 		BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
