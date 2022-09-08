@@ -908,6 +908,7 @@ shared_ptr<NetworkedEntity> NetworkedEntity::create(
 	networkedEntity->Entity::init(name, scene, position, shared_ptr<Entity::Track>(), true, true);
 	networkedEntity->VisibleEntity::init(model, true, Surface::ExpressiveLightScatteringProperties(), ArticulatedModel::PoseSpline());
 	networkedEntity->NetworkedEntity::init();
+	networkedEntity->m_remote = true;
 
 	return networkedEntity;
 }
@@ -938,6 +939,7 @@ shared_ptr<NetworkedEntity> NetworkedEntity::create(
 		scaleIdx,
 		config->logTargetTrajectory);
 	networkedEntity->m_id = config->id;
+	networkedEntity->m_remote = true;
 	return networkedEntity;
 }
 
@@ -978,13 +980,8 @@ BinaryOutput NetworkedEntity::toNetwork() {
 	return BinaryOutput();
 }*/
 
-void NetworkedEntity::setFrameN(CoordinateFrame f) {
-	setFrame(f);
-}
 
-CoordinateFrame NetworkedEntity::getFrame() {
-	return m_frame;
-}
+
 
 Any NetworkedEntity::toAny(const bool forceAll) const {
 	Any a = VisibleEntity::toAny(forceAll);

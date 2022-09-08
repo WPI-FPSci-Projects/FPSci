@@ -27,10 +27,10 @@ void NetworkUtils::updateEntity(shared_ptr<Entity> entity, BinaryInput& inBuffer
 		return;
 	}
 	else if (type == NetworkUpdateType::REPLACE_FRAME) {
-		CoordinateFrame frame;
-		frame.deserialize(inBuffer);
+		CoordinateFrame* frame = new CoordinateFrame();
+		frame->deserialize(inBuffer);
 		if (entity != nullptr) {
-			entity->setFrame(frame);
+			entity->setFrame(*frame);
 		}
 	}
 }
@@ -174,9 +174,11 @@ void NetworkUtils::broadcastBatchEntityUpdate(Array<shared_ptr<Entity>> entities
 	outBuffer.writeUInt8(NetworkUtils::MessageType::BATCH_ENTITY_UPDATE);
 	outBuffer.writeUInt8(entities.size());
 	/* Add the GUID and CFrame of each entity to the packet */
-	for (int i = 0; i < entities.size(); i++)
+	for (shared_ptr<Entity> e : entities)
 	{
-		shared_ptr<Entity> e = entities[i];
+		if (e->frame().translation[0] != e->frame().translation[0]) {
+			debugPrintf("Oops, updated with a nan\n");
+		}
 		GUniqueID guid = GUniqueID::fromString16((*e).name().c_str());
 		NetworkUtils::createFrameUpdate(guid, e, outBuffer);
 	}

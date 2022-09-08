@@ -86,7 +86,6 @@ void FPSciServerApp::onNetwork() {
     void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
     buff.data = data;
     buff.dataLength = ENET_HOST_DEFAULT_MTU;
-
     while (enet_socket_receive(m_unreliableSocket, &addr_from, &buff, 1)) { //while there are packets to receive
         /* Unpack the basic data from the packet */
         char ip[16];
@@ -109,7 +108,6 @@ void FPSciServerApp::onNetwork() {
                 NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents); // Read the data from the packet and update on the local entity
             }
         }
-
     }
     free(data);
 
@@ -210,7 +208,6 @@ void FPSciServerApp::onNetwork() {
     /* Now we send the position of all entities to all connected clients */
     Array<shared_ptr<NetworkedEntity>> entityArray;
     scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
-    
     NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket);
 }
 
