@@ -63,6 +63,30 @@ void NetworkUtils::broadcastDestroyEntity(GUniqueID id, ENetHost* serverHost) {
 	enet_host_broadcast(serverHost, 0, packet);
 }
 
+int NetworkUtils::sendPingClient(ENetSocket socket, ENetAddress address) {
+	BinaryOutput outBuffer;
+	outBuffer.setEndian(G3D_BIG_ENDIAN);
+	outBuffer.writeUInt8(NetworkUtils::MessageType::PING);
+	std::chrono::steady_clock::time_point rttStart = std::chrono::steady_clock::now();
+	outBuffer.writeBytes(&rttStart, sizeof(std::chrono::steady_clock::time_point));
+
+	ENetBuffer buff;
+	buff.data = (void*)outBuffer.getCArray();
+	buff.dataLength = outBuffer.length();
+	return enet_socket_send(socket, &address, &buff, 1);
+}
+
+int NetworkUtils::sendPingReply(ENetSocket socket, ENetAddress address, ENetBuffer* buff) {
+	/* Re-send the same data back to the client */
+	return enet_socket_send(socket, &address, buff, 1);
+}
+
+long long NetworkUtils::handlePingReply(BinaryInput& inBuffer) {
+	std::chrono::steady_clock::time_point rttStart;
+	inBuffer.readBytes((void*)&rttStart, sizeof(std::chrono::steady_clock::time_point));
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - rttStart).count();
+}
+
 int NetworkUtils::sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);

@@ -101,6 +101,10 @@ void FPSciServerApp::onNetwork() {
                 debugPrintf("Failed to send reply...\n");
             };
         }
+        /* Respond to ping */
+        else if (type == NetworkUtils::MessageType::PING) {
+            NetworkUtils::sendPingReply(m_unreliableSocket, addr_from, &buff);
+        }
         /* If the client is trying to update an entity's positon on the server */
         else if (type == NetworkUtils::MessageType::BATCH_ENTITY_UPDATE) {
             //update locally entity displayed on the server: 

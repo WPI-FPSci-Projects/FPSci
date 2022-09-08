@@ -161,9 +161,7 @@ protected:
 	bool m_enetConnected;
 	bool m_socketConnected;
 
-	bool m_rttPacketInFlight = false;					///< Boolean that checks if the packet used to determine the RTT is currently in flight
-	std::chrono::steady_clock::time_point m_rttTimeStart;			///< Start time for RTT
-	long long m_RTT;									///< RTT / Ping
+	long long m_RTT = 0;								///< RTT / Ping
 
 	/** Called from onInit */
 	void makeGUI();

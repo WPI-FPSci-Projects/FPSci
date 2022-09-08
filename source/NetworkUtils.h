@@ -95,7 +95,9 @@ public:
 		NOTIFY_HIT,
 
 		SET_SPAWN_LOCATION,
-		RESPAWN_CLIENT
+		RESPAWN_CLIENT,
+
+		PING
 	};
 
 	enum NetworkUpdateType {
@@ -116,6 +118,10 @@ public:
 
 	static void handleDestroyEntity(shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer);
 	static void broadcastDestroyEntity(GUniqueID id, ENetHost* serverHost);
+
+	static int sendPingClient(ENetSocket socket, ENetAddress address);
+	static int sendPingReply(ENetSocket socket, ENetAddress address, ENetBuffer* buff);
+	static long long handlePingReply(BinaryInput& inBuffer);
 
 	static int sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer);
 	static void handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer);
