@@ -114,6 +114,10 @@ void FPSciApp::initExperiment() {
 			logPrintf("Error on GUID creation: %s", e.what());
 			debugPrintf("Error on GUID creation: %s", e.what());
 		}
+
+		// initialize variables to be reset by handshakes
+		m_enetConnected = false;
+		m_socketConnected = false;
 	}
 }
 
