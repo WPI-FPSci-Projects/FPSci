@@ -750,7 +750,12 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 		logPrintf("User selected session: %s. Updating now...\n", id.c_str());
 		m_userSettingsWindow->setSelectedSession(id);
 		// Create the session based on the loaded config
-		sess = NetworkedSession::create(this, sessConfig); // TODO NOT ALWAYS A NETWORKED SESSSION
+		if (experimentConfig.isNetworked) {
+			sess = NetworkedSession::create(this, sessConfig);
+		}
+		else {
+			sess = Session::create(this, sessConfig);
+		}
 	}
 	else
 	{
@@ -892,10 +897,7 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 	}
 
 	// Initialize the experiment (this creates the results file)
-	if (!experimentConfig.isNetworked)
-		sess->onInit(logPath, experimentConfig.description + "/" + sessConfig->description);
-	else
-		static_cast<NetworkedSession*>(sess.get())->onInit("","");
+	sess->onInit(logPath, experimentConfig.description + "/" + sessConfig->description);
 
 	// Don't create a results file for a user w/ no sessions left
 	if (m_userSettingsWindow->sessionsForSelectedUser() == 0)
@@ -1232,10 +1234,7 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 	weapon->playSound(shotFired, shootButtonUp);
 
 	// TODO (or NOTTODO): The following can be cleared at the cost of one more level of inheritance.
-	if (!experimentConfig.isNetworked)
-		sess->onSimulation(rdt, sdt, idt);
-	else
-		static_cast<NetworkedSession*>(sess.get())->onSimulation(rdt, sdt, idt);
+	sess->onSimulation(rdt, sdt, idt);
 
 	// These are all we need from GApp::onSimulation() for walk mode
 	m_widgetManager->onSimulation(rdt, sdt, idt);
