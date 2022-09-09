@@ -74,6 +74,32 @@ void FPSciServerApp::initExperiment() {
     }
 
     debugPrintf("Began listening\n");
+
+    // Initialize lambdas and threads for listening for pings
+    auto s2cPing = [](ENetSocket socket) {
+        ENetAddress addr_from;
+        ENetBuffer buff;
+        void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
+        buff.data = data;
+        buff.dataLength = ENET_HOST_DEFAULT_MTU;
+
+        while (true) {
+            while (enet_socket_receive(socket, &addr_from, &buff, 1)) {
+                char ip[16];
+                enet_address_get_host_ip(&addr_from, ip, 16);
+                BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
+                NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
+
+                if (type == NetworkUtils::MessageType::PING) {
+                    NetworkUtils::sendPingReply(socket, addr_from, &buff);
+                }
+            }
+        }
+    };
+
+    std::thread s2cPing_Th(s2cPing, m_unreliableSocket);
+    s2cPing_Th.detach();
+
 }
 
 void FPSciServerApp::onNetwork() {

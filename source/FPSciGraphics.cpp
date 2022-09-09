@@ -415,7 +415,7 @@ void FPSciApp::updateFPSIndicator(RenderDevice* rd, Vector2 resolution) {
 		else {
 			msg = format("%d fps", iRound(rd->stats().smoothFrameRate));
 		}
-		msg += format(" | %.1f min | %.1f avg | %.1f max ms | %lld ms ping", recentMin * 1000.0f, 1000.0f / rd->stats().smoothFrameRate, 1000.0f * recentMax, m_RTT <= 0L ? 0L : m_RTT);
+		msg += format(" | %.1f min | %.1f avg | %.1f max ms | %lld ms ping", recentMin * 1000.0f, 1000.0f / rd->stats().smoothFrameRate, 1000.0f * recentMax, m_RTT);
 		outputFont->draw2D(rd, msg, Point2(0.35f * resolution.x, 0.05f * resolution.y).floor(), floor(20.0f * scale), Color3::yellow());
 	}
 }

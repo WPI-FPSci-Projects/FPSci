@@ -161,7 +161,9 @@ protected:
 	bool m_enetConnected;
 	bool m_socketConnected;
 
-	long long m_RTT = 0;								///< RTT / Ping
+	bool m_pinging = false;
+	const int m_pingInterval = 1000;
+	long long m_RTT = -1;								///< RTT / Ping
 
 	/** Called from onInit */
 	void makeGUI();
