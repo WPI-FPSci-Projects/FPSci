@@ -1012,11 +1012,6 @@ void FPSciApp::onNetwork() {
 
 	// wait to send updates until we're sure we're connected
 	if (m_socketConnected && m_enetConnected) {
-		// Send Ping packet
-		// TODO: move to separate thread to make independent of game's tick rate
-
-		//NetworkUtils::sendPingClient(m_unreliableSocket, m_unreliableServerAddress);
-
 		// Get and serialize the players frame
 		// TODO: refactor this to move ENet code into NetworkUtils
 		output.writeUInt8(NetworkUtils::MessageType::BATCH_ENTITY_UPDATE);
@@ -1058,9 +1053,6 @@ void FPSciApp::onNetwork() {
 			for (int i = 0; i < num_packet_members; i++) { // get new frames and update objects
 				NetworkUtils::updateEntity(ignore, scene(), packet_contents);
 			}
-		}
-		else if (type == NetworkUtils::MessageType::PING) {
-			m_RTT = NetworkUtils::handlePingReply(packet_contents);
 		}
 		/* check for reply to a handshake*/
 		else if (type == NetworkUtils::MessageType::HANDSHAKE_REPLY) {
