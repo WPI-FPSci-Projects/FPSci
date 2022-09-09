@@ -44,6 +44,6 @@ public:
 		return createShared<NetworkedSession>(app, config);
 	}
 	void addHittableTarget(shared_ptr<TargetEntity> target);
-	void onSimulation(RealTime rdt, SimTime sdt, SimTime idt);
-	void onInit(String filename, String description);
+	void onSimulation(RealTime rdt, SimTime sdt, SimTime idt) override;
+	void onInit(String filename, String description) override;
 };
