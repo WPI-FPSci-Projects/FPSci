@@ -33,7 +33,17 @@
 #include "Session.h"
 
 class NetworkedSession : public Session {
+protected:
+	NetworkedSession(FPSciApp* app) : Session(app) {}
+	NetworkedSession(FPSciApp* app, shared_ptr<SessionConfig> config) : Session(app, config) {}
 public:
+	static shared_ptr<NetworkedSession> create(FPSciApp* app) {
+		return createShared<NetworkedSession>(app);
+	}
+	static shared_ptr<NetworkedSession> create(FPSciApp* app, shared_ptr<SessionConfig> config) {
+		return createShared<NetworkedSession>(app, config);
+	}
 	void addHittableTarget(shared_ptr<TargetEntity> target);
-
+	void onSimulation(RealTime rdt, SimTime sdt, SimTime idt) override;
+	void onInit(String filename, String description) override;
 };

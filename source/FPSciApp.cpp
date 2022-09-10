@@ -750,7 +750,12 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 		logPrintf("User selected session: %s. Updating now...\n", id.c_str());
 		m_userSettingsWindow->setSelectedSession(id);
 		// Create the session based on the loaded config
-		sess = NetworkedSession::create(this, sessConfig); // TODO NOT ALWAYS A NETWORKED SESSSION
+		if (experimentConfig.isNetworked) {
+			sess = NetworkedSession::create(this, sessConfig);
+		}
+		else {
+			sess = Session::create(this, sessConfig);
+		}
 	}
 	else
 	{
@@ -1145,7 +1150,7 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 		currentRealTime = m_lastOnSimulationRealTime + rdt; // Increment the time by the current real time delta
 	}
 
-	bool stateCanFire = sess->currentState == PresentationState::trialTask && !m_userSettingsWindow->visible();
+	bool stateCanFire = sess->currentState == PresentationState::trialTask || (experimentConfig.isNetworked) && !m_userSettingsWindow->visible();
 
 	// These variables will be used to fire after the various weapon styles populate them below
 	int numShots = 0;
