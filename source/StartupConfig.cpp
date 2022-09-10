@@ -87,6 +87,7 @@ StartupConfig::StartupConfig(const Any& any) {
 		reader.getIfPresent("fullscreen", fullscreen);
 		reader.getIfPresent("windowSize", windowSize);
 		reader.getIfPresent("jsonAnyOutput", jsonAnyOutput);
+		reader.getIfPresent("pingInterval", pingInterval);
 		
 		foundDefault = reader.getIfPresent("defaultExperiment", defaultExperiment);
 		if (!foundDefault) {

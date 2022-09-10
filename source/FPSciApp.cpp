@@ -121,6 +121,10 @@ void FPSciApp::initExperiment() {
 
 		m_pinging = true;
 
+		if (startupConfig.pingInterval > 0) {
+			m_pingInterval = startupConfig.pingInterval;
+		}
+
 		// Initialize lambdas and threads for sending and recieving pings
 		auto c2sPing = [](ENetSocket socket, ENetAddress address, int i, bool& pinging) {
 			while (pinging) {
