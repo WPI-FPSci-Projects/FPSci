@@ -8,6 +8,7 @@ FPSciServerApp::FPSciServerApp(const GApp::Settings& settings) : FPSciApp(settin
 
 
 void FPSciServerApp::initExperiment() {
+    playersReady = 0;
     // Load config from files
     loadConfigs(startupConfig.experimentList[experimentIdx]);
     m_lastSavedUser = *currentUser();			// Copy over the startup user for saves
@@ -15,7 +16,7 @@ void FPSciServerApp::initExperiment() {
     // Setup the display mode
     setSubmitToDisplayMode(
         //SubmitToDisplayMode::EXPLICIT);
-        SubmitToDisplayMode::MINIMIZE_LATENCY);
+    SubmitToDisplayMode::MINIMIZE_LATENCY);
     //SubmitToDisplayMode::BALANCE);
     //SubmitToDisplayMode::MAXIMIZE_THROUGHPUT);
 
@@ -200,6 +201,16 @@ void FPSciServerApp::onNetwork() {
             }
             else if (type == NetworkUtils::MessageType::REPORT_HIT) {
                 NetworkUtils::handleHitReport(m_localHost, packet_contents);
+                playersReady = 0;
+            }
+            else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {
+                playersReady++;
+                debugPrintf("Connected Number of Clients %d\nReady Clints: %d\n", m_connectedClients.length(), playersReady);
+                if (playersReady >= m_connectedClients.length())
+                {
+                    NetworkUtils::broadcastStartSession(m_localHost);
+                    debugPrintf("All PLAYERS ARE READY!\n");
+                }
             }
             enet_packet_destroy(event.packet);
         }

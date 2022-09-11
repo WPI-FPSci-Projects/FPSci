@@ -70,6 +70,9 @@
 			UInt8: type (RESPAWN_CLIENT)
 			...
 
+			Type READY_UP_CLIENT:
+			UInt8: type (READY_UP_CLIENT)
+
 */
 
 class NetworkUtils
@@ -95,7 +98,10 @@ public:
 		NOTIFY_HIT,
 
 		SET_SPAWN_LOCATION,
-		RESPAWN_CLIENT
+		RESPAWN_CLIENT,
+
+		READY_UP_CLIENT,
+		START_NETWORKED_SESSION
 	};
 
 	enum NetworkUpdateType {
@@ -133,4 +139,7 @@ public:
 	static void handleSetSpawnPos(shared_ptr<PlayerEntity> player, BinaryInput& inBuffer);
 	static int sendRespawnClient(ENetPeer* peer);
 	static void broadcastRespawn(ENetHost* serverHost);
+
+	static int sendReadyUpMessage(ENetPeer* serverPeer);
+	static void broadcastStartSession(ENetHost* serverHost);
 };

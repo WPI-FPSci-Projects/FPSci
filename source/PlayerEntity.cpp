@@ -90,6 +90,8 @@ void PlayerEntity::onPose(Array<shared_ptr<Surface> >& surfaceArray) {
 }
 
 void PlayerEntity::updateFromInput(UserInput* ui) {
+	if (!m_PlayerMovement)
+		return;
 
 	const float walkSpeed = *moveRate * units::meters() / units::seconds();
 

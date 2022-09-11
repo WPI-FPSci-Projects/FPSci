@@ -72,6 +72,7 @@ int NetworkUtils::sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPee
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length() + 1, ENET_PACKET_FLAG_RELIABLE);
 	return enet_peer_send(serverPeer, 0, packet);
 }
+
 void NetworkUtils::handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer) {
 	GUniqueID hit_entity, shooter;
 	hit_entity.deserialize(inBuffer);
@@ -237,6 +238,22 @@ void NetworkUtils::broadcastRespawn(ENetHost* serverHost) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::RESPAWN_CLIENT);
+	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
+	enet_host_broadcast(serverHost, 0, packet);
+}
+
+int NetworkUtils::sendReadyUpMessage(ENetPeer* serverPeer) {
+	BinaryOutput outBuffer;
+	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);
+	outBuffer.writeUInt8(NetworkUtils::READY_UP_CLIENT);
+	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length() + 1, ENET_PACKET_FLAG_RELIABLE);
+	return enet_peer_send(serverPeer, 0, packet);
+}
+
+void NetworkUtils::broadcastStartSession(ENetHost* serverHost) {
+	BinaryOutput outBuffer;
+	outBuffer.setEndian(G3D_BIG_ENDIAN);
+	outBuffer.writeUInt8(NetworkUtils::MessageType::START_NETWORKED_SESSION);
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	enet_host_broadcast(serverHost, 0, packet);
 }

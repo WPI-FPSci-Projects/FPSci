@@ -44,6 +44,12 @@ enum PresentationState
 	sessionFeedback,
 	complete
 };
+enum NetworkedPresentationState
+{
+	initialNetworkedState,
+	networkedSessionStart,
+	networkedSessionComplete
+};
 static String presentationStateToString(const PresentationState& state) {
 	String stateStr = "N/A";
 	switch (state)

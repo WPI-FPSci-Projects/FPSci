@@ -1131,7 +1131,14 @@ void FPSciApp::onNetwork() {
 			else if (type == NetworkUtils::MessageType::RESPAWN_CLIENT) {
 				debugPrintf("Recieved a request to respawn\n");
 				scene()->typedEntity<PlayerEntity>("player")->respawn();
+				static_cast<NetworkedSession*>(sess.get())->resetSession();
+
 			}
+			else if (type == NetworkUtils::MessageType::START_NETWORKED_SESSION) {
+				static_cast<NetworkedSession*>(sess.get())->startSession();
+				debugPrintf("Recieved a request to start session.\n");
+			}
+			
 			enet_packet_destroy(event.packet);
 		}
 	}
@@ -1797,6 +1804,17 @@ void FPSciApp::onUserInput(UserInput* ui) {
 			if (sessConfig->audio.refTargetPlayFireSound && !sessConfig->weapon.loopAudio())
 			{									// Only play shot sounds for non-looped weapon audio (continuous/automatic fire not allowed)
 				weapon->playSound(true, false); // Play audio here for reference target
+			}
+		}
+	}
+
+	for (GKey selectButton : keyMap.map["readyUp"])
+	{
+		// Send Ready Up Message from here
+		if (ui->keyDown(selectButton) && m_serverPeer != nullptr && m_enetConnected) {
+			if (!player->getPlayerReady()) {
+				player->setPlayerReady(true);
+				NetworkUtils::sendReadyUpMessage(m_serverPeer);
 			}
 		}
 	}
