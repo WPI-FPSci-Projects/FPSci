@@ -79,7 +79,7 @@ void FPSciApp::initExperiment() {
 	updateSession(sessions[0], true);											  // Update session to create results file/start collection
 
 	// Setup the connection to the server if this experiment is networked
-	if (experimentConfig.serverAddress != "")
+	if (experimentConfig.isNetworked)
 	{
 		if (enet_initialize() != 0) {
 			// print an error and terminate if Enet does not initialize successfully
@@ -926,7 +926,7 @@ void FPSciApp::quitRequest() {
 	{
 		m_pyLogger->mergeLogToDb(true);
 	}
-	if (experimentConfig.serverAddress != "" && m_serverPeer != nullptr) { // disconnect from the server if we're running in Network mode
+	if (experimentConfig.isNetworked && m_serverPeer != nullptr) { // disconnect from the server if we're running in Network mode
 		enet_peer_disconnect(m_serverPeer, 0);
 	}
 	setExitCode(0);
@@ -969,6 +969,10 @@ void FPSciApp::onAI() {
 void FPSciApp::onNetwork() {
 	GApp::onNetwork();
 
+	if (experimentConfig.isNetworked && sess->currentState == NetworkedPresentationState::networkedSessionStart) {
+		m_networkFrameNum++;
+	}
+
 	BinaryOutput output;
 	output.setEndian(G3D_BIG_ENDIAN);
 
@@ -981,6 +985,7 @@ void FPSciApp::onNetwork() {
 		// Get and serialize the players frame
 		// TODO: refactor this to move ENet code into NetworkUtils
 		output.writeUInt8(NetworkUtils::MessageType::BATCH_ENTITY_UPDATE);
+		output.writeUInt16(m_networkFrameNum);
 		output.writeUInt8(1);				// Only update the player
 		//TODO: allow for non-player entities (i.e. projectiles)?
 		NetworkUtils::createFrameUpdate(m_playerGUID, scene()->entity("player"), output);
@@ -1004,6 +1009,7 @@ void FPSciApp::onNetwork() {
 		enet_address_get_host_ip(&addr_from, ip, 16);
 		BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
 		NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
+		uint16 frameNum = packet_contents.readUInt16();
 
 		/* Take a set of entity updates from the server and apply them to local entities */
 		if (type == NetworkUtils::MessageType::BATCH_ENTITY_UPDATE) {
@@ -1050,6 +1056,7 @@ void FPSciApp::onNetwork() {
 			// Pull data out of packet
 			BinaryInput packet_contents(event.packet->data, event.packet->dataLength, G3D_BIG_ENDIAN);
 			NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
+			uint16 frameNum = packet_contents.readUInt16();
 
 			/* for now, batch updates on the reliable channel are ignored.*/
 			if (type == NetworkUtils::MessageType::BATCH_ENTITY_UPDATE) {
@@ -1136,6 +1143,7 @@ void FPSciApp::onNetwork() {
 			}
 			else if (type == NetworkUtils::MessageType::START_NETWORKED_SESSION) {
 				static_cast<NetworkedSession*>(sess.get())->startSession();
+				m_networkFrameNum = frameNum; // Set the frame number to sync with the server
 				debugPrintf("Recieved a request to start session.\n");
 			}
 			
@@ -1619,8 +1627,8 @@ void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
 	target->playHitSound();
 
 	debugPrintf("HIT TARGET: %s\n", target->name().c_str());
-	if (m_serverPeer != nullptr && m_enetConnected) { // TODO DON'T SEND IF NOT NETWORKED
-		NetworkUtils::sendHitReport(GUniqueID::fromString16(target->name().c_str()), m_playerGUID, m_serverPeer);
+	if (experimentConfig.isNetworked) { // TODO DON'T SEND IF NOT NETWORKED
+		NetworkUtils::sendHitReport(GUniqueID::fromString16(target->name().c_str()), m_playerGUID, m_serverPeer, m_networkFrameNum);
 		return;
 	}
 
@@ -1941,7 +1949,7 @@ void FPSciApp::oneFrame() {
 		// Network
 		BEGIN_PROFILER_EVENT("GApp::onNetwork");
 		m_networkWatch.tick();
-		if (experimentConfig.serverAddress != "") {
+		if (experimentConfig.isNetworked) {
 			onNetwork();
 		}
 		m_networkWatch.tock();

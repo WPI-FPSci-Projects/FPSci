@@ -14,6 +14,7 @@ ExperimentConfig::ExperimentConfig(const Any& any) : FpsConfig(any) {
 		reader.getIfPresent("serverAddress", serverAddress);
 		reader.getIfPresent("serverPort", serverPort);
 		reader.getIfPresent("clientPort", clientPort);
+		reader.getIfPresent("numPlayers", numPlayers);
 		reader.getIfPresent("isNetworked", isNetworked);
 		logPrintf("serverAddress is : %s:%d\n", serverAddress.c_str(), serverPort);
 		break;
@@ -218,8 +219,8 @@ Any ExperimentConfig::toAny(const bool forceAll) const {
 }
 
 void ExperimentConfig::printToLog() const{
-	logPrintf("\n-------------------\nExperiment Config\n-------------------\nappendingDescription = %s\nscene name = %s\nTrial Feedback Duration = %f\nPretrial Duration = %f\nMax Trial Task Duration = %f\nMax Clicks = %d\nServer Address = %s\nServer Port = %d\nClient Port = %d\n",
-		description.c_str(), scene.name.c_str(), timing.trialFeedbackDuration, timing.pretrialDuration, timing.maxTrialDuration, weapon.maxAmmo, serverAddress.c_str(), serverPort, clientPort);
+	logPrintf("\n-------------------\nExperiment Config\n-------------------\nappendingDescription = %s\nscene name = %s\nTrial Feedback Duration = %f\nPretrial Duration = %f\nMax Trial Task Duration = %f\nMax Clicks = %d\nServer Address = %s\nServer Port = %d\nClient Port = %d\nNumber of Players = %d\n",
+		description.c_str(), scene.name.c_str(), timing.trialFeedbackDuration, timing.pretrialDuration, timing.maxTrialDuration, weapon.maxAmmo, serverAddress.c_str(), serverPort, clientPort, numPlayers);
 	// Iterate through sessions and print them
 	for (int i = 0; i < sessions.size(); i++) {
 		SessionConfig sess = sessions[i];

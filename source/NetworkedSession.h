@@ -38,13 +38,13 @@ class NetworkedSession : public Session {
 protected:
 
 	bool sessionStarted = false;			///Checks if the session has started or not
-	NetworkedPresentationState currentNetworkedState; ///Current Networked State
 
 	NetworkedSession(FPSciApp* app) : Session(app) {}
 	NetworkedSession(FPSciApp* app, shared_ptr<SessionConfig> config) : Session(app, config) {}
 
 public:
 
+	NetworkedPresentationState currentState; ///Current Networked State
 	static shared_ptr<NetworkedSession> create(FPSciApp* app) {
 		return createShared<NetworkedSession>(app);
 	}

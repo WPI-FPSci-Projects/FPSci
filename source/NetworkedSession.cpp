@@ -53,13 +53,13 @@ void NetworkedSession::onInit(String filename, String description)
 
 void NetworkedSession::updateNetworkedPresentationState()
 {
-	if (currentNetworkedState == NetworkedPresentationState::initialNetworkedState) {
+	if (currentState == NetworkedPresentationState::initialNetworkedState) {
 		if (!m_player->getPlayerReady())
 			m_feedbackMessage = formatFeedback(m_config->feedback.networkedSesstionInitial);
 		else
 			m_feedbackMessage = formatFeedback(m_config->feedback.networkedSesstionWaitForOthers);
 	}
-	else if (currentNetworkedState == NetworkedPresentationState::networkedSessionStart) {
+	else if (currentState == NetworkedPresentationState::networkedSessionStart) {
 		// TODO: Experiment Session Ticks
 	}
 }
@@ -67,14 +67,14 @@ void NetworkedSession::updateNetworkedPresentationState()
 void NetworkedSession::startSession()
 {
 	sessionStarted = true;
-	currentNetworkedState = NetworkedPresentationState::networkedSessionStart;
+	currentState = NetworkedPresentationState::networkedSessionStart;
 	m_player->setPlayerMovement(true);
 	m_feedbackMessage.clear();
 }
 
 void NetworkedSession::resetSession()
 {
-	currentNetworkedState = NetworkedPresentationState::initialNetworkedState;
+	currentState = NetworkedPresentationState::initialNetworkedState;
 	m_player->setPlayerReady(false);
 	m_player->setPlayerMovement(false);
 }
