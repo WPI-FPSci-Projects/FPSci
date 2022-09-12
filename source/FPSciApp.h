@@ -158,6 +158,8 @@ protected:
 	ENetAddress m_reliableServerAddress;				///< Address of server for reliable traffic
 	ENetAddress m_unreliableServerAddress;				///< Address of server for unreliable traffic
 	GUniqueID m_playerGUID;								///< GUID for the player (used to identify the player in the network)
+	uint16 m_networkFrameNum;							///< The current frame (used to sync remote actions)
+	bool m_runningTrial = false;						///< Tracks if the trial is currently running
 	bool m_enetConnected;
 	bool m_socketConnected;
 

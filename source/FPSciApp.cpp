@@ -964,6 +964,10 @@ void FPSciApp::onAI() {
 void FPSciApp::onNetwork() {
 	GApp::onNetwork();
 
+	if (m_runningTrial) {
+		m_networkFrameNum++;
+	}
+
 	BinaryOutput output;
 	output.setEndian(G3D_BIG_ENDIAN);
 
@@ -976,6 +980,7 @@ void FPSciApp::onNetwork() {
 		// Get and serialize the players frame
 		// TODO: refactor this to move ENet code into NetworkUtils
 		output.writeUInt8(NetworkUtils::MessageType::BATCH_ENTITY_UPDATE);
+		output.writeUInt16(m_networkFrameNum);
 		output.writeUInt8(1);				// Only update the player
 		//TODO: allow for non-player entities (i.e. projectiles)?
 		NetworkUtils::createFrameUpdate(m_playerGUID, scene()->entity("player"), output);
@@ -999,6 +1004,7 @@ void FPSciApp::onNetwork() {
 		enet_address_get_host_ip(&addr_from, ip, 16);
 		BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
 		NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
+		uint16 frameNum = packet_contents.readUInt16();
 
 		/* Take a set of entity updates from the server and apply them to local entities */
 		if (type == NetworkUtils::MessageType::BATCH_ENTITY_UPDATE) {
@@ -1045,6 +1051,7 @@ void FPSciApp::onNetwork() {
 			// Pull data out of packet
 			BinaryInput packet_contents(event.packet->data, event.packet->dataLength, G3D_BIG_ENDIAN);
 			NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
+			uint16 frameNum = packet_contents.readUInt16();
 
 			/* for now, batch updates on the reliable channel are ignored.*/
 			if (type == NetworkUtils::MessageType::BATCH_ENTITY_UPDATE) {
@@ -1126,6 +1133,12 @@ void FPSciApp::onNetwork() {
 			else if (type == NetworkUtils::MessageType::RESPAWN_CLIENT) {
 				debugPrintf("Recieved a request to respawn\n");
 				scene()->typedEntity<PlayerEntity>("player")->respawn();
+			}
+
+			else if (type == NetworkUtils::MessageType::TRIAL_BEGIN) {
+				debugPrintf("Starting Networked Trial\n");
+				m_networkFrameNum = 1; // Server starts at frame 1 not frame 0
+				m_runningTrial = true;
 			}
 			enet_packet_destroy(event.packet);
 		}
@@ -1608,7 +1621,7 @@ void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
 
 	debugPrintf("HIT TARGET: %s\n", target->name().c_str());
 	if (m_serverPeer != nullptr && m_enetConnected) { // TODO DON'T SEND IF NOT NETWORKED
-		NetworkUtils::sendHitReport(GUniqueID::fromString16(target->name().c_str()), m_playerGUID, m_serverPeer);
+		NetworkUtils::sendHitReport(GUniqueID::fromString16(target->name().c_str()), m_playerGUID, m_serverPeer, m_networkFrameNum);
 		return;
 	}
 

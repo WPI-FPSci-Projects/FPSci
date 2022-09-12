@@ -79,6 +79,16 @@ void FPSciServerApp::initExperiment() {
 void FPSciServerApp::onNetwork() {
     /* None of this is from the upsteam project */
 
+    if (!m_runningTrial && m_connectedClients.size() == experimentConfig.numPlayers) {
+        debugPrintf("Sending start trial message\n");
+        NetworkUtils::broadcastTrialBegin(m_localHost);
+        m_networkFrameNum = 0;
+        m_runningTrial = true;
+    } 
+    else if (m_runningTrial) {
+        m_networkFrameNum++;
+    }
+    
     /* First we receive on the unreliable connection */
 
     ENetAddress addr_from;
@@ -92,6 +102,7 @@ void FPSciServerApp::onNetwork() {
         enet_address_get_host_ip(&addr_from, ip, 16);
         BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
         NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
+        uint16 frameNum = packet_contents.readUInt16();
 
         /* Respond to a handsake request */
         if (type == NetworkUtils::MessageType::HANDSHAKE) {
@@ -126,7 +137,8 @@ void FPSciServerApp::onNetwork() {
         else if (event.type == ENET_EVENT_TYPE_DISCONNECT) {
             debugPrintf("disconnection recieved...\n");
             logPrintf("%s disconnected.\n", ip);
-            /* Remvoes the clinet from the list of connected clients and orders all other clients to delete that entity */
+            m_runningTrial = false;
+            /* Removes the clinet from the list of connected clients and orders all other clients to delete that entity */
             for (int i = 0; i < m_connectedClients.size(); i++) {
                 if (m_connectedClients[i].peer->address.host == event.peer->address.host &&
                     m_connectedClients[i].peer->address.port == event.peer->address.port) {
@@ -136,7 +148,7 @@ void FPSciServerApp::onNetwork() {
                         scene()->remove(entity);
                     }
                     m_connectedClients.remove(i, 1);
-                    NetworkUtils::broadcastDestroyEntity(id, m_localHost);
+                    NetworkUtils::broadcastDestroyEntity(id, m_localHost, m_networkFrameNum);
                 }
             }
         }
@@ -144,6 +156,7 @@ void FPSciServerApp::onNetwork() {
 
             BinaryInput packet_contents(event.packet->data, event.packet->dataLength, G3D_BIG_ENDIAN);
             NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
+            uint16 frameNum = packet_contents.readUInt16();
 
             /* Now parse the type of message we received */
 
@@ -177,13 +190,13 @@ void FPSciServerApp::onNetwork() {
 
                 /* ADD NEW CLIENT TO OTHER CLIENTS, ADD OTHER CLIENTS TO NEW CLIENT */
 
-                NetworkUtils::broadcastCreateEntity(newClient.guid, m_localHost);
+                NetworkUtils::broadcastCreateEntity(newClient.guid, m_localHost, m_networkFrameNum);
                 debugPrintf("Sent a broadcast packet to all connected peers\n");
 
                 for (int i = 0; i < m_connectedClients.length(); i++) {
                     // Create entitys on the new client for all other clients
                     if (newClient.guid != m_connectedClients[i].guid) {
-                        NetworkUtils::sendCreateEntity(m_connectedClients[i].guid, newClient.peer);
+                        NetworkUtils::sendCreateEntity(m_connectedClients[i].guid, newClient.peer, m_networkFrameNum);
                         debugPrintf("Sent add to %s to add %s\n", newClient.guid.toString16(), m_connectedClients[i].guid.toString16());
                     }
                 }
@@ -195,11 +208,11 @@ void FPSciServerApp::onNetwork() {
                     NetworkUtils::sendSetSpawnPos(position, heading, event.peer);
                     //CFrame frame = CFrame::fromXYZYPRDegrees(-46, -2.3, 0, -90, -0, 0);
                     //NetworkUtils::sendMoveClient(frame, event.peer);
-                    NetworkUtils::sendRespawnClient(event.peer);
+                    NetworkUtils::sendRespawnClient(event.peer, m_networkFrameNum);
                 }
             }
             else if (type == NetworkUtils::MessageType::REPORT_HIT) {
-                NetworkUtils::handleHitReport(m_localHost, packet_contents);
+                NetworkUtils::handleHitReport(m_localHost, packet_contents, m_networkFrameNum);
             }
             enet_packet_destroy(event.packet);
         }
@@ -208,7 +221,7 @@ void FPSciServerApp::onNetwork() {
     /* Now we send the position of all entities to all connected clients */
     Array<shared_ptr<NetworkedEntity>> entityArray;
     scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
-    NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket);
+    NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
 }
 
 void FPSciServerApp::onInit() {
