@@ -124,46 +124,6 @@ void FPSciApp::initExperiment() {
 		// initialize variables to be reset by handshakes
 		m_enetConnected = false;
 		m_socketConnected = false;
-
-		m_pinging = true;
-
-		if (startupConfig.pingInterval > 0) {
-			m_pingInterval = startupConfig.pingInterval;
-		}
-
-		// Initialize lambdas and threads for sending and recieving pings
-		auto c2sPing = [](ENetSocket socket, ENetAddress address, int i, bool& pinging) {
-			while (pinging) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(i));
-				NetworkUtils::sendPingClient(socket, address);
-			}
-		};
-		auto pingAck = [](ENetSocket socket, long long& rtt, bool& pinging) {
-			ENetAddress addr_from;
-			ENetBuffer buff;
-			void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
-			buff.data = data;
-			buff.dataLength = ENET_HOST_DEFAULT_MTU;
-
-			while (pinging) {
-				while (enet_socket_receive(socket, &addr_from, &buff, 1)) {
-					char ip[16];
-					enet_address_get_host_ip(&addr_from, ip, 16);
-					BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
-					NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
-
-					if (type == NetworkUtils::MessageType::PING) {
-						rtt = NetworkUtils::handlePingReply(packet_contents);
-					}
-				}
-			}
-		};
-		
-		std::thread c2sPing_Th(c2sPing, m_pingSocket, m_pingServerAddress, m_pingInterval, std::ref(m_pinging));
-		c2sPing_Th.detach();
-
-		std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_RTT), std::ref(m_pinging));
-		pingAck_Th.detach();
 		
 	}
 }
@@ -1036,6 +996,52 @@ void FPSciApp::onNetwork() {
 		// Send the serialized frame to the server
 		if (enet_socket_send(m_unreliableSocket, &m_unreliableServerAddress, &enet_buff, 1) <= 0) {
 			logPrintf("Failed to send a packet to the server\n");
+		}
+
+		// Begin pinging once connected
+		if (!m_startedPinging) {
+			m_pinging = true;
+
+			if (startupConfig.pingInterval > 0) {
+				m_pingInterval = startupConfig.pingInterval;
+			}
+
+			// Initialize lambdas and threads for sending and recieving pings
+			auto c2sPing = [](ENetSocket socket, ENetAddress address, int i, bool& pinging) {
+				while (pinging) {
+					std::this_thread::sleep_for(std::chrono::milliseconds(i));
+					NetworkUtils::sendPingClient(socket, address);
+				}
+			};
+			auto pingAck = [](ENetSocket socket, long long& rtt, bool& pinging) {
+				ENetAddress addr_from;
+				ENetBuffer buff;
+				void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
+				buff.data = data;
+				buff.dataLength = ENET_HOST_DEFAULT_MTU;
+
+				while (pinging) {
+					while (enet_socket_receive(socket, &addr_from, &buff, 1)) {
+						char ip[16];
+						enet_address_get_host_ip(&addr_from, ip, 16);
+						BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
+						NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
+
+						if (type == NetworkUtils::MessageType::PING) {
+							rtt = NetworkUtils::handlePingReply(packet_contents);
+						}
+					}
+				}
+			};
+
+			std::thread c2sPing_Th(c2sPing, m_pingSocket, m_pingServerAddress, m_pingInterval, std::ref(m_pinging));
+			c2sPing_Th.detach();
+
+			std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_RTT), std::ref(m_pinging));
+			pingAck_Th.detach();
+
+			debugPrintf("Initialized ping threads\n");
+			m_startedPinging = true;
 		}
 		
 	}
