@@ -107,6 +107,12 @@ void FPSciApp::initExperiment() {
 		m_unreliableSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
 		enet_socket_set_option(m_unreliableSocket, ENET_SOCKOPT_NONBLOCK, 1); //Set socket to non-blocking
 
+		// Ping socket setup
+		enet_address_set_host(&m_pingServerAddress, experimentConfig.serverAddress.c_str());
+		m_pingServerAddress.port = experimentConfig.serverPort + 2;
+		m_pingSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+		enet_socket_set_option(m_pingSocket, ENET_SOCKOPT_NONBLOCK, 1);
+
 		try {
 			m_playerGUID = GUniqueID::create();
 		}
@@ -152,13 +158,13 @@ void FPSciApp::initExperiment() {
 				}
 			}
 		};
-
-		std::thread c2sPing_Th(c2sPing, m_unreliableSocket, m_unreliableServerAddress, m_pingInterval, std::ref(m_pinging));
+		
+		std::thread c2sPing_Th(c2sPing, m_pingSocket, m_pingServerAddress, m_pingInterval, std::ref(m_pinging));
 		c2sPing_Th.detach();
 
-		std::thread pingAck_Th(pingAck, m_unreliableSocket, std::ref(m_RTT), std::ref(m_pinging));
+		std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_RTT), std::ref(m_pinging));
 		pingAck_Th.detach();
-
+		
 	}
 }
 
@@ -1012,6 +1018,8 @@ void FPSciApp::onNetwork() {
 
 	if (!m_socketConnected) {
 		NetworkUtils::sendHandshake(m_unreliableSocket, m_unreliableServerAddress);
+		// Same address as for other packets, just different port
+		NetworkUtils::sendHandshake(m_pingSocket, m_pingServerAddress);
 	}
 
 	// wait to send updates until we're sure we're connected

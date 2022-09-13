@@ -161,6 +161,8 @@ protected:
 	bool m_enetConnected;
 	bool m_socketConnected;
 
+	ENetSocket m_pingSocket = NULL;						///< Socket for sending ping packets separated from other packets
+	ENetAddress m_pingServerAddress;					///< Address reserved for ping packets
 	bool m_pinging = false;								///< Boolean determining if c2s ping sending and recieving threads should continue running
 	int m_pingInterval = 1000;							///< Interval variable (in ms) during which the client sends ping packets
 	long long m_RTT = -1;								///< RTT / Ping
