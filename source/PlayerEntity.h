@@ -27,9 +27,21 @@ protected:
 	float			m_lastJumpVelocity;
 	float			m_health = 1.0f;					///< Player health storage
 
+    float           m_walkSpeed;                        ///< Players movement speed
+
+    bool            m_gettingMovementInput;             ///< Is getting movement input from user?
+    bool            m_headBobPolarity;                  ///< Is head moving up/down?
+    float           m_headBobCurrentHeight;             ///< Headbob current that gets added to camera y
+
 	bool			m_inContact = false;				///< Is the player in contact w/ anything?
 	bool			m_motionEnable = true;				///< Flag to disable player motion
 	bool			m_jumpPressed = false;				///< Indicates whether jump buton was pressed
+
+    bool            m_sprinting = false;                ///< Is the player sprinting?
+
+    Vector3         m_linearVector;                     ///< Vector for movement
+    Vector3         m_lastDirection;                    ///< Holds players last heading
+    float           m_acceleratedVelocity;              ///< Velocity after adding acceleration
 
     bool            m_PlayerReady = false;            ///< Indicates if the player is ready for play or not
     bool            m_PlayerMovement = false;         ///< Indicates if the player can move or not
@@ -54,12 +66,22 @@ public:
 	Vector2*		moveScale = nullptr;	    ///< Player X/Y movement scale vector (interpreted as unit vector)
 	Array<bool>*	axisLock = nullptr;		    ///< World-space axis lock
 	
+    bool* accelerationEnabled = nullptr;        ///< Checks if acceleration/deceleration is enabled or not
+    float* movementAcceleration = nullptr;      ///< Players rate of acceletion during movement
+    float* movementDeceleration = nullptr;      ///< Players rate of deceleration while stopping movement
+
+    float* sprintMultiplier = nullptr;          ///< Sprint speed multiplier
+
 	float*			jumpVelocity = nullptr;		///< Player vertical (+Y) jump velocity
 	float*			jumpInterval = nullptr;		///< Player minimum jump interval limit
 	bool*			jumpTouch = nullptr;	    ///< Require contact for jump?
 
 	float*			height = nullptr;			///< Player height when standing
 	float*			crouchHeight = nullptr;		///< Player height when crouched
+
+    bool* headBobEnabled = nullptr;   ///< Checks if headbob is enabled or not
+    float* headBobAmplitude = nullptr; ///< Players headbob motion amplitude
+    float* headBobFrequency = nullptr; ///< Players headbob motion frequency
 
     /** \brief Computes all triangles that could be hit during a
         slideMove with the current \a velocity, allowing that the
@@ -101,7 +123,12 @@ public:
 	const CFrame getCameraFrame() const {
 		CFrame f = frame();
         if (notNull(height)) {
-            f.translation += Point3(0.0f, heightOffset(m_crouched ? *crouchHeight : *height), 0.0f);
+            if (*headBobEnabled) {
+                f.translation += Point3(0.0f, heightOffset(m_crouched ? *crouchHeight : *height) + m_headBobCurrentHeight, 0.0f);
+            }
+            else {
+                f.translation += Point3(0.0f, heightOffset(m_crouched ? *crouchHeight : *height), 0.0f);
+            }
         }
 		return f;
 	}
@@ -132,6 +159,7 @@ public:
 	float health(void) { return m_health; }
     /** In radians... not used for rendering, use for first-person cameras */
     float headTilt() const { return m_headTilt; }
+    void setSprintPressed(bool sprinting) { m_sprinting = sprinting; };
     float heading() const { return m_headingRadians;  }
     float respawnHeadingDeg() const { return m_spawnHeadingRadians * 180 / pif(); }
 
