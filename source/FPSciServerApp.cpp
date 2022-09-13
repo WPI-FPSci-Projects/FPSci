@@ -78,7 +78,18 @@ void FPSciServerApp::initExperiment() {
     // Add separate socket for ping
     m_pingSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
     enet_socket_set_option(m_pingSocket, ENET_SOCKOPT_NONBLOCK, 1);
-    localAddress.port += 1;
+    // Check if the ping port is not already used
+    if (experimentConfig.pingPort != experimentConfig.serverPort && 
+        experimentConfig.pingPort != experimentConfig.serverPort + 1) {
+        localAddress.port = experimentConfig.pingPort;
+    }
+    else {
+        experimentConfig.pingPort == experimentConfig.serverPort + 1 ?
+        localAddress.port = experimentConfig.pingPort + 1 :
+        localAddress.port = experimentConfig.pingPort + 2;
+        logPrintf("Ping: port %d is already in use, opening up port %d for pinging\n", experimentConfig.pingPort, localAddress.port);
+    }
+
     if (enet_socket_bind(m_pingSocket, &localAddress)) {
         debugPrintf("bind failed with error: %d\n", WSAGetLastError());
         throw std::runtime_error("Could not bind ping to the local address");

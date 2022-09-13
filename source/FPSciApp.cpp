@@ -109,7 +109,17 @@ void FPSciApp::initExperiment() {
 
 		// Ping socket setup
 		enet_address_set_host(&m_pingServerAddress, experimentConfig.serverAddress.c_str());
-		m_pingServerAddress.port = experimentConfig.serverPort + 2;
+		// Check if the ping port is not already used
+		if (experimentConfig.pingPort != experimentConfig.serverPort &&
+			experimentConfig.pingPort != experimentConfig.serverPort + 1) {
+			m_pingServerAddress.port = experimentConfig.pingPort;
+		}
+		else {
+			experimentConfig.pingPort == experimentConfig.serverPort + 1 ?
+			m_pingServerAddress.port = experimentConfig.pingPort + 1 :
+			m_pingServerAddress.port = experimentConfig.pingPort + 2;
+			debugPrintf("Ping: port %d is already in use, using port %d for pinging\n", experimentConfig.pingPort, m_pingServerAddress.port);
+		}
 		m_pingSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
 		enet_socket_set_option(m_pingSocket, ENET_SOCKOPT_NONBLOCK, 1);
 
