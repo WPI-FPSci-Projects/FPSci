@@ -2,6 +2,7 @@
 #include "FPSciServerApp.h"
 #include "PhysicsScene.h"
 #include "WaypointManager.h"
+#include "NetworkedSession.h"
 #include <Windows.h>
 
 FPSciServerApp::FPSciServerApp(const GApp::Settings& settings) : FPSciApp(settings) {}
@@ -75,6 +76,8 @@ void FPSciServerApp::initExperiment() {
     }
 
     debugPrintf("Began listening\n");
+
+    static_cast<NetworkedSession*>(sess.get())->startSession(); // Set player as ready for the server player.
 }
 
 void FPSciServerApp::onNetwork() {

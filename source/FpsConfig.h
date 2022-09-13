@@ -79,6 +79,8 @@ public:
 	bool			accelerationEnabled = false;				///< Enables/Disables the acceleration/deceleration functionality (default is false (disabled))
 	float			movementAcceleration = 12.0f;				///< Player acceleration during movement (defaults to 12.0)
 	float			movementDeceleration = 22.0f;				///< Player deceleration while stopping (defaults to 12.0)
+	bool			lockPlayerX = false;						///< Locks input for players X axis. (disabled by default)
+	bool			lockPlayerZ = false;						///< Locks input for players Z axis. (disabled by default)
 
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;

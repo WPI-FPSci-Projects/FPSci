@@ -60,7 +60,7 @@ protected:
 
 public:
 	float			m_cameraRadiansPerMouseDot;		///< Player mouse sensitivity
-	Vector2			turnScale;				///< Player asymmetric mouse scaler - typically near 1:1
+	Vector2			turnScale;				    ///< Player asymmetric mouse scaler - typically near 1:1
 
 	float*			moveRate = nullptr;	        ///< Player movement rate (m/s)
 	Vector2*		moveScale = nullptr;	    ///< Player X/Y movement scale vector (interpreted as unit vector)
@@ -79,9 +79,12 @@ public:
 	float*			height = nullptr;			///< Player height when standing
 	float*			crouchHeight = nullptr;		///< Player height when crouched
 
-    bool* headBobEnabled = nullptr;   ///< Checks if headbob is enabled or not
-    float* headBobAmplitude = nullptr; ///< Players headbob motion amplitude
-    float* headBobFrequency = nullptr; ///< Players headbob motion frequency
+    bool*  headBobEnabled = nullptr;             ///< Checks if headbob is enabled or not
+    float* headBobAmplitude = nullptr;          ///< Players headbob motion amplitude
+    float* headBobFrequency = nullptr;          ///< Players headbob motion frequency
+
+    bool* lockPlayerX = nullptr;	            ///< Player movement locked for X axis?
+    bool* lockPlayerZ = nullptr;	            ///< Player movement locked for Z axis?
 
     /** \brief Computes all triangles that could be hit during a
         slideMove with the current \a velocity, allowing that the

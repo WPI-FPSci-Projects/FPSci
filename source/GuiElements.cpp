@@ -175,6 +175,16 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 		c->setWidth(width*0.95f);
 	}movePane->endRow();
 	movePane->beginRow(); {
+		auto c = movePane->addCheckBox("Lock Player X Axis Movement?", &(config.player.lockPlayerX));
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addCheckBox("Lock Player Z Axis Movement?", &(config.player.lockPlayerZ));
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
 		auto c = movePane->addCheckBox("Use Acceleration?", &(config.player.accelerationEnabled));
 		c->setCaptionWidth(width / 2);
 		c->setWidth(width * 0.95f);
