@@ -727,8 +727,6 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->headBobEnabled = &sessConfig->player.headBobEnabled;
 	player->headBobAmplitude = &sessConfig->player.headBobAmplitude;
 	player->headBobFrequency = &sessConfig->player.headBobFrequency;
-	player->lockPlayerX = &sessConfig->player.lockPlayerX;
-	player->lockPlayerZ = &sessConfig->player.lockPlayerZ;
 	player->accelerationEnabled = &sessConfig->player.accelerationEnabled;
 	player->movementAcceleration = &sessConfig->player.movementAcceleration;
 	player->movementDeceleration = &sessConfig->player.movementDeceleration;

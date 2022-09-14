@@ -102,14 +102,14 @@ void PlayerEntity::updateFromInput(UserInput* ui) {
 		m_walkSpeed = *moveRate * *sprintMultiplier * units::meters() / units::seconds();
 	}
 
-	if (*lockPlayerX){
-		m_linearVector = Vector3(0, 0, -ui->getY() * moveScale->y);
+	if ((*axisLock)[0] && (*axisLock)[2]){
+		m_linearVector = Vector3(0, 0, 0);
 	}
-	else if (*lockPlayerZ) {
+	else if ((*axisLock)[0]) {
 		m_linearVector = Vector3(ui->getX() * moveScale->x, 0, 0);
 	}
-	else if(*lockPlayerZ && *lockPlayerZ){
-		m_linearVector = Vector3(0, 0, 0);
+	else if ((*axisLock)[2]) {
+		m_linearVector = Vector3(0, 0, -ui->getY() * moveScale->y);
 	}
 	else {
 		m_linearVector = Vector3(ui->getX() * moveScale->x, 0, -ui->getY() * moveScale->y);

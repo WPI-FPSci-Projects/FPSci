@@ -83,9 +83,6 @@ public:
     float* headBobAmplitude = nullptr;          ///< Players headbob motion amplitude
     float* headBobFrequency = nullptr;          ///< Players headbob motion frequency
 
-    bool* lockPlayerX = nullptr;	            ///< Player movement locked for X axis?
-    bool* lockPlayerZ = nullptr;	            ///< Player movement locked for Z axis?
-
     /** \brief Computes all triangles that could be hit during a
         slideMove with the current \a velocity, allowing that the
         velocity may be decreased along some axes during movement.
