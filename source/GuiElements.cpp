@@ -63,7 +63,6 @@ WaypointDisplay::WaypointDisplay(FPSciApp* app, const shared_ptr<GuiTheme>& them
 {
 	// Store the app pointer 
 	m_app = app;
-
 	// Create a pane
 	GuiPane* pane = GuiWindow::pane();
 
@@ -154,6 +153,7 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 	const shared_ptr<GuiTheme>& theme, float width, float height) :
 	GuiWindow("Player Controls", theme, Rect2D::xywh(5, 5, width, height), GuiTheme::NORMAL_WINDOW_STYLE, GuiWindow::HIDE_ON_CLOSE)
 {
+
 	// Create the GUI pane
 	GuiPane* pane = GuiWindow::pane();
 	auto heightPane = pane->addPane("Height");
@@ -239,7 +239,24 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 	positionPane->beginRow(); {
 		positionPane->addButton("Set Start Position", exportCallback);
 	} positionPane->endRow();
-
+	positionPane->beginRow(); {
+		auto c = positionPane->addNumberBox("Respawn X", &(config.player.respawnPos.x), "", GuiTheme::LINEAR_SLIDER, -1000.0f, 1000.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	} positionPane->endRow();
+	positionPane->beginRow(); {
+		auto c = positionPane->addNumberBox("Respawn Y", &(config.player.respawnPos.y), "", GuiTheme::LINEAR_SLIDER, -1000.0f, 1000.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	} positionPane->endRow();
+	positionPane->beginRow(); {
+		auto c = positionPane->addNumberBox("Respawn Z", &(config.player.respawnPos.z), "", GuiTheme::LINEAR_SLIDER, -1000.0f, 1000.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	} positionPane->endRow();
+	positionPane->beginRow(); {
+		positionPane->addCheckBox("Respawn Player Now?", &(config.player.respawnToPos));
+	} positionPane->endRow();
 	pack();
 	moveTo(Vector2(440, 300));
 }

@@ -79,6 +79,8 @@ public:
 	bool			accelerationEnabled = false;				///< Enables/Disables the acceleration/deceleration functionality (default is false (disabled))
 	float			movementAcceleration = 12.0f;				///< Player acceleration during movement (defaults to 12.0)
 	float			movementDeceleration = 22.0f;				///< Player deceleration while stopping (defaults to 12.0)
+	Point3			respawnPos = Point3(-46.0f, -2.3f, 0.0f);	///< Player respawn position (defualts to -46, -2.3, 0)
+	bool			respawnToPos = false;						///< If true, player will respawn to respawnPos. (defaults to false)
 
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;

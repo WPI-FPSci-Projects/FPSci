@@ -79,9 +79,12 @@ public:
 	float*			height = nullptr;			///< Player height when standing
 	float*			crouchHeight = nullptr;		///< Player height when crouched
 
-    bool*  headBobEnabled = nullptr;             ///< Checks if headbob is enabled or not
+    bool*  headBobEnabled = nullptr;            ///< Checks if headbob is enabled or not
     float* headBobAmplitude = nullptr;          ///< Players headbob motion amplitude
     float* headBobFrequency = nullptr;          ///< Players headbob motion frequency
+
+    Point3* respawnPos = nullptr;              ///< Holds position for player Spawn
+    bool* respawnToPos = nullptr;              ///< Respawns the player if true
 
     /** \brief Computes all triangles that could be hit during a
         slideMove with the current \a velocity, allowing that the

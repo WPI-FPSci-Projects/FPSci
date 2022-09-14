@@ -229,6 +229,12 @@ void PlayerEntity::onSimulation(SimTime absoluteTime, SimTime deltaTime) {
 	setDesiredOSVelocity(m_linearVector);
 
 	m_gettingMovementInput = false;
+
+	if (respawnToPos != nullptr && *respawnToPos) {
+		setRespawnPosition(*respawnPos);
+		respawn();
+		*respawnToPos = false;
+	}
 }
 
 void PlayerEntity::getConservativeCollisionTris(Array<Tri>& triArray, const Vector3& velocity, float deltaTime) const {
