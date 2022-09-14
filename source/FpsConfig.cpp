@@ -196,6 +196,9 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("playerAxisLock", axisLock);
 		reader.getIfPresent("disablePlayerMotionBetweenTrials", stillBetweenTrials);
 		reader.getIfPresent("resetPlayerPositionBetweenTrials", resetPositionPerTrial);
+		reader.getIfPresent("movementRestrictionX", movementRestrictionX);
+		reader.getIfPresent("movementRestrictionZ", movementRestrictionZ);
+		reader.getIfPresent("restrictedMovementEnabled", restrictedMovementEnabled);
 		break;
 	default:
 		throw format("Did not recognize settings version: %d", settingsVersion);

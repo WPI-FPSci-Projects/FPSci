@@ -81,6 +81,9 @@ public:
 	float			movementDeceleration = 22.0f;				///< Player deceleration while stopping (defaults to 12.0)
 	Point3			respawnPos = Point3(-46.0f, -2.3f, 0.0f);	///< Player respawn position (defualts to -46, -2.3, 0)
 	bool			respawnToPos = false;						///< If true, player will respawn to respawnPos. (defaults to false)
+	float			movementRestrictionX = 5.0f;				///< Player's restricted movement span along X
+	float			movementRestrictionZ = 5.0f;				///< Player's restricted movement span along Z
+	bool			restrictedMovementEnabled = false;			///< if true players movement will be restricted along X and Z
 
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;

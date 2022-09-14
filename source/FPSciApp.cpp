@@ -739,6 +739,9 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->jumpTouch = &sessConfig->player.jumpTouch;
 	player->height = &sessConfig->player.height;
 	player->crouchHeight = &sessConfig->player.crouchHeight;
+	player->movementRestrictionX = &sessConfig->player.movementRestrictionX;
+	player->movementRestrictionZ = &sessConfig->player.movementRestrictionX;
+	player->restrictedMovementEnabled = &sessConfig->player.restrictedMovementEnabled;
 
 	// Respawn player
 	player->respawn();

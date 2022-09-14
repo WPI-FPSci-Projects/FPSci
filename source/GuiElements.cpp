@@ -205,6 +205,21 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 		c->setWidth(width * 0.95f);
 	}movePane->endRow();
 	movePane->beginRow(); {
+		auto c = movePane->addCheckBox("Restrict Movement?", &(config.player.restrictedMovementEnabled));
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addNumberBox("Movement Span Over X", &(config.player.movementRestrictionX), "m", GuiTheme::LINEAR_SLIDER, 0.0f, 1000.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addNumberBox("Movement Span Over Z", &(config.player.movementRestrictionZ), "m", GuiTheme::LINEAR_SLIDER, 0.0f, 1000.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
 		auto c = movePane->addCheckBox("Use Headbob?", &(config.player.headBobEnabled));
 		c->setCaptionWidth(width / 2);
 		c->setWidth(width * 0.95f);

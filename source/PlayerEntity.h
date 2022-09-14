@@ -46,6 +46,8 @@ protected:
     bool            m_PlayerReady = false;            ///< Indicates if the player is ready for play or not
     bool            m_PlayerMovement = false;         ///< Indicates if the player can move or not
 
+    Point3          m_PlayersRestrictedMovementCenterPos; ///< Indicates the center ponint from which restricted movement will be applied
+
     PlayerEntity() {}
 
 #ifdef G3D_OSX
@@ -85,6 +87,10 @@ public:
 
     Point3* respawnPos = nullptr;              ///< Holds position for player Spawn
     bool* respawnToPos = nullptr;              ///< Respawns the player if true
+
+    float* movementRestrictionX;               ///< Holds the X distance of how far player can go when restricted movement is enabled.
+    float* movementRestrictionZ;               ///< Holds the Z distance of how far player can go when restricted movement is enabled.
+    bool* restrictedMovementEnabled;           ///< Checks if restricted movement is enabled or not
 
     /** \brief Computes all triangles that could be hit during a
         slideMove with the current \a velocity, allowing that the

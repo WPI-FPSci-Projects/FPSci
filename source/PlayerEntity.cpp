@@ -144,10 +144,10 @@ void PlayerEntity::updateFromInput(UserInput* ui) {
 /** Maximum coordinate values for the player ship */
 void PlayerEntity::onSimulation(SimTime absoluteTime, SimTime deltaTime) {
 	// Do not call Entity::onSimulation; that will override with spline animation
-    if (! isNaN(deltaTime) && (deltaTime > 0)) {
-        m_previousFrame = m_frame;
-    }
-    simulatePose(absoluteTime, deltaTime);
+	if (!isNaN(deltaTime) && (deltaTime > 0)) {
+		m_previousFrame = m_frame;
+	}
+	simulatePose(absoluteTime, deltaTime);
 
 	if (!isNaN(deltaTime)) {
 		// Apply rotation first
@@ -157,12 +157,12 @@ void PlayerEntity::onSimulation(SimTime absoluteTime, SimTime deltaTime) {
 		m_headTilt = clamp(m_headTilt, -89.9f * units::degrees(), 89.9f * units::degrees());	// Keep the user's head tilt to <90°
 		// Set player frame rotation based on the heading and tilt
 		m_frame.rotation = Matrix3::fromAxisAngle(Vector3::unitY(), -m_headingRadians) * Matrix3::fromAxisAngle(Vector3::unitX(), m_headTilt);
-		
+
 		// Translation update - in direction after rotating
 		if (m_motionEnable) {
 			m_inContact = slideMove(deltaTime);
 		}
-		
+
 		// Check for "off map" condition and reset position here...
 		if (!isNaN(m_respawnHeight) && m_frame.translation.y < m_respawnHeight) {
 			respawn();
@@ -225,9 +225,6 @@ void PlayerEntity::onSimulation(SimTime absoluteTime, SimTime deltaTime) {
 		m_headBobCurrentHeight = lerp(m_headBobCurrentHeight, 0, *headBobFrequency * deltaTime);
 	}
 
-	//Set Players Translation velocity
-	setDesiredOSVelocity(m_linearVector);
-
 	m_gettingMovementInput = false;
 
 	if (respawnToPos != nullptr && *respawnToPos) {
@@ -235,6 +232,29 @@ void PlayerEntity::onSimulation(SimTime absoluteTime, SimTime deltaTime) {
 		respawn();
 		*respawnToPos = false;
 	}
+
+	if (restrictedMovementEnabled != nullptr && *restrictedMovementEnabled){
+		if ((m_PlayersRestrictedMovementCenterPos.x - m_frame.translation.x) >= ((*movementRestrictionX / 2.0f) + 0.01f)) {
+			m_frame.translation.x = m_PlayersRestrictedMovementCenterPos.x - *movementRestrictionX / 2.0f;
+		}
+		if ((m_PlayersRestrictedMovementCenterPos.x - m_frame.translation.x) <= ((-*movementRestrictionX / 2.0f) - 0.01f)) {
+			m_frame.translation.x = m_PlayersRestrictedMovementCenterPos.x + *movementRestrictionX / 2.0f;
+		}
+		if ((m_PlayersRestrictedMovementCenterPos.z - m_frame.translation.z) >= ((*movementRestrictionZ / 2.0f) + 0.01f)) {
+			m_frame.translation.z = m_PlayersRestrictedMovementCenterPos.z - *movementRestrictionZ / 2.0f;
+		}
+		if ((m_PlayersRestrictedMovementCenterPos.z - m_frame.translation.z) <= ((-*movementRestrictionZ / 2.0f) - 0.01f)) {
+			m_frame.translation.z = m_PlayersRestrictedMovementCenterPos.z + *movementRestrictionZ / 2.0f;
+		}
+	}
+	else if (restrictedMovementEnabled != nullptr && !*restrictedMovementEnabled) {
+		m_PlayersRestrictedMovementCenterPos = m_frame.translation;
+	}
+	debugPrintf("CENTER POS %lf %lf %lf\n", m_PlayersRestrictedMovementCenterPos.x, m_PlayersRestrictedMovementCenterPos.y, m_PlayersRestrictedMovementCenterPos.z);
+	debugPrintf("CURRENT POS %lf %lf %lf\n", m_frame.translation.x, m_frame.translation.y, m_frame.translation.z);
+	debugPrintf("LINEAR IP VECTOR %lf %lf %lf\n", m_linearVector.x, m_linearVector.y, m_linearVector.z);
+	//Set Players Translation velocity
+	setDesiredOSVelocity(m_linearVector);
 }
 
 void PlayerEntity::getConservativeCollisionTris(Array<Tri>& triArray, const Vector3& velocity, float deltaTime) const {
