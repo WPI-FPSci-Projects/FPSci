@@ -723,6 +723,15 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 
 	// Set player values from session config
 	player->moveRate = &sessConfig->player.moveRate;
+	player->sprintMultiplier = &sessConfig->player.sprintMultiplier;
+	player->headBobEnabled = &sessConfig->player.headBobEnabled;
+	player->headBobAmplitude = &sessConfig->player.headBobAmplitude;
+	player->headBobFrequency = &sessConfig->player.headBobFrequency;
+	player->respawnPos = &sessConfig->player.respawnPos;
+	player->respawnToPos = &sessConfig->player.respawnToPos;
+	player->accelerationEnabled = &sessConfig->player.accelerationEnabled;
+	player->movementAcceleration = &sessConfig->player.movementAcceleration;
+	player->movementDeceleration = &sessConfig->player.movementDeceleration;
 	player->moveScale = &sessConfig->player.moveScale;
 	player->axisLock = &sessConfig->player.axisLock;
 	player->jumpVelocity = &sessConfig->player.jumpVelocity;
@@ -730,6 +739,10 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->jumpTouch = &sessConfig->player.jumpTouch;
 	player->height = &sessConfig->player.height;
 	player->crouchHeight = &sessConfig->player.crouchHeight;
+	player->movementRestrictionX = &sessConfig->player.movementRestrictionX;
+	player->movementRestrictionZ = &sessConfig->player.movementRestrictionZ;
+	player->restrictedMovementEnabled = &sessConfig->player.restrictedMovementEnabled;
+	player->counterStrafing = &sessConfig->player.counterStrafing;
 
 	// Respawn player
 	player->respawn();
@@ -1515,6 +1528,10 @@ bool FPSciApp::onEvent(const GEvent& event) {
 				scene()->typedEntity<PlayerEntity>("player")->setJumpPressed(true);
 				foundKey = true;
 			}
+			else if (keyMap.map["sprint"].contains(ksym)) {
+				scene()->typedEntity<PlayerEntity>("player")->setSprintPressed(true);
+				foundKey = true;
+			}
 		}
 	}
 	else if ((event.type == GEventType::KEY_UP))
@@ -1524,6 +1541,10 @@ bool FPSciApp::onEvent(const GEvent& event) {
 			if (keyMap.map["crouch"].contains(ksym))
 			{
 				scene()->typedEntity<PlayerEntity>("player")->setCrouched(false);
+				foundKey = true;
+			}
+			else if (keyMap.map["sprint"].contains(ksym)) {
+				scene()->typedEntity<PlayerEntity>("player")->setSprintPressed(false);
 				foundKey = true;
 			}
 		}

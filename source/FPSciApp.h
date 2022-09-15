@@ -12,7 +12,6 @@
 #include <G3D/G3D.h>
 #include <combaseapi.h>
 #include "NetworkUtils.h"
-
 #include "ExperimentConfig.h"
 #include "StartupConfig.h"
 #include "KeyMapping.h"
