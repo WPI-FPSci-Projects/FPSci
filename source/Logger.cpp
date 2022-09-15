@@ -1,5 +1,6 @@
 #include "Logger.h"
 #include "Session.h"
+#include "NetworkedSession.h"
 #include "FPSciApp.h"
 
 // TODO: Replace with the G3D timestamp uses.
@@ -62,6 +63,7 @@ void FPSciLogger::initResultsFile(const String& filename,
 		createFrameInfoTable();
 		createQuestionsTable();
 		createUsersTable();
+		createNetworkedClientTable();
 	}
 
 	// Add the session info to the sessions table
@@ -422,6 +424,56 @@ void FPSciLogger::logUserConfig(const UserConfig& user, const String& sessId, co
 	m_users.append(row);
 }
 
+void FPSciLogger::createNetworkedClientTable() {
+	// Player_Action table
+	Columns clientColumns = {
+		{ "time", "text" },
+		{ "server_frame", "real"},
+		{ "client_frame", "real"},
+		{ "position_az", "real" },
+		{ "position_el", "real" },
+		{ "position_x", "real"},
+		{ "position_y", "real"},
+		{ "position_z", "real"},
+		{ "state", "text"},
+		{ "event", "text" },
+		{ "player_id", "text" },
+	};
+	createTableInDB(m_db, "Client_States", clientColumns);
+}
+
+void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) {
+	Array<RowEntry> rows;
+	for (NetworkedClient client : clients) {
+		String stateStr = presentationStateToString(client.state);
+
+		String actionStr = "";
+		switch (client.action) {
+		case FireCooldown: actionStr = "fireCooldown"; break;
+		case Aim: actionStr = "aim"; break;
+		case Miss: actionStr = "miss"; break;
+		case Hit: actionStr = "hit"; break;
+		case Destroy: actionStr = "destroy"; break;
+		}
+
+		Array<String> networkedClientValues = {
+		"'" + FPSciLogger::formatFileTime(client.time) + "'",
+		String(std::to_string(client.serverFrame)),
+		String(std::to_string(client.clientFrame)),
+		String(std::to_string(client.viewDirection.x)),
+		String(std::to_string(client.viewDirection.y)),
+		String(std::to_string(client.position.x)),
+		String(std::to_string(client.position.y)),
+		String(std::to_string(client.position.z)),
+		"'" + stateStr + "'",
+		"'" + actionStr + "'",
+		"'" + client.playerID.toString16() + "'",
+		};
+		rows.append(networkedClientValues);
+	}
+	insertRowsIntoDB(m_db, "Client_States", rows);
+}
+
 void FPSciLogger::loggerThreadEntry()
 {
 	std::unique_lock<std::mutex> lk(m_queueMutex);
@@ -462,12 +514,18 @@ void FPSciLogger::loggerThreadEntry()
 		users.swap(m_users, users);
 		m_users.reserve(users.size() * 2);
 
+		decltype(m_networkedClients) networkedClients;
+		networkedClients.swap(m_networkedClients, networkedClients);
+		m_networkedClients.reserve(m_networkedClients.size() * 2);
+
 		// Unlock all the now-empty queues and write out our temporary copies
 		lk.unlock();
 
 		recordFrameInfo(frameInfo);
 		recordPlayerActions(playerActions);
 		recordTargetLocations(targetLocations);
+
+		recordNetworkedClients(networkedClients);
 
 		insertRowsIntoDB(m_db, "Questions", questions);
 		insertRowsIntoDB(m_db, "Targets", targets);
@@ -488,6 +546,8 @@ FPSciLogger::FPSciLogger(const String& filename,
 	// Reserve some space in these arrays here
 	m_playerActions.reserve(5000);
 	m_targetLocations.reserve(5000);
+
+	m_networkedClients.reserve(5000);
 	
 	// Create the results file
 	initResultsFile(filename, subjectID, expConfigFilename, sessConfig, description);

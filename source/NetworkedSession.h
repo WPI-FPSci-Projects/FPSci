@@ -32,6 +32,37 @@
 #include <ctime>
 #include "Session.h"
 
+/* Data storage object for Logging purposes*/
+struct NetworkedClient {
+	FILETIME	time;
+	Point2		viewDirection = Point2::zero();
+	Point3		position = Point3::zero();
+	GUniqueID	playerID = GUniqueID::NONE(0);
+	uint32		serverFrame = 0;
+	uint32		clientFrame = 0;
+	PresentationState	state;
+	PlayerActionType	action = PlayerActionType::None;
+
+	NetworkedClient() {};
+
+	NetworkedClient(FILETIME t, Point2 playerViewDirection, Point3 playerPosition, PresentationState trialState, PlayerActionType playerAction, GUniqueID id, uint32 server_frame, uint32 client_frame) {
+		time = t;
+		viewDirection = playerViewDirection;
+		position = playerPosition;
+		action = playerAction;
+		state = trialState;
+		clientFrame = client_frame;
+		serverFrame = server_frame;
+		playerID = id;
+	}
+
+	inline bool noChangeFrom(const NetworkedClient& other) const {
+		return viewDirection == other.viewDirection && position == other.position && action == other.action && state == other.state && playerID == other.playerID;
+	}
+
+};
+
+
 class NetworkedSession : public Session {
 protected:
 	NetworkedSession(FPSciApp* app) : Session(app) {}

@@ -43,9 +43,33 @@ void NetworkedSession::addHittableTarget(shared_ptr<TargetEntity> target) {
 void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 {
 	//TODO: Networked Ticks
+	Array<shared_ptr<NetworkedEntity>> entityArray;
+	m_app->scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
+	for (std::shared_ptr<NetworkedEntity> client : entityArray) {
+		Point2 dir = Point2();//client->frame().rotation;
+		Point3 loc = client->frame().translation;
+		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, currentState, PlayerActionType::None, GUniqueID::fromString16(client->name()), m_app->m_frameNumber, 3);
+		logger->logNetworkedClient(nc);
+		debugPrintf("Logged...");
+	}
+	
 }
 
 void NetworkedSession::onInit(String filename, String description)
 {
 	//TODO: Networked Init
+	m_player = m_app->scene()->typedEntity<PlayerEntity>("player");
+	m_scene = m_app->scene().get();
+	m_camera = m_app->activeCamera();
+
+	if (m_config->logger.enable) {
+		UserConfig user = *m_app->currentUser();
+		// Setup the logger and create results file
+		logger = FPSciLogger::create(filename + "-net" + ".db", user.id,
+			m_app->startupConfig.experimentList[m_app->experimentIdx].experimentConfigFilename,
+			m_config, description);
+		logger->logTargetTypes(m_app->experimentConfig.getSessionTargets(m_config->id));			// Log target info at start of session
+		logger->logUserConfig(user, m_config->id, m_config->player.turnScale);						// Log user info at start of session
+		m_dbFilename = filename;
+	}
 }

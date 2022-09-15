@@ -3,6 +3,7 @@
 #include "sqlHelpers.h"
 #include "UserConfig.h"
 #include "Session.h"
+#include "NetworkedSession.h"
 #include "Dialogs.h"
 
 using RowEntry = Array<String>;
@@ -11,6 +12,7 @@ using Columns = Array<Array<String>>;
 struct TargetLocation;
 struct PlayerAction;
 struct FrameInfo;
+struct NetworkedClient;
 
 template<typename ItemType> static size_t queueBytes(Array<ItemType>& queue)
 {
@@ -53,6 +55,7 @@ protected:
 	Array<TargetInfo> m_targets;
 	Array<TrialValues> m_trials;						///< Trial ID, start/end time etc.
 	Array<UserValues> m_users;
+	Array<NetworkedClient> m_networkedClients;
 
 	size_t getTotalQueueBytes()
 	{
@@ -61,7 +64,8 @@ protected:
 			queueBytes(m_questions) +
 			queueBytes(m_targetLocations) +
 			queueBytes(m_targets) +
-			queueBytes(m_trials);
+			queueBytes(m_trials) + 
+			queueBytes(m_networkedClients);
 	}
 
 	template<typename ItemType> void addToQueue(Array<ItemType>& queue, const ItemType& item)
@@ -89,6 +93,9 @@ protected:
 	/** Record an array of target locations */
 	void recordTargetLocations(const Array<TargetLocation>& locations);
 
+
+	void recordNetworkedClients(const Array<NetworkedClient>& clients);
+
 	/** Open a results file, or create it if it doesn't exist */
 	void initResultsFile(const String& filename, 
 		const String& subjectID, 
@@ -111,6 +118,7 @@ protected:
 	void createFrameInfoTable();
 	void createQuestionsTable();
 	void createUsersTable();
+	void createNetworkedClientTable();
 
 	// Functions that assume the schema from above
 	//void insertSession(sessionInfo);
@@ -142,6 +150,8 @@ public:
 
 	void logUserConfig(const UserConfig& userConfig, const String& sessId, const Vector2& sessTurnScale);
 	void logTargetTypes(const Array<shared_ptr<TargetConfig>>& targets);
+
+	void logNetworkedClient(const NetworkedClient& client) { addToQueue(m_networkedClients, client); }
 
 	/** Wakes up the logging thread and flushes even if the buffer limit is not reached yet. */
 	void flush(bool blockUntilDone);

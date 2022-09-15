@@ -110,6 +110,7 @@ public:
 	RealTime m_lastOnSimulationRealTime = 0.0f;	   ///< Wall clock time last onSimulation finished
 	SimTime m_lastOnSimulationSimTime = 0.0f;	   ///< Simulation time last onSimulation finished
 	SimTime m_lastOnSimulationIdealSimTime = 0.0f; ///< Ideal simulation time last onSimulation finished
+	int m_frameNumber = 0;							///< Frame number (since the start of the session)
 protected:
 	float m_currentWeaponDamage = 0.0f; ///< A hack to avoid passing damage through callbacks
 
@@ -148,7 +149,6 @@ protected:
 	shared_ptr<Framebuffer> m_ldrShaderCompositeOutput; ///< Buffer to use for composite shader output (if provided)
 
 	// Shader parameters
-	int m_frameNumber = 0;									  ///< Frame number (since the start of the session)
 	RealTime m_startTime;									  ///< Start time (for the session)
 	RealTime m_last2DTime, m_last3DTime, m_lastCompositeTime; ///< Times used for iTimeDelta
 

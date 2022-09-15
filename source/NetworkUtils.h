@@ -108,6 +108,7 @@ public:
 		ENetPeer* peer;
 		GUniqueID guid;
 		ENetAddress unreliableAddress;
+		int frameNumber;
 	};
 
 	static void updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer);
