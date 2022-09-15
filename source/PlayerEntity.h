@@ -92,6 +92,8 @@ public:
     float* movementRestrictionZ;               ///< Holds the Z distance of how far player can go when restricted movement is enabled.
     bool* restrictedMovementEnabled;           ///< Checks if restricted movement is enabled or not
 
+    bool* counterStrafing = nullptr;           ///< Checks if counter strafing is enabled or not
+
     /** \brief Computes all triangles that could be hit during a
         slideMove with the current \a velocity, allowing that the
         velocity may be decreased along some axes during movement.

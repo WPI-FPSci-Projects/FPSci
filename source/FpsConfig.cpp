@@ -199,6 +199,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("movementRestrictionX", movementRestrictionX);
 		reader.getIfPresent("movementRestrictionZ", movementRestrictionZ);
 		reader.getIfPresent("restrictedMovementEnabled", restrictedMovementEnabled);
+		reader.getIfPresent("counterStrafing", counterStrafing);
 		break;
 	default:
 		throw format("Did not recognize settings version: %d", settingsVersion);

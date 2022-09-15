@@ -83,7 +83,8 @@ public:
 	bool			respawnToPos = false;						///< If true, player will respawn to respawnPos. (defaults to false)
 	float			movementRestrictionX = 5.0f;				///< Player's restricted movement span along X
 	float			movementRestrictionZ = 5.0f;				///< Player's restricted movement span along Z
-	bool			restrictedMovementEnabled = false;			///< if true players movement will be restricted along X and Z
+	bool			restrictedMovementEnabled = false;			///< If true, player's movement will be restricted along X and Z
+	bool			counterStrafing = false;					///< If true, counter strafing will be enabled. (defaults to false.)
 
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;

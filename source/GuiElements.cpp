@@ -190,6 +190,11 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 		c->setWidth(width * 0.95f);
 	}movePane->endRow();
 	movePane->beginRow(); {
+		auto c = movePane->addCheckBox("Use Counter-Strafing?", &(config.player.counterStrafing));
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
 		auto c = movePane->addNumberBox("Movement Acceleration", &(config.player.movementAcceleration), "m/s^2", GuiTheme::LINEAR_SLIDER, 0.001f, 100.0f);
 		c->setCaptionWidth(width / 2);
 		c->setWidth(width * 0.95f);

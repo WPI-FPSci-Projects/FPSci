@@ -114,12 +114,17 @@ void PlayerEntity::updateFromInput(UserInput* ui) {
 	else {
 		m_linearVector = Vector3(ui->getX() * moveScale->x, 0, -ui->getY() * moveScale->y);
 	}
-	
+
+	// Counter strafing
+	if (*counterStrafing && (((m_lastDirection * m_acceleratedVelocity).x > 0 && m_linearVector.x < 0) || ((m_lastDirection * m_acceleratedVelocity).x < 0 && m_linearVector.x > 0))) {
+		m_acceleratedVelocity = 0;
+		m_linearVector.x = 0;
+	}
+
 	if (m_linearVector.magnitude() > 0) {
 		m_gettingMovementInput = true;
 	}
-	// Get walking speed here (and normalize if necessary)
-	
+
 	// Add jump here (if needed)
 	RealTime timeSinceLastJump = System::time() - m_lastJumpTime;
 	if (m_jumpPressed && timeSinceLastJump > *jumpInterval) {
@@ -250,9 +255,6 @@ void PlayerEntity::onSimulation(SimTime absoluteTime, SimTime deltaTime) {
 	else if (restrictedMovementEnabled != nullptr && !*restrictedMovementEnabled) {
 		m_PlayersRestrictedMovementCenterPos = m_frame.translation;
 	}
-	debugPrintf("CENTER POS %lf %lf %lf\n", m_PlayersRestrictedMovementCenterPos.x, m_PlayersRestrictedMovementCenterPos.y, m_PlayersRestrictedMovementCenterPos.z);
-	debugPrintf("CURRENT POS %lf %lf %lf\n", m_frame.translation.x, m_frame.translation.y, m_frame.translation.z);
-	debugPrintf("LINEAR IP VECTOR %lf %lf %lf\n", m_linearVector.x, m_linearVector.y, m_linearVector.z);
 	//Set Players Translation velocity
 	setDesiredOSVelocity(m_linearVector);
 }

@@ -742,6 +742,7 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->movementRestrictionX = &sessConfig->player.movementRestrictionX;
 	player->movementRestrictionZ = &sessConfig->player.movementRestrictionX;
 	player->restrictedMovementEnabled = &sessConfig->player.restrictedMovementEnabled;
+	player->counterStrafing = &sessConfig->player.counterStrafing;
 
 	// Respawn player
 	player->respawn();
