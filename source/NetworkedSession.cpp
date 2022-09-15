@@ -42,6 +42,9 @@ void NetworkedSession::addHittableTarget(shared_ptr<TargetEntity> target) {
 
 void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 {
+	updateNetworkedPresentationState();
+}
+
 	//TODO: Networked Ticks
 	Array<shared_ptr<NetworkedEntity>> entityArray;
 	m_app->scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
@@ -72,4 +75,34 @@ void NetworkedSession::onInit(String filename, String description)
 		logger->logUserConfig(user, m_config->id, m_config->player.turnScale);						// Log user info at start of session
 		m_dbFilename = filename;
 	}
+	m_player = m_app->scene()->typedEntity<PlayerEntity>("player");
+	resetSession();
+}
+
+void NetworkedSession::updateNetworkedPresentationState()
+{
+	if (currentState == NetworkedPresentationState::initialNetworkedState) {
+		if (!m_player->getPlayerReady())
+			m_feedbackMessage = formatFeedback(m_config->feedback.networkedSesstionInitial);
+		else
+			m_feedbackMessage = formatFeedback(m_config->feedback.networkedSesstionWaitForOthers);
+	}
+	else if (currentState == NetworkedPresentationState::networkedSessionStart) {
+		// TODO: Experiment Session Ticks
+	}
+}
+
+void NetworkedSession::startSession()
+{
+	sessionStarted = true;
+	currentState = NetworkedPresentationState::networkedSessionStart;
+	m_player->setPlayerMovement(true);
+	m_feedbackMessage.clear();
+}
+
+void NetworkedSession::resetSession()
+{
+	currentState = NetworkedPresentationState::initialNetworkedState;
+	m_player->setPlayerReady(false);
+	m_player->setPlayerMovement(false);
 }

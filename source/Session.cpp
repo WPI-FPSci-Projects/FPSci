@@ -218,6 +218,8 @@ void Session::onInit(String filename, String description) {
 	m_targetModels = &(m_app->targetModels);
 	m_targetModels = &(m_app->targetModels);
 
+	m_player->setPlayerMovement(true);
+
 	// Check for valid session
 	if (m_hasSession) {
 		if (m_config->logger.enable) {

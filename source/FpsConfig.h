@@ -178,6 +178,8 @@ public:
 	String blockComplete = "Block %lastBlock complete! Starting block %currBlock.";					///< Block complete feedback message
 	String sessComplete = "Session complete! You scored %totalTimeLeftS!";							///< Session complete feedback message
 	String allSessComplete = "All Sessions Complete!";												///< All sessions complete feedback message
+	String networkedSesstionInitial = "Press Tab to Ready Up!";										///< Initial Message for Networked Session to Prompt Players to "Ready Up"
+	String networkedSesstionWaitForOthers = "Wait for others to be ready!";							///< Message to display when not all players are ready	
 
 	float fontSize = 20.0f;											///< Default font scale/size
 
