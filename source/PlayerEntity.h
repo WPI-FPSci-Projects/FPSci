@@ -31,6 +31,9 @@ protected:
 	bool			m_motionEnable = true;				///< Flag to disable player motion
 	bool			m_jumpPressed = false;				///< Indicates whether jump buton was pressed
 
+    bool            m_PlayerReady = false;            ///< Indicates if the player is ready for play or not
+    bool            m_PlayerMovement = false;         ///< Indicates if the player can move or not
+
     PlayerEntity() {}
 
 #ifdef G3D_OSX
@@ -110,6 +113,12 @@ public:
 	void setRespawnPosition(Point3 pos) { m_respawnPosition = pos; }
     void setRespawnHeadingDegrees(float headingDeg) { m_spawnHeadingRadians = pif() / 180.f * headingDeg; }
 	void setRespawnHeight(float height) { m_respawnHeight = height; }
+
+    void setPlayerReady(bool playerReady) { m_PlayerReady = playerReady; }
+    bool getPlayerReady() { return m_PlayerReady; }
+
+    void setPlayerMovement(bool playerMovement) { m_PlayerMovement = playerMovement; }
+    bool getPlayerMovement() { return m_PlayerMovement; }
 
 	void respawn() {
 		m_frame.translation = m_respawnPosition;
