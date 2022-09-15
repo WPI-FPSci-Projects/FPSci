@@ -740,7 +740,7 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->height = &sessConfig->player.height;
 	player->crouchHeight = &sessConfig->player.crouchHeight;
 	player->movementRestrictionX = &sessConfig->player.movementRestrictionX;
-	player->movementRestrictionZ = &sessConfig->player.movementRestrictionX;
+	player->movementRestrictionZ = &sessConfig->player.movementRestrictionZ;
 	player->restrictedMovementEnabled = &sessConfig->player.restrictedMovementEnabled;
 	player->counterStrafing = &sessConfig->player.counterStrafing;
 
