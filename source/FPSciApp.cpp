@@ -468,7 +468,7 @@ void FPSciApp::updateControls(bool firstSession) {
 		rect = m_renderControls->rect();
 		removeWidget(m_renderControls);
 	}
-	m_renderControls = RenderControls::create(this, *sessConfig, renderFPS, numReticles, sceneBrightness, theme, MAX_HISTORY_TIMING_FRAMES);
+	m_renderControls = RenderControls::create(this, *sessConfig, renderFPS, renderPing, numReticles, sceneBrightness, theme, MAX_HISTORY_TIMING_FRAMES);
 	m_renderControls->setVisible(visible);
 	if (!rect.isEmpty())
 		m_renderControls->setRect(rect);
@@ -1019,8 +1019,8 @@ void FPSciApp::onNetwork() {
 			// Initialize lambdas and threads for sending and recieving pings
 			auto c2sPing = [](ENetSocket socket, ENetAddress address, int i, bool& pinging) {
 				while (pinging) {
-					std::this_thread::sleep_for(std::chrono::milliseconds(i));
 					NetworkUtils::sendPingClient(socket, address);
+					std::this_thread::sleep_for(std::chrono::milliseconds(i));
 				}
 			};
 			auto pingAck = [](ENetSocket socket, long long& rtt, bool& pinging) {

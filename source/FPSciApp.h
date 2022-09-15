@@ -166,7 +166,7 @@ protected:
 	bool m_startedPinging = false;						///< Boolean determining whether or not we have started pinging
 	bool m_pinging = false;								///< Boolean determining if c2s ping sending and recieving threads should continue running
 	int m_pingInterval = 1000;							///< Interval variable (in ms) during which the client sends ping packets
-	long long m_RTT = -1;								///< RTT / Ping
+	long long m_RTT = 0;								///< RTT / Ping
 
 	/** Called from onInit */
 	void makeGUI();
@@ -248,6 +248,7 @@ public:
 	shared_ptr<Weapon> weapon;		 ///< Current weapon
 
 	bool renderFPS = false;		   ///< Control flag used to draw (or not draw) FPS information to the display
+	bool renderPing = false;	   ///< Flag that determines whether or not to display ping / packet RTT
 	int displayLagFrames = 0;	   ///< Count of frames of latency to add
 	float lastSetFrameRate = 0.0f; ///< Last set frame rate
 	const int numReticles = 55;	   ///< Total count of reticles available to choose from
@@ -342,6 +343,7 @@ public:
 	virtual void drawHUD(RenderDevice* rd, Vector2 resolution);					///< Draw HUD elements
 	void drawClickIndicator(RenderDevice* rd, String mode, Vector2 resolution); ///< Draw the click-to-photon click indicator
 	void updateFPSIndicator(RenderDevice* rd, Vector2 resolution);				///< Update and draw a (custom) frame time indicator (developer mode feature)
+	void updatePingIndicator(RenderDevice* rd, Vector2 resolution);				///< Update and display the current ping or packet RTT
 	void drawFeedbackMessage(RenderDevice* rd);									///< Draw a user feedback message (at full render device resolution)
 
 	void updateShaderBuffers(); ///< Regenerate buffers (for configured shaders)

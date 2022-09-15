@@ -270,6 +270,7 @@ void FPSciApp::draw2DElements(RenderDevice* rd, Vector2 resolution) {
 	const float scale = resolution.x / 1920.0f;		// Double check on how this scale is used (seems to assume 1920x1080 defaults)	
 
 	updateFPSIndicator(rd, resolution);				// FPS display (faster than the full stats widget)
+	updatePingIndicator(rd, resolution);			// Ping display
 
 	// Handle recording indicator
 	if (notNull(waypointManager) && waypointManager->recordMotion) {
@@ -415,8 +416,17 @@ void FPSciApp::updateFPSIndicator(RenderDevice* rd, Vector2 resolution) {
 		else {
 			msg = format("%d fps", iRound(rd->stats().smoothFrameRate));
 		}
-		msg += format(" | %.1f min | %.1f avg | %.1f max ms | %lld ms ping", recentMin * 1000.0f, 1000.0f / rd->stats().smoothFrameRate, 1000.0f * recentMax, m_RTT);
-		outputFont->draw2D(rd, msg, Point2(0.35f * resolution.x, 0.05f * resolution.y).floor(), floor(20.0f * scale), Color3::yellow());
+		msg += format(" | %.1f min | %.1f avg | %.1f max ms", recentMin * 1000.0f, 1000.0f / rd->stats().smoothFrameRate, 1000.0f * recentMax);
+		outputFont->draw2D(rd, msg, Point2(0.75f * resolution.x, 0.05f * resolution.y).floor(), floor(20.0f * scale), Color3::yellow());
+	}
+}
+
+void FPSciApp::updatePingIndicator(RenderDevice* rd, Vector2 resolution) {
+	if (renderPing) {
+		// Draw the ping indicator
+		const float scale = resolution.x / 1920.0f;
+		String msg = format("Ping: %lld ms", m_RTT);
+		outputFont->draw2D(rd, msg, Point2(0.05f * resolution.x, 0.05f * resolution.y).floor(), floor(20.0f * scale), Color3::yellow());
 	}
 }
 
