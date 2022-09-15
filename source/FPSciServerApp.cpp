@@ -98,6 +98,8 @@ void FPSciServerApp::onNetwork() {
         BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
         NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
         uint16 frameNum = packet_contents.readUInt16();
+        NetworkUtils::ConnectedClient client = getClientFromAddress(addr_from);
+        client.frameNumber = frameNum;
 
         /* Respond to a handsake request */
         if (type == NetworkUtils::MessageType::HANDSHAKE) {
@@ -466,3 +468,23 @@ void FPSciServerApp::oneFrame() {
         window()->popLoopBody();
     }
 }
+
+NetworkUtils::ConnectedClient FPSciServerApp::getClientFromAddress(ENetAddress e)
+{
+    for (NetworkUtils::ConnectedClient client : m_connectedClients) {
+        if (client.unreliableAddress.port == e.port && client.unreliableAddress.host == e.host) {
+            return client;
+        }
+    }
+    return NetworkUtils::ConnectedClient();
+}
+
+NetworkUtils::ConnectedClient FPSciServerApp::getClientFromGUID(GUniqueID ID)
+{
+    for (NetworkUtils::ConnectedClient client : m_connectedClients) {
+        if (client.guid == ID) {
+            return client;
+        }
+    }
+}
+

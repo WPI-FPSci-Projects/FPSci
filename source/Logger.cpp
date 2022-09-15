@@ -435,7 +435,6 @@ void FPSciLogger::createNetworkedClientTable() {
 		{ "position_x", "real"},
 		{ "position_y", "real"},
 		{ "position_z", "real"},
-		{ "state", "text"},
 		{ "event", "text" },
 		{ "player_id", "text" },
 	};
@@ -447,14 +446,6 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 	for (NetworkedClient client : clients) {
 		String stateStr = presentationStateToString(client.state);
 
-		String actionStr = "";
-		switch (client.action) {
-		case FireCooldown: actionStr = "fireCooldown"; break;
-		case Aim: actionStr = "aim"; break;
-		case Miss: actionStr = "miss"; break;
-		case Hit: actionStr = "hit"; break;
-		case Destroy: actionStr = "destroy"; break;
-		}
 
 		Array<String> networkedClientValues = {
 		"'" + FPSciLogger::formatFileTime(client.time) + "'",
@@ -465,7 +456,6 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 		String(std::to_string(client.position.x)),
 		String(std::to_string(client.position.y)),
 		String(std::to_string(client.position.z)),
-		"'" + stateStr + "'",
 		"'" + actionStr + "'",
 		"'" + client.playerID.toString16() + "'",
 		};

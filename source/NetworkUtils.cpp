@@ -51,7 +51,7 @@ void NetworkUtils::handleDestroyEntity(shared_ptr<G3D::Scene> scene, BinaryInput
 	}
 }
 
-void NetworkUtils::broadcastDestroyEntity(GUniqueID id, ENetHost* serverHost, uint16 frameNum) {
+void NetworkUtils::broadcastDestroyEntity(GUniqueID id, ENetHost* serverHost, uint32 frameNum) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::DESTROY_ENTITY);
@@ -64,7 +64,7 @@ void NetworkUtils::broadcastDestroyEntity(GUniqueID id, ENetHost* serverHost, ui
 	enet_host_broadcast(serverHost, 0, packet);
 }
 
-int NetworkUtils::sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer, uint16 frameNum) {
+int NetworkUtils::sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer, uint32 frameNum) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::REPORT_HIT);
@@ -74,7 +74,7 @@ int NetworkUtils::sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPee
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length() + 1, ENET_PACKET_FLAG_RELIABLE);
 	return enet_peer_send(serverPeer, 0, packet);
 }
-void NetworkUtils::handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, uint16 frameNum) {
+void NetworkUtils::handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, uint32 frameNum) {
 	GUniqueID hit_entity, shooter;
 	hit_entity.deserialize(inBuffer);
 	shooter.deserialize(inBuffer);
@@ -82,7 +82,7 @@ void NetworkUtils::handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, 
 	NetworkUtils::broadcastRespawn(serverHost, frameNum);
 }
 
-int NetworkUtils::sendMoveClient(CFrame frame, ENetPeer* peer, uint16 frameNum) {
+int NetworkUtils::sendMoveClient(CFrame frame, ENetPeer* peer, uint32 frameNum) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MOVE_CLIENT);
@@ -140,7 +140,7 @@ NetworkUtils::ConnectedClient NetworkUtils::registerClient(ENetEvent event, Bina
 	return newClient;
 }
 
-int NetworkUtils::sendRegisterClient(GUniqueID id, uint16 port, ENetPeer* peer) {
+int NetworkUtils::sendRegisterClient(GUniqueID id, uint32 port, ENetPeer* peer) {
 	ENetPacket* registerPacket;
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
@@ -154,7 +154,7 @@ int NetworkUtils::sendRegisterClient(GUniqueID id, uint16 port, ENetPeer* peer) 
 	return enet_peer_send(peer, 0, registerPacket);
 }
 
-void NetworkUtils::broadcastCreateEntity(GUniqueID guid, ENetHost* serverHost, uint16 frameNum) {
+void NetworkUtils::broadcastCreateEntity(GUniqueID guid, ENetHost* serverHost, uint32 frameNum) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::CREATE_ENTITY);
@@ -166,7 +166,7 @@ void NetworkUtils::broadcastCreateEntity(GUniqueID guid, ENetHost* serverHost, u
 	enet_host_broadcast(serverHost, 0, packet);
 }
 
-int NetworkUtils::sendCreateEntity(GUniqueID guid, ENetPeer* peer, uint16 frameNum) {
+int NetworkUtils::sendCreateEntity(GUniqueID guid, ENetPeer* peer, uint32 frameNum) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::CREATE_ENTITY);
@@ -176,7 +176,7 @@ int NetworkUtils::sendCreateEntity(GUniqueID guid, ENetPeer* peer, uint16 frameN
 	return enet_peer_send(peer, 0, packet);
 }
 
-void NetworkUtils::broadcastBatchEntityUpdate(Array<shared_ptr<Entity>> entities, Array<ENetAddress> destinations, ENetSocket sendSocket, uint16 frameNum) {
+void NetworkUtils::broadcastBatchEntityUpdate(Array<shared_ptr<Entity>> entities, Array<ENetAddress> destinations, ENetSocket sendSocket, uint32 frameNum) {
 	/* Setup the packet */
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
@@ -204,7 +204,7 @@ void NetworkUtils::broadcastBatchEntityUpdate(Array<shared_ptr<Entity>> entities
 	}
 }
 
-void NetworkUtils::serverBatchEntityUpdate(Array<shared_ptr<NetworkedEntity>> entities, Array<ConnectedClient> clients, ENetSocket sendSocket, uint16 frameNum) {
+void NetworkUtils::serverBatchEntityUpdate(Array<shared_ptr<NetworkedEntity>> entities, Array<ConnectedClient> clients, ENetSocket sendSocket, uint32 frameNum) {
 	Array<shared_ptr<Entity>> genericEntities;
 	for (shared_ptr<NetworkedEntity> e : entities) {
 		genericEntities.append((shared_ptr<Entity>) e);
@@ -236,7 +236,7 @@ void NetworkUtils::handleSetSpawnPos(shared_ptr<PlayerEntity> player, BinaryInpu
 	player->setRespawnHeadingDegrees(heading);
 }
 
-int NetworkUtils::sendRespawnClient(ENetPeer* clientPeer, uint16 frameNum) {
+int NetworkUtils::sendRespawnClient(ENetPeer* clientPeer, uint32 frameNum) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::RESPAWN_CLIENT);
@@ -245,7 +245,7 @@ int NetworkUtils::sendRespawnClient(ENetPeer* clientPeer, uint16 frameNum) {
 	return enet_peer_send(clientPeer, 0, packet);
 }
 
-void NetworkUtils::broadcastRespawn(ENetHost* serverHost, uint16 frameNum) {
+void NetworkUtils::broadcastRespawn(ENetHost* serverHost, uint32 frameNum) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::RESPAWN_CLIENT);

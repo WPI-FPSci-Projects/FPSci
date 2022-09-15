@@ -27,6 +27,7 @@
 ***************************************************************************/
 #include "NetworkedSession.h"
 #include "FPSciApp.h"
+#include "FPSciServerApp.h"
 #include "Logger.h"
 #include "TargetEntity.h"
 #include "PlayerEntity.h"
@@ -43,7 +44,7 @@ void NetworkedSession::addHittableTarget(shared_ptr<TargetEntity> target) {
 void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 {
 	updateNetworkedPresentationState();
-}
+
 
 	//TODO: Networked Ticks
 	Array<shared_ptr<NetworkedEntity>> entityArray;
@@ -51,7 +52,9 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 	for (std::shared_ptr<NetworkedEntity> client : entityArray) {
 		Point2 dir = Point2();//client->frame().rotation;
 		Point3 loc = client->frame().translation;
-		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, currentState, PlayerActionType::None, GUniqueID::fromString16(client->name()), m_app->m_frameNumber, 3);
+		GUniqueID id = GUniqueID::fromString16(client->name());
+		int frame = static_cast<FPSciServerApp*>(m_app)->getClientFromGUID(id).frameNumber;
+		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_frameNumber, frame);
 		logger->logNetworkedClient(nc);
 		debugPrintf("Logged...");
 	}

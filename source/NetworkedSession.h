@@ -47,12 +47,11 @@ struct NetworkedClient {
 
 	NetworkedClient() {};
 
-	NetworkedClient(FILETIME t, Point2 playerViewDirection, Point3 playerPosition, PresentationState trialState, PlayerActionType playerAction, GUniqueID id, uint32 server_frame, uint32 client_frame) {
+	NetworkedClient(FILETIME t, Point2 playerViewDirection, Point3 playerPosition, GUniqueID id, uint32 server_frame, uint32 client_frame) {
 		time = t;
 		viewDirection = playerViewDirection;
 		position = playerPosition;
 		action = playerAction;
-		state = trialState;
 		clientFrame = client_frame;
 		serverFrame = server_frame;
 		playerID = id;
