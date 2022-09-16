@@ -446,6 +446,14 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 	for (NetworkedClient client : clients) {
 		String stateStr = presentationStateToString(client.state);
 
+		String actionStr = "";
+		switch (client.action) {
+		case FireCooldown: actionStr = "fireCooldown"; break;
+		case Aim: actionStr = "aim"; break;
+		case Miss: actionStr = "miss"; break;
+		case Hit: actionStr = "hit"; break;
+		case Destroy: actionStr = "destroy"; break;
+		}
 
 		Array<String> networkedClientValues = {
 		"'" + FPSciLogger::formatFileTime(client.time) + "'",

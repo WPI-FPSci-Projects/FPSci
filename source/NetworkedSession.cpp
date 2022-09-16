@@ -53,7 +53,7 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 		Point2 dir = Point2();//client->frame().rotation;
 		Point3 loc = client->frame().translation;
 		GUniqueID id = GUniqueID::fromString16(client->name());
-		int frame = static_cast<FPSciServerApp*>(m_app)->getClientFromGUID(id).frameNumber;
+		int frame = static_cast<FPSciServerApp*>(m_app)->getClientFromGUID(id)->frameNumber;
 		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_frameNumber, frame);
 		logger->logNetworkedClient(nc);
 		debugPrintf("Logged...");

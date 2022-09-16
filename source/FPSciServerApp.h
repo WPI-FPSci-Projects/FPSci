@@ -14,8 +14,8 @@ public:
 
 protected:
 
-    Array <NetworkUtils::ConnectedClient> m_connectedClients;          //> List of all connected clients and all atributes needed to comunicate with them
-
+    Array <NetworkUtils::ConnectedClient*> m_connectedClients;          //> List of all connected clients and all atributes needed to comunicate with them
+    int   playersReady;                                               ///> Numbers of player(s) that are ready.
 
 
 public:
@@ -26,6 +26,6 @@ public:
     void onNetwork() override;
     void oneFrame() override;
 
-    NetworkUtils::ConnectedClient getClientFromAddress(ENetAddress e);
-    NetworkUtils::ConnectedClient getClientFromGUID(GUniqueID ID);
+    NetworkUtils::ConnectedClient* getClientFromAddress(ENetAddress e);
+    NetworkUtils::ConnectedClient* getClientFromGUID(GUniqueID ID);
 };

@@ -51,7 +51,7 @@ struct NetworkedClient {
 		time = t;
 		viewDirection = playerViewDirection;
 		position = playerPosition;
-		action = playerAction;
+		//action = playerAction;
 		clientFrame = client_frame;
 		serverFrame = server_frame;
 		playerID = id;

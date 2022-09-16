@@ -2,6 +2,7 @@
 #include "FPSciServerApp.h"
 #include "PhysicsScene.h"
 #include "WaypointManager.h"
+#include "NetworkedSession.h"
 #include <Windows.h>
 
 FPSciServerApp::FPSciServerApp(const GApp::Settings& settings) : FPSciApp(settings) {}
@@ -75,6 +76,8 @@ void FPSciServerApp::initExperiment() {
     }
 
     debugPrintf("Began listening\n");
+
+    static_cast<NetworkedSession*>(sess.get())->startSession(); // Set player as ready for the server player.
 }
 
 void FPSciServerApp::onNetwork() {
@@ -98,8 +101,8 @@ void FPSciServerApp::onNetwork() {
         BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
         NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
         uint16 frameNum = packet_contents.readUInt16();
-        NetworkUtils::ConnectedClient client = getClientFromAddress(addr_from);
-        client.frameNumber = frameNum;
+        NetworkUtils::ConnectedClient* client = getClientFromAddress(addr_from);
+        client->frameNumber = frameNum;
 
         /* Respond to a handsake request */
         if (type == NetworkUtils::MessageType::HANDSHAKE) {
@@ -136,9 +139,9 @@ void FPSciServerApp::onNetwork() {
             logPrintf("%s disconnected.\n", ip);
             /* Removes the clinet from the list of connected clients and orders all other clients to delete that entity */
             for (int i = 0; i < m_connectedClients.size(); i++) {
-                if (m_connectedClients[i].peer->address.host == event.peer->address.host &&
-                    m_connectedClients[i].peer->address.port == event.peer->address.port) {
-                    GUniqueID id = m_connectedClients[i].guid;
+                if (m_connectedClients[i]->peer->address.host == event.peer->address.host &&
+                    m_connectedClients[i]->peer->address.port == event.peer->address.port) {
+                    GUniqueID id = m_connectedClients[i]->guid;
                     shared_ptr<NetworkedEntity> entity = scene()->typedEntity<NetworkedEntity>(id.toString16());
                     if (entity != nullptr) {
                         scene()->remove(entity);
@@ -158,9 +161,9 @@ void FPSciServerApp::onNetwork() {
 
             if (type == NetworkUtils::MessageType::REGISTER_CLIENT) {
                 debugPrintf("Registering client...\n");
-                NetworkUtils::ConnectedClient newClient = NetworkUtils::registerClient(event, packet_contents);
+                NetworkUtils::ConnectedClient* newClient = NetworkUtils::registerClient(event, packet_contents);
                 m_connectedClients.append(newClient);
-                debugPrintf("\tRegistered client: %s\n", newClient.guid.toString16());
+                debugPrintf("\tRegistered client: %s\n", newClient->guid.toString16());
 
                 Any modelSpec = PARSE_ANY(ArticulatedModel::Specification{			///< Basic model spec for target
                     filename = "model/target/mid_poly_sphere_no_outline.obj";
@@ -176,7 +179,7 @@ void FPSciServerApp::onNetwork() {
                     });
                 shared_ptr<Model> model = ArticulatedModel::create(modelSpec);
                 /* Create a new entity for the client */
-                const shared_ptr<NetworkedEntity>& target = NetworkedEntity::create(newClient.guid.toString16(), &(*scene()), model, CFrame());
+                const shared_ptr<NetworkedEntity>& target = NetworkedEntity::create(newClient->guid.toString16(), &(*scene()), model, CFrame());
 
                 target->setWorldSpace(true);
                 target->setColor(G3D::Color3(20.0, 20.0, 200.0));
@@ -186,14 +189,14 @@ void FPSciServerApp::onNetwork() {
 
                 /* ADD NEW CLIENT TO OTHER CLIENTS, ADD OTHER CLIENTS TO NEW CLIENT */
 
-                NetworkUtils::broadcastCreateEntity(newClient.guid, m_localHost, m_networkFrameNum);
+                NetworkUtils::broadcastCreateEntity(newClient->guid, m_localHost, m_networkFrameNum);
                 debugPrintf("Sent a broadcast packet to all connected peers\n");
 
                 for (int i = 0; i < m_connectedClients.length(); i++) {
                     // Create entitys on the new client for all other clients
-                    if (newClient.guid != m_connectedClients[i].guid) {
-                        NetworkUtils::sendCreateEntity(m_connectedClients[i].guid, newClient.peer, m_networkFrameNum);
-                        debugPrintf("Sent add to %s to add %s\n", newClient.guid.toString16(), m_connectedClients[i].guid.toString16());
+                    if (newClient->guid != m_connectedClients[i]->guid) {
+                        NetworkUtils::sendCreateEntity(m_connectedClients[i]->guid, newClient->peer, m_networkFrameNum);
+                        debugPrintf("Sent add to %s to add %s\n", newClient->guid.toString16(), m_connectedClients[i]->guid.toString16());
                     }
                 }
                 // move the client to a different location
@@ -469,20 +472,20 @@ void FPSciServerApp::oneFrame() {
     }
 }
 
-NetworkUtils::ConnectedClient FPSciServerApp::getClientFromAddress(ENetAddress e)
+NetworkUtils::ConnectedClient* FPSciServerApp::getClientFromAddress(ENetAddress e)
 {
-    for (NetworkUtils::ConnectedClient client : m_connectedClients) {
-        if (client.unreliableAddress.port == e.port && client.unreliableAddress.host == e.host) {
+    for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
+        if (client->unreliableAddress.port == e.port && client->unreliableAddress.host == e.host) {
             return client;
         }
     }
-    return NetworkUtils::ConnectedClient();
+    return new NetworkUtils::ConnectedClient();
 }
 
-NetworkUtils::ConnectedClient FPSciServerApp::getClientFromGUID(GUniqueID ID)
+NetworkUtils::ConnectedClient* FPSciServerApp::getClientFromGUID(GUniqueID ID)
 {
-    for (NetworkUtils::ConnectedClient client : m_connectedClients) {
-        if (client.guid == ID) {
+    for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
+        if (client->guid == ID) {
             return client;
         }
     }
