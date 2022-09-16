@@ -51,14 +51,13 @@ struct NetworkedClient {
 		time = t;
 		viewDirection = playerViewDirection;
 		position = playerPosition;
-		action = playerAction;
 		clientFrame = client_frame;
 		serverFrame = server_frame;
 		playerID = id;
 	}
-
+	
 	inline bool noChangeFrom(const NetworkedClient& other) const {
-		return viewDirection == other.viewDirection && position == other.position && action == other.action && state == other.state && playerID == other.playerID;
+		return viewDirection == other.viewDirection && position == other.position && state == other.state && playerID == other.playerID;
 	}
 
 };
