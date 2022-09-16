@@ -118,7 +118,7 @@ void FPSciApp::initExperiment() {
 			experimentConfig.pingPort == experimentConfig.serverPort + 1 ?
 			m_pingServerAddress.port = experimentConfig.pingPort + 1 :
 			m_pingServerAddress.port = experimentConfig.pingPort + 2;
-			debugPrintf("Ping: port %d is already in use, using port %d for pinging\n", experimentConfig.pingPort, m_pingServerAddress.port);
+			logPrintf("Ping: port %d is already in use, using port %d for pinging\n", experimentConfig.pingPort, m_pingServerAddress.port);
 		}
 		m_pingSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
 		enet_socket_set_option(m_pingSocket, ENET_SOCKOPT_NONBLOCK, 1);
@@ -135,6 +135,8 @@ void FPSciApp::initExperiment() {
 		m_enetConnected = false;
 		m_socketConnected = false;
 		
+		// Initialize ping queue's first value to dummy value (in case user selects to show ping without actually connecting to server)
+		m_pingStats.pingQueue.pushBack(0);
 	}
 }
 
@@ -940,7 +942,9 @@ void FPSciApp::quitRequest() {
 	}
 	if (experimentConfig.serverAddress != "" && m_serverPeer != nullptr) { // disconnect from the server if we're running in Network mode
 		m_pinging = false;
-		m_RTT = 0;
+		m_pingStats.smaPing = 0;
+		m_pingStats.pingQueue.clear();
+		m_pingStats.pingQueue.pushBack(0);
 		enet_peer_disconnect(m_serverPeer, 0);
 	}
 	setExitCode(0);
@@ -1023,7 +1027,7 @@ void FPSciApp::onNetwork() {
 					std::this_thread::sleep_for(std::chrono::milliseconds(i));
 				}
 			};
-			auto pingAck = [](ENetSocket socket, long long& rtt, bool& pinging) {
+			auto pingAck = [](ENetSocket socket, NetworkUtils::PingStatistics& stats, bool& pinging) {
 				ENetAddress addr_from;
 				ENetBuffer buff;
 				void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
@@ -1038,7 +1042,7 @@ void FPSciApp::onNetwork() {
 						NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
 
 						if (type == NetworkUtils::MessageType::PING) {
-							rtt = NetworkUtils::handlePingReply(packet_contents);
+							NetworkUtils::handlePingReply(packet_contents, stats);
 						}
 					}
 				}
@@ -1047,7 +1051,7 @@ void FPSciApp::onNetwork() {
 			std::thread c2sPing_Th(c2sPing, m_pingSocket, m_pingServerAddress, m_pingInterval, std::ref(m_pinging));
 			c2sPing_Th.detach();
 
-			std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_RTT), std::ref(m_pinging));
+			std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_pingStats), std::ref(m_pinging));
 			pingAck_Th.detach();
 
 			debugPrintf("Initialized ping threads\n");

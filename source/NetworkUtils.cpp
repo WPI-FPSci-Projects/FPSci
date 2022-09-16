@@ -81,10 +81,23 @@ int NetworkUtils::sendPingReply(ENetSocket socket, ENetAddress address, ENetBuff
 	return enet_socket_send(socket, &address, buff, 1);
 }
 
-long long NetworkUtils::handlePingReply(BinaryInput& inBuffer) {
+void NetworkUtils::handlePingReply(BinaryInput& inBuffer, PingStatistics& stats) {
 	std::chrono::steady_clock::time_point rttStart;
 	inBuffer.readBytes((void*)&rttStart, sizeof(std::chrono::steady_clock::time_point));
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - rttStart).count();
+	long long rtt = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - rttStart).count();
+	stats.pingQueue.pushBack(rtt);
+	if (stats.pingQueue.length() > stats.MA_RTT_SIZE) {
+		stats.pingQueue.popFront();
+	}
+
+	long long sum = 0;
+	for (int i = 0; i < stats.pingQueue.length(); i++) {
+		sum += stats.pingQueue[i];
+	}
+
+	if (stats.pingQueue.length() == stats.MA_RTT_SIZE) {
+		stats.smaPing = sum / stats.MA_RTT_SIZE;
+	}
 }
 
 int NetworkUtils::sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer) {

@@ -425,7 +425,7 @@ void FPSciApp::updatePingIndicator(RenderDevice* rd, Vector2 resolution) {
 	if (renderPing) {
 		// Draw the ping indicator
 		const float scale = resolution.x / 1920.0f;
-		String msg = format("Ping: %lld ms", m_RTT);
+		String msg = format("[Ping] Latest: %lld ms | SMA: %lld ms", m_pingStats.pingQueue.last(), m_pingStats.smaPing);
 		outputFont->draw2D(rd, msg, Point2(0.05f * resolution.x, 0.05f * resolution.y).floor(), floor(20.0f * scale), Color3::yellow());
 	}
 }

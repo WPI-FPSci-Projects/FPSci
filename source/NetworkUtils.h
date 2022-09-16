@@ -112,6 +112,16 @@ public:
 		ENetAddress unreliableAddress;
 	};
 
+	// Struct for storing ping statistics
+	struct PingStatistics {
+		// Moving Average size (change to a configurable value later)
+		const int MA_RTT_SIZE = 5;
+		// Queue of currently recorded RTTs
+		Queue<long long> pingQueue;
+		// Stored Simple Moving Average of pings
+		long long smaPing = 0;
+	};
+
 	static void updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer);
 	static void updateEntity(shared_ptr<Entity> entity, BinaryInput& inBuffer);
 	static void createFrameUpdate(GUniqueID id, shared_ptr<Entity> entity, BinaryOutput& outBuffer);
@@ -121,7 +131,7 @@ public:
 
 	static int sendPingClient(ENetSocket socket, ENetAddress address);
 	static int sendPingReply(ENetSocket socket, ENetAddress address, ENetBuffer* buff);
-	static long long handlePingReply(BinaryInput& inBuffer);
+	static void handlePingReply(BinaryInput& inBuffer, PingStatistics& stats);
 
 	static int sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer);
 	static void handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer);

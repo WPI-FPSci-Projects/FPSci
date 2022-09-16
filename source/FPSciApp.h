@@ -166,7 +166,7 @@ protected:
 	bool m_startedPinging = false;						///< Boolean determining whether or not we have started pinging
 	bool m_pinging = false;								///< Boolean determining if c2s ping sending and recieving threads should continue running
 	int m_pingInterval = 1000;							///< Interval variable (in ms) during which the client sends ping packets
-	long long m_RTT = 0;								///< RTT / Ping
+	NetworkUtils::PingStatistics m_pingStats;			///< Struct containing various RTT statistics (simple moving average, etc.)
 
 	/** Called from onInit */
 	void makeGUI();
