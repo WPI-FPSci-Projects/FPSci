@@ -87,6 +87,8 @@ public:
 		MOUSE_FPM = 2,		/// First-person manipulator-based interaction
 	};
 
+	virtual int frameNumFromID(GUniqueID id);
+
 protected:
 	static const int MAX_HISTORY_TIMING_FRAMES = 360; ///< Length of the history queue for m_frameDurationQueue
 	shared_ptr<Sound> m_sceneHitSound;				  ///< Sound for scene collision
@@ -167,6 +169,8 @@ protected:
 	uint16 m_networkFrameNum;							///< The current frame (used to sync remote actions)
 	bool m_enetConnected;
 	bool m_socketConnected;
+
+	int m_serverFrame;
 
 	/** Called from onInit */
 	void makeGUI();

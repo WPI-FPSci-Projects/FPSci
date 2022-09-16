@@ -870,6 +870,7 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 	{
 		FileSystem::createDirectory(resultsDirPath);
 	}
+	//TODO MAKE SEPERATE DB FILES FOR CLIENTS AND SERVER
 
 	// Create and check log file name
 	const String logFileBasename = sessConfig->logger.logToSingleDb ? experimentConfig.description + "_" + userStatusTable.currentUser + "_" + m_expConfigHash : id + "_" + userStatusTable.currentUser + "_" + String(FPSciLogger::genFileTimestamp());
@@ -1010,6 +1011,7 @@ void FPSciApp::onNetwork() {
 		BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
 		NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
 		uint16 frameNum = packet_contents.readUInt16();
+		m_serverFrame = frameNum; // TODO MAX(m_serverFrame, frameNum);??????
 
 		/* Take a set of entity updates from the server and apply them to local entities */
 		if (type == NetworkUtils::MessageType::BATCH_ENTITY_UPDATE) {
@@ -2155,4 +2157,9 @@ FPSciApp::Settings::Settings(const StartupConfig& startupConfig, int argc, const
 
 	renderer.deferredShading = true;
 	renderer.orderIndependentTransparency = false;
+}
+
+int FPSciApp::frameNumFromID(GUniqueID id)
+{
+	return m_serverFrame;
 }

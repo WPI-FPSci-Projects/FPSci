@@ -115,17 +115,17 @@ int NetworkUtils::sendHandshakeReply(ENetSocket socket, ENetAddress address) {
 	return enet_socket_send(socket, &address, &buff, 1);
 }
 
-NetworkUtils::ConnectedClient NetworkUtils::registerClient(ENetEvent event, BinaryInput& inBuffer) {
+NetworkUtils::ConnectedClient* NetworkUtils::registerClient(ENetEvent event, BinaryInput& inBuffer) {
 	/* get the clients information and create a ConnectedClient struct */
-	ConnectedClient newClient;
-	newClient.peer = event.peer;
+	ConnectedClient* newClient = new ConnectedClient();
+	newClient->peer = event.peer;
 	GUniqueID clientGUID;
 	clientGUID.deserialize(inBuffer);
-	newClient.guid = clientGUID;
+	newClient->guid = clientGUID;
 	ENetAddress addr;
 	addr.host = event.peer->address.host;
 	addr.port = inBuffer.readUInt16();   // Set the port to what the client sends to us because we might loose the UDP handshake packet
-	newClient.unreliableAddress = addr;
+	newClient->unreliableAddress = addr;
 	debugPrintf("\tPort: %i\n", addr.port);
 	debugPrintf("\tHost: %i\n", addr.host);
 	/* Create Reply to the client */
@@ -204,14 +204,14 @@ void NetworkUtils::broadcastBatchEntityUpdate(Array<shared_ptr<Entity>> entities
 	}
 }
 
-void NetworkUtils::serverBatchEntityUpdate(Array<shared_ptr<NetworkedEntity>> entities, Array<ConnectedClient> clients, ENetSocket sendSocket, uint32 frameNum) {
+void NetworkUtils::serverBatchEntityUpdate(Array<shared_ptr<NetworkedEntity>> entities, Array<ConnectedClient*> clients, ENetSocket sendSocket, uint32 frameNum) {
 	Array<shared_ptr<Entity>> genericEntities;
 	for (shared_ptr<NetworkedEntity> e : entities) {
 		genericEntities.append((shared_ptr<Entity>) e);
 	}
 	Array<ENetAddress> addresses;
-	for (ConnectedClient client : clients) {
-		addresses.append(client.unreliableAddress);
+	for (ConnectedClient* client : clients) {
+		addresses.append(client->unreliableAddress);
 	}
 	NetworkUtils::broadcastBatchEntityUpdate(genericEntities, addresses, sendSocket, frameNum);
 }

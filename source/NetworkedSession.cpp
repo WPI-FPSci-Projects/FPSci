@@ -53,7 +53,7 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 		Point2 dir = Point2();//client->frame().rotation;
 		Point3 loc = client->frame().translation;
 		GUniqueID id = GUniqueID::fromString16(client->name());
-		int frame = static_cast<FPSciServerApp*>(m_app)->getClientFromGUID(id).frameNumber;
+		int frame = m_app->frameNumFromID(id);
 		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_frameNumber, frame);
 		logger->logNetworkedClient(nc);
 		debugPrintf("Logged...");
@@ -71,6 +71,7 @@ void NetworkedSession::onInit(String filename, String description)
 	if (m_config->logger.enable) {
 		UserConfig user = *m_app->currentUser();
 		// Setup the logger and create results file
+		
 		logger = FPSciLogger::create(filename + "-net" + ".db", user.id,
 			m_app->startupConfig.experimentList[m_app->experimentIdx].experimentConfigFilename,
 			m_config, description);
