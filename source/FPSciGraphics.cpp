@@ -423,10 +423,21 @@ void FPSciApp::updateFPSIndicator(RenderDevice* rd, Vector2 resolution) {
 
 void FPSciApp::updatePingIndicator(RenderDevice* rd, Vector2 resolution) {
 	if (renderPing) {
+		Color3 color;
+		if (m_pingStats.pingQueue.last() < 50) {
+			color = Color3::green();
+		}
+		else if (m_pingStats.pingQueue.last() < 100) {
+			color = Color3::yellow();
+		}
+		else {
+			color = Color3::red();
+		}
+
 		// Draw the ping indicator
 		const float scale = resolution.x / 1920.0f;
 		String msg = format("[Ping] Latest: %lld ms | SMA: %lld ms", m_pingStats.pingQueue.last(), m_pingStats.smaPing);
-		outputFont->draw2D(rd, msg, Point2(0.05f * resolution.x, 0.05f * resolution.y).floor(), floor(20.0f * scale), Color3::yellow());
+		outputFont->draw2D(rd, msg, Point2(0.05f * resolution.x, 0.05f * resolution.y).floor(), floor(20.0f * scale), color);
 	}
 }
 
