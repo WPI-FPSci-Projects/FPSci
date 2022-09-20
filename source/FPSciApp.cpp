@@ -107,14 +107,6 @@ void FPSciApp::initExperiment() {
 		m_unreliableSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
 		enet_socket_set_option(m_unreliableSocket, ENET_SOCKOPT_NONBLOCK, 1); //Set socket to non-blocking
 
-		try {
-			m_playerGUID = GUniqueID::create();
-		}
-		catch (std::runtime_error e) {
-			logPrintf("Error on GUID creation: %s", e.what());
-			debugPrintf("Error on GUID creation: %s", e.what());
-		}
-
 		// initialize variables to be reset by handshakes
 		m_enetConnected = false;
 		m_socketConnected = false;
@@ -870,7 +862,6 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 	{
 		FileSystem::createDirectory(resultsDirPath);
 	}
-	//TODO MAKE SEPERATE DB FILES FOR CLIENTS AND SERVER
 
 	// Create and check log file name
 	const String logFileBasename = sessConfig->logger.logToSingleDb ? experimentConfig.description + "_" + userStatusTable.currentUser + "_" + m_expConfigHash : id + "_" + userStatusTable.currentUser + "_" + String(FPSciLogger::genFileTimestamp());
@@ -970,9 +961,9 @@ void FPSciApp::onAI() {
 void FPSciApp::onNetwork() {
 	GApp::onNetwork();
 
-	if (experimentConfig.isNetworked && sess->currentState == NetworkedPresentationState::networkedSessionStart) {
+	//if (experimentConfig.isNetworked && sess->currentState == NetworkedPresentationState::networkedSessionStart) {
 		m_networkFrameNum++;
-	}
+	//}
 
 	BinaryOutput output;
 	output.setEndian(G3D_BIG_ENDIAN);
@@ -986,7 +977,7 @@ void FPSciApp::onNetwork() {
 		// Get and serialize the players frame
 		// TODO: refactor this to move ENet code into NetworkUtils
 		output.writeUInt8(NetworkUtils::MessageType::BATCH_ENTITY_UPDATE);
-		output.writeUInt16(m_networkFrameNum);
+		output.writeUInt32(m_networkFrameNum);
 		output.writeUInt8(1);				// Only update the player
 		//TODO: allow for non-player entities (i.e. projectiles)?
 		NetworkUtils::createFrameUpdate(m_playerGUID, scene()->entity("player"), output);
@@ -1010,7 +1001,7 @@ void FPSciApp::onNetwork() {
 		enet_address_get_host_ip(&addr_from, ip, 16);
 		BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
 		NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
-		uint16 frameNum = packet_contents.readUInt16();
+		uint32 frameNum = packet_contents.readUInt32();
 		m_serverFrame = frameNum; // TODO MAX(m_serverFrame, frameNum);??????
 
 		/* Take a set of entity updates from the server and apply them to local entities */
@@ -1030,6 +1021,9 @@ void FPSciApp::onNetwork() {
 		else if (type == NetworkUtils::MessageType::HANDSHAKE_REPLY) {
 			m_socketConnected = true;
 			debugPrintf("Received HANDSHAKE_REPLY from server\n");
+		}
+		if (frameNum - m_networkFrameNum > 50 || m_networkFrameNum - frameNum > 50) {
+			debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\t Client Frame: %d\n\tServer Frame: %d\n", m_networkFrameNum, frameNum);
 		}
 	}
 	free(data);
@@ -1058,7 +1052,7 @@ void FPSciApp::onNetwork() {
 			// Pull data out of packet
 			BinaryInput packet_contents(event.packet->data, event.packet->dataLength, G3D_BIG_ENDIAN);
 			NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
-			uint16 frameNum = packet_contents.readUInt16();
+			uint32 frameNum = packet_contents.readUInt32();
 
 			/* for now, batch updates on the reliable channel are ignored.*/
 			if (type == NetworkUtils::MessageType::BATCH_ENTITY_UPDATE) {
@@ -1103,6 +1097,8 @@ void FPSciApp::onNetwork() {
 			else if (type == NetworkUtils::MessageType::CLIENT_REGISTRATION_REPLY) {
 				// create entity and add it to the entity storage
 				//TODO: move network IO to NetworkUtils?
+				// Also sync frame number of this client to be the servers frame number
+				m_networkFrameNum = frameNum;
 				debugPrintf("INFO: Received registration reply...\n");
 				GUniqueID clientGUID;
 				clientGUID.deserialize(packet_contents);
@@ -2159,7 +2155,7 @@ FPSciApp::Settings::Settings(const StartupConfig& startupConfig, int argc, const
 	renderer.orderIndependentTransparency = false;
 }
 
-int FPSciApp::frameNumFromID(GUniqueID id)
+uint32 FPSciApp::frameNumFromID(GUniqueID id)
 {
 	return m_serverFrame;
 }

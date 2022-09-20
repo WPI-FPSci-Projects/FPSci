@@ -8,6 +8,8 @@
 FPSciServerApp::FPSciServerApp(const GApp::Settings& settings) : FPSciApp(settings) {}
 
 
+
+
 void FPSciServerApp::initExperiment() {
     playersReady = 0;
     // Load config from files
@@ -83,9 +85,9 @@ void FPSciServerApp::initExperiment() {
 void FPSciServerApp::onNetwork() {
     /* None of this is from the upsteam project */
 
-    if (!sess->currentState == NetworkedPresentationState::networkedSessionStart) {
+    //if (!static_cast<NetworkedSession*>(sess.get())->currentState == NetworkedPresentationState::networkedSessionStart) {
         m_networkFrameNum++;
-    }
+    //}
     
     /* First we receive on the unreliable connection */
 
@@ -100,7 +102,7 @@ void FPSciServerApp::onNetwork() {
         enet_address_get_host_ip(&addr_from, ip, 16);
         BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
         NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
-        uint16 frameNum = packet_contents.readUInt16();
+        uint32 frameNum = packet_contents.readUInt32();
         NetworkUtils::ConnectedClient* client = getClientFromAddress(addr_from);
         client->frameNumber = frameNum;
 
@@ -116,8 +118,19 @@ void FPSciServerApp::onNetwork() {
             //update locally entity displayed on the server: 
             int num_packet_members = packet_contents.readUInt8(); // get # of frames in this packet
             for (int i = 0; i < num_packet_members; i++) { // get new frames and update objects
-                NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents); // Read the data from the packet and update on the local entity
+                shared_ptr<NetworkedEntity> updated_entity = NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents); // Read the data from the packet and update on the local entity
+                if (updated_entity != nullptr) {
+                    //Create the log record for this update
+                    Point2 dir = Point2();//client->frame().rotation;
+                    Point3 loc = updated_entity->frame().translation;
+                    NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, client->guid, m_networkFrameNum, frameNum);
+                    sess->logger->logNetworkedClient(nc);
+                    debugPrintf("Logged update (%d, %d)...", m_networkFrameNum, frameNum);
+                }
             }
+        }
+        if (frameNum - m_networkFrameNum > 50 || m_networkFrameNum - frameNum > 50) {
+            debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\t Client Frame: %d\n\tServer Frame: %d\n", frameNum, m_networkFrameNum);
         }
     }
     free(data);
@@ -155,7 +168,7 @@ void FPSciServerApp::onNetwork() {
 
             BinaryInput packet_contents(event.packet->data, event.packet->dataLength, G3D_BIG_ENDIAN);
             NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
-            uint16 frameNum = packet_contents.readUInt16();
+            uint32 frameNum = packet_contents.readUInt32();
 
             /* Now parse the type of message we received */
 
@@ -219,7 +232,8 @@ void FPSciServerApp::onNetwork() {
                 debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), playersReady);
                 if (playersReady >= experimentConfig.numPlayers)
                 {
-                    NetworkUtils::broadcastStartSession(m_localHost);
+                    m_networkFrameNum = 0;
+                    NetworkUtils::broadcastStartSession(m_localHost, m_networkFrameNum);
                     debugPrintf("All PLAYERS ARE READY!\n");
                 }
             }
@@ -491,7 +505,7 @@ NetworkUtils::ConnectedClient* FPSciServerApp::getClientFromGUID(GUniqueID ID)
     }
 }
 
-int FPSciServerApp::frameNumFromID(GUniqueID id) 
+uint32 FPSciServerApp::frameNumFromID(GUniqueID id) 
 {
     return getClientFromGUID(id)->frameNumber;
 }

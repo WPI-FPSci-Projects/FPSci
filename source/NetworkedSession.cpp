@@ -54,7 +54,7 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 		Point3 loc = client->frame().translation;
 		GUniqueID id = GUniqueID::fromString16(client->name());
 		int frame = m_app->frameNumFromID(id);
-		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_frameNumber, frame);
+		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_networkFrameNum, frame);
 		logger->logNetworkedClient(nc);
 		debugPrintf("Logged...");
 	}
@@ -67,17 +67,24 @@ void NetworkedSession::onInit(String filename, String description)
 	m_player = m_app->scene()->typedEntity<PlayerEntity>("player");
 	m_scene = m_app->scene().get();
 	m_camera = m_app->activeCamera();
+	String filenameBase = filename;
 
 	if (m_config->logger.enable) {
 		UserConfig user = *m_app->currentUser();
 		// Setup the logger and create results file
-		
-		logger = FPSciLogger::create(filename + "-net" + ".db", user.id,
+		FPSciServerApp* server_app = dynamic_cast<FPSciServerApp*>(m_app);
+		if (server_app != nullptr) {
+			filename += "-server.db";
+		}
+		else {
+			filename += "-client-" + m_app->m_playerGUID.toString16() + ".db";
+		}
+		logger = FPSciLogger::create(filename, user.id,
 			m_app->startupConfig.experimentList[m_app->experimentIdx].experimentConfigFilename,
 			m_config, description);
 		logger->logTargetTypes(m_app->experimentConfig.getSessionTargets(m_config->id));			// Log target info at start of session
 		logger->logUserConfig(user, m_config->id, m_config->player.turnScale);						// Log user info at start of session
-		m_dbFilename = filename;
+		m_dbFilename = filenameBase;
 	}
 	m_player = m_app->scene()->typedEntity<PlayerEntity>("player");
 	resetSession();

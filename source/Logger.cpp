@@ -463,6 +463,7 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 		String(std::to_string(client.position.x)),
 		String(std::to_string(client.position.y)),
 		String(std::to_string(client.position.z)),
+		"'" + actionStr + "'",
 		"'" + client.playerID.toString16() + "'",
 		};
 		rows.append(networkedClientValues);

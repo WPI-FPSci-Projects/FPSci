@@ -25,8 +25,9 @@ public:
     void initExperiment() override;
     void onNetwork() override;
     void oneFrame() override;
+    //shared_ptr<NetworkedSession> sess;		 ///< Pointer to the experiment
 
     NetworkUtils::ConnectedClient* getClientFromAddress(ENetAddress e);
     NetworkUtils::ConnectedClient* getClientFromGUID(GUniqueID ID);
-    int frameNumFromID(GUniqueID id) override;
+    uint32 frameNumFromID(GUniqueID id) override;
 };
