@@ -1022,7 +1022,7 @@ void FPSciApp::onNetwork() {
 			m_socketConnected = true;
 			debugPrintf("Received HANDSHAKE_REPLY from server\n");
 		}
-		if (frameNum - m_networkFrameNum > 50 || m_networkFrameNum - frameNum > 50) {
+		if (frameNum - m_serverFrame > 50 || m_networkFrameNum - m_serverFrame > 50) {
 			debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\t Client Frame: %d\n\tServer Frame: %d\n", m_networkFrameNum, frameNum);
 		}
 	}

@@ -91,6 +91,12 @@
 			UInt8: type (START_NETWORKED_SESSION)
 			uint32: Frame Number
 
+			Type PLAYER_INTERACT:
+			uint8: type (PLAYER_INTERACT)
+			uint32: frame number
+			uint8: action type
+			GUID: Player
+
 */
 
 class NetworkUtils
@@ -119,7 +125,9 @@ public:
 		RESPAWN_CLIENT,
 
 		READY_UP_CLIENT,
-		START_NETWORKED_SESSION
+		START_NETWORKED_SESSION,
+
+		PLAYER_INTERACT
 	};
 
 	enum NetworkUpdateType {
@@ -144,6 +152,10 @@ public:
 
 	static int sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer, uint32 frameNum);
 	static void handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, uint32 frameNum);
+
+	enum PlayerInteractType { FIRE_SHOT, JUMP };
+	static int sendPlayerInteract(PlayerInteractType t, ENetPeer* peer, uint32 frameNum);
+	static PlayerInteractType handlePlayerInteract(BinaryInput& inBuffer);
 
 	static int sendMoveClient(CFrame frame, ENetPeer* peer, uint32 frameNum);
 	static int sendHandshakeReply(ENetSocket socket, ENetAddress address);

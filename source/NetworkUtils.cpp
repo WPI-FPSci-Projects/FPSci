@@ -73,7 +73,7 @@ int NetworkUtils::sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPee
 	outBuffer.writeUInt32(frameNum);
 	shot_id.serialize(outBuffer);
 	shooter_id.serialize(outBuffer);
-	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length() + 1, ENET_PACKET_FLAG_RELIABLE);
+	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	return enet_peer_send(serverPeer, 0, packet);
 }
 void NetworkUtils::handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, uint32 frameNum) {
@@ -84,6 +84,22 @@ void NetworkUtils::handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, 
 	NetworkUtils::broadcastRespawn(serverHost, frameNum);
 }
 
+int NetworkUtils::sendPlayerInteract(PlayerInteractType t, ENetPeer* peer, uint32 frameNum)
+{
+	BinaryOutput outBuffer;
+	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);
+	outBuffer.writeUInt8(NetworkUtils::PLAYER_INTERACT);
+	outBuffer.writeUInt32(frameNum);
+	outBuffer.writeUInt8(t);
+	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
+	return enet_peer_send(peer, 0, packet);
+}
+
+NetworkUtils::PlayerInteractType NetworkUtils::handlePlayerInteract(BinaryInput& inBuffer)
+{
+	return (PlayerInteractType)inBuffer.readUInt8();
+}
+
 int NetworkUtils::sendMoveClient(CFrame frame, ENetPeer* peer, uint32 frameNum) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);
@@ -91,7 +107,7 @@ int NetworkUtils::sendMoveClient(CFrame frame, ENetPeer* peer, uint32 frameNum) 
 	outBuffer.writeUInt32(frameNum);
 	outBuffer.writeUInt8(NetworkUpdateType::REPLACE_FRAME);
 	frame.serialize(outBuffer);
-	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length() + 1, ENET_PACKET_FLAG_RELIABLE);
+	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	return enet_peer_send(peer, 0, packet);
 }
 
@@ -261,7 +277,7 @@ int NetworkUtils::sendReadyUpMessage(ENetPeer* serverPeer) {
 	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::READY_UP_CLIENT);
 	outBuffer.writeUInt32(0);	// Dummy frame num (haven't started a trial yet)
-	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length() + 1, ENET_PACKET_FLAG_RELIABLE);
+	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	return enet_peer_send(serverPeer, 0, packet);
 }
 

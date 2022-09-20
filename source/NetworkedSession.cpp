@@ -57,7 +57,7 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 			int frame = m_app->frameNumFromID(id);
 			NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_networkFrameNum, frame);
 			logger->logNetworkedClient(nc);
-			debugPrintf("Logged...");
+			//debugPrintf("Logged...");
 		}
 	}
 	
