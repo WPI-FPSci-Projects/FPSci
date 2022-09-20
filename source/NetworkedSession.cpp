@@ -47,16 +47,18 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 
 
 	//TODO: Networked Ticks
-	Array<shared_ptr<NetworkedEntity>> entityArray;
-	m_app->scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
-	for (std::shared_ptr<NetworkedEntity> client : entityArray) {
-		Point2 dir = Point2();//client->frame().rotation;
-		Point3 loc = client->frame().translation;
-		GUniqueID id = GUniqueID::fromString16(client->name());
-		int frame = m_app->frameNumFromID(id);
-		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_networkFrameNum, frame);
-		logger->logNetworkedClient(nc);
-		debugPrintf("Logged...");
+	if (notNull(logger)) {
+		Array<shared_ptr<NetworkedEntity>> entityArray;
+		m_app->scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
+		for (std::shared_ptr<NetworkedEntity> client : entityArray) {
+			Point2 dir = Point2();//client->frame().rotation;
+			Point3 loc = client->frame().translation;
+			GUniqueID id = GUniqueID::fromString16(client->name());
+			int frame = m_app->frameNumFromID(id);
+			NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_networkFrameNum, frame);
+			logger->logNetworkedClient(nc);
+			debugPrintf("Logged...");
+		}
 	}
 	
 }

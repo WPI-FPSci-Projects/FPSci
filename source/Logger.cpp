@@ -513,7 +513,7 @@ void FPSciLogger::loggerThreadEntry()
 
 		decltype(m_networkedClients) networkedClients;
 		networkedClients.swap(m_networkedClients, networkedClients);
-		m_networkedClients.reserve(m_networkedClients.size() * 2);
+		m_networkedClients.reserve(networkedClients.size() * 2);
 
 		// Unlock all the now-empty queues and write out our temporary copies
 		lk.unlock();
