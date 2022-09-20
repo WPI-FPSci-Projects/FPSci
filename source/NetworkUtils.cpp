@@ -86,7 +86,7 @@ void NetworkUtils::handlePingReply(BinaryInput& inBuffer, PingStatistics& stats)
 	inBuffer.readBytes((void*)&rttStart, sizeof(std::chrono::steady_clock::time_point));
 	long long rtt = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - rttStart).count();
 	stats.pingQueue.pushBack(rtt);
-	if (stats.pingQueue.length() > stats.MA_RTT_SIZE) {
+	if (stats.pingQueue.length() > stats.smaRTTSize) {
 		stats.pingQueue.popFront();
 	}
 
@@ -95,8 +95,8 @@ void NetworkUtils::handlePingReply(BinaryInput& inBuffer, PingStatistics& stats)
 		sum += stats.pingQueue[i];
 	}
 
-	if (stats.pingQueue.length() == stats.MA_RTT_SIZE) {
-		stats.smaPing = sum / stats.MA_RTT_SIZE;
+	if (stats.pingQueue.length() == stats.smaRTTSize) {
+		stats.smaPing = sum / stats.smaRTTSize;
 	}
 }
 

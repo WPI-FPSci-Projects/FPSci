@@ -114,8 +114,8 @@ public:
 
 	// Struct for storing ping statistics
 	struct PingStatistics {
-		// Moving Average size (change to a configurable value later)
-		const int MA_RTT_SIZE = 5;
+		// Moving Average size (configurable)
+		int smaRTTSize = 5;
 		// Queue of currently recorded RTTs
 		Queue<long long> pingQueue;
 		// Stored Simple Moving Average of pings

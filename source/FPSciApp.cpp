@@ -135,8 +135,9 @@ void FPSciApp::initExperiment() {
 		m_enetConnected = false;
 		m_socketConnected = false;
 		
-		// Initialize ping queue's first value to dummy value (in case user selects to show ping without actually connecting to server)
+		// Initialize ping statistics
 		m_pingStats.pingQueue.pushBack(0);
+		experimentConfig.pingSMASize > 0 ? m_pingStats.smaRTTSize = experimentConfig.pingSMASize : m_pingStats.smaRTTSize = 5;
 	}
 }
 

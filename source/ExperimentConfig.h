@@ -16,6 +16,7 @@ public:
 	int serverPort = 12345;								///< Port for server to listen to
 	int clientPort = 12350;								///< Port for the client to listen to
 	int pingPort = 12355;								///< Port for sending and receiving ping packets
+	int pingSMASize = 5;								///< Sample size used for calculating SMA for ping
 	
 	ExperimentConfig() { init(); }
 	ExperimentConfig(const Any& any);

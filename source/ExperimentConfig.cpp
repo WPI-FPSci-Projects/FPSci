@@ -15,6 +15,7 @@ ExperimentConfig::ExperimentConfig(const Any& any) : FpsConfig(any) {
 		reader.getIfPresent("serverPort", serverPort);
 		reader.getIfPresent("clientPort", clientPort);
 		reader.getIfPresent("pingPort", pingPort);
+		reader.getIfPresent("pingSMASize", pingSMASize);
 		logPrintf("serverAddress is : %s:%d\n", serverAddress.c_str(), serverPort);
 		break;
 	default:
