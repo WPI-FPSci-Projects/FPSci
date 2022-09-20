@@ -277,6 +277,11 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 	positionPane->beginRow(); {
 		positionPane->addCheckBox("Respawn Player Now?", &(config.player.respawnToPos));
 	} positionPane->endRow();
+
+	auto clientCommunicationPane = pane->addPane("Client Communation");
+	clientCommunicationPane->beginRow(); {
+		clientCommunicationPane->addCheckBox("Propagate player controls to all the clients?", &(config.player.propagatePlayerConfigs));
+	} clientCommunicationPane->endRow();
 	pack();
 	moveTo(Vector2(440, 300));
 }

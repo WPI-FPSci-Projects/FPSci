@@ -743,6 +743,7 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->movementRestrictionZ = &sessConfig->player.movementRestrictionZ;
 	player->restrictedMovementEnabled = &sessConfig->player.restrictedMovementEnabled;
 	player->counterStrafing = &sessConfig->player.counterStrafing;
+	player->propagatePlayerConfigs = &sessConfig->player.propagatePlayerConfigs;
 
 	// Respawn player
 	player->respawn();
@@ -1158,6 +1159,40 @@ void FPSciApp::onNetwork() {
 				static_cast<NetworkedSession*>(sess.get())->startSession();
 				m_networkFrameNum = frameNum; // Set the frame number to sync with the server
 				debugPrintf("Recieved a request to start session.\n");
+			}
+			else if (type == NetworkUtils::MessageType::SEND_PLAYER_CONFIG_TO_CLIENTS) {
+				shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
+
+				*player->moveRate = packet_contents.readFloat32();
+				*player->moveScale = packet_contents.readVector2();
+
+				(*player->axisLock)[0] = packet_contents.readBool8();
+				(*player->axisLock)[1] = packet_contents.readBool8();
+				(*player->axisLock)[2] = packet_contents.readBool8();
+
+				*player->accelerationEnabled = packet_contents.readBool8();
+				*player->movementAcceleration = packet_contents.readFloat32();
+				*player->movementDeceleration = packet_contents.readFloat32();
+
+				*player->sprintMultiplier = packet_contents.readFloat32();
+
+				*player->jumpVelocity = packet_contents.readFloat32();
+				*player->jumpInterval = packet_contents.readFloat32();
+				*player->jumpTouch = packet_contents.readBool8();
+
+				*player->height = packet_contents.readFloat32();
+				*player->crouchHeight = packet_contents.readFloat32();
+
+				*player->headBobEnabled = packet_contents.readBool8();
+				*player->headBobAmplitude = packet_contents.readFloat32();
+				*player->headBobFrequency = packet_contents.readFloat32();
+
+				*player->movementRestrictionX = packet_contents.readFloat32();
+				*player->movementRestrictionZ = packet_contents.readFloat32();
+				*player->restrictedMovementEnabled = packet_contents.readBool8();
+
+				*player->counterStrafing = packet_contents.readBool8();
+				debugPrintf("Recieved a request to set player config.\n");
 			}
 			
 			enet_packet_destroy(event.packet);

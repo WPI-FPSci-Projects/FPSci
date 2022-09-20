@@ -82,6 +82,7 @@ void FPSciServerApp::initExperiment() {
 
 void FPSciServerApp::onNetwork() {
     /* None of this is from the upsteam project */
+    const shared_ptr<PlayerEntity>& player = scene()->typedEntity<PlayerEntity>("player");
 
     if (!sess->currentState == NetworkedPresentationState::networkedSessionStart) {
         m_networkFrameNum++;
@@ -229,6 +230,11 @@ void FPSciServerApp::onNetwork() {
     Array<shared_ptr<NetworkedEntity>> entityArray;
     scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
     NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
+
+    if (*player->propagatePlayerConfigs) {
+        *player->propagatePlayerConfigs = false;
+        NetworkUtils::broadcastPlayerConfigToClients(m_localHost, player);
+    }
 }
 
 void FPSciServerApp::onInit() {

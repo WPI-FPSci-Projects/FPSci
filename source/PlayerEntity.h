@@ -93,6 +93,7 @@ public:
     bool* restrictedMovementEnabled;           ///< Checks if restricted movement is enabled or not
 
     bool* counterStrafing = nullptr;           ///< Checks if counter strafing is enabled or not
+    bool* propagatePlayerConfigs = nullptr;    ///< Checks if propagating player configs to clients is enabled or not
 
     /** \brief Computes all triangles that could be hit during a
         slideMove with the current \a velocity, allowing that the

@@ -85,6 +85,7 @@ public:
 	float			movementRestrictionZ = 5.0f;				///< Player's restricted movement span along Z
 	bool			restrictedMovementEnabled = false;			///< If true, player's movement will be restricted along X and Z
 	bool			counterStrafing = false;					///< If true, counter strafing will be enabled. (defaults to false.)
+	bool			propagatePlayerConfigs = false;				///< If true, all players config from the server will be broadcast to clients
 
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;
