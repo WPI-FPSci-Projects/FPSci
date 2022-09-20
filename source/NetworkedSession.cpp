@@ -43,7 +43,7 @@ void NetworkedSession::addHittableTarget(shared_ptr<TargetEntity> target) {
 
 void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 {
-	updateNetworkedPresentationState();
+	updatePresentationState();
 
 
 	//TODO: Networked Ticks
@@ -90,17 +90,18 @@ void NetworkedSession::onInit(String filename, String description)
 	}
 	m_player = m_app->scene()->typedEntity<PlayerEntity>("player");
 	resetSession();
+	String testStr = presentationStateToString(currentState);
 }
 
-void NetworkedSession::updateNetworkedPresentationState()
+void NetworkedSession::updatePresentationState()
 {
-	if (currentState == NetworkedPresentationState::initialNetworkedState) {
+	if (currentState == PresentationState::initial) {
 		if (!m_player->getPlayerReady())
 			m_feedbackMessage = formatFeedback(m_config->feedback.networkedSesstionInitial);
 		else
 			m_feedbackMessage = formatFeedback(m_config->feedback.networkedSesstionWaitForOthers);
 	}
-	else if (currentState == NetworkedPresentationState::networkedSessionStart) {
+	else if (currentState == PresentationState::trialTask) {
 		// TODO: Experiment Session Ticks
 	}
 }
@@ -108,14 +109,14 @@ void NetworkedSession::updateNetworkedPresentationState()
 void NetworkedSession::startSession()
 {
 	sessionStarted = true;
-	currentState = NetworkedPresentationState::networkedSessionStart;
+	currentState = PresentationState::trialTask;
 	m_player->setPlayerMovement(true);
 	m_feedbackMessage.clear();
 }
 
 void NetworkedSession::resetSession()
 {
-	currentState = NetworkedPresentationState::initialNetworkedState;
+	currentState = PresentationState::initial;
 	m_player->setPlayerReady(false);
 	m_player->setPlayerMovement(false);
 }

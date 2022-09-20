@@ -91,7 +91,8 @@ enum PlayerActionType{
 	FireCooldown,
 	Miss,
 	Hit,
-	Destroy
+	Destroy,
+	Move
 };
 
 struct PlayerAction {

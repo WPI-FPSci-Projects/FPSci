@@ -21,6 +21,7 @@ FPSciApp::FPSciApp(const GApp::Settings& settings, OSWindow* window, RenderDevic
 
 /** Initialize the app */
 void FPSciApp::onInit() {
+	this->setLowerFrameRateInBackground(startupConfig.lowerFrameRateInBackground);
 	// Seed random based on the time
 	Random::common().reset(uint32(time(0)));
 

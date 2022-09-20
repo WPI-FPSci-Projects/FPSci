@@ -293,6 +293,7 @@ void FPSciLogger::recordPlayerActions(const Array<PlayerAction>& actions) {
 			case Miss: actionStr = "miss"; break;
 			case Hit: actionStr = "hit"; break;
 			case Destroy: actionStr = "destroy"; break;
+			case Move: actionStr = "move"; break;
 		}
 
 		Array<String> playerActionValues = {
@@ -436,6 +437,7 @@ void FPSciLogger::createNetworkedClientTable() {
 		{ "position_y", "real"},
 		{ "position_z", "real"},
 		{ "event", "text" },
+		{ "state", "text" },
 		{ "player_id", "text" },
 	};
 	createTableInDB(m_db, "Client_States", clientColumns);
@@ -443,7 +445,9 @@ void FPSciLogger::createNetworkedClientTable() {
 
 void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) {
 	Array<RowEntry> rows;
-	for (NetworkedClient client : clients) {
+	for (const NetworkedClient client : clients) {
+
+		String stateStr = presentationStateToString(client.state);
 
 		String actionStr = "";
 		switch (client.action) {
@@ -452,6 +456,7 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 		case Miss: actionStr = "miss"; break;
 		case Hit: actionStr = "hit"; break;
 		case Destroy: actionStr = "destroy"; break;
+		case Move: actionStr = "move"; break;
 		}
 
 		Array<String> networkedClientValues = {
@@ -464,6 +469,7 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 		String(std::to_string(client.position.y)),
 		String(std::to_string(client.position.z)),
 		"'" + actionStr + "'",
+		"'" + stateStr + "'",
 		"'" + client.playerID.toString16() + "'",
 		};
 		rows.append(networkedClientValues);

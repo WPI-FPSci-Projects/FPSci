@@ -78,8 +78,6 @@ void FPSciServerApp::initExperiment() {
     }
 
     debugPrintf("Began listening\n");
-
-    static_cast<NetworkedSession*>(sess.get())->startSession(); // Set player as ready for the server player.
 }
 
 void FPSciServerApp::onNetwork() {
@@ -124,8 +122,9 @@ void FPSciServerApp::onNetwork() {
                     Point2 dir = Point2();//client->frame().rotation;
                     Point3 loc = updated_entity->frame().translation;
                     NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, client->guid, m_networkFrameNum, frameNum);
+                    nc.state = static_cast<NetworkedSession*>(sess.get())->currentState;
+                    nc.action = Move;
                     sess->logger->logNetworkedClient(nc);
-                    debugPrintf("Logged update (%d, %d)...", m_networkFrameNum, frameNum);
                 }
             }
         }
@@ -232,7 +231,7 @@ void FPSciServerApp::onNetwork() {
                 debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), playersReady);
                 if (playersReady >= experimentConfig.numPlayers)
                 {
-                    m_networkFrameNum = 0;
+                    static_cast<NetworkedSession*>(sess.get())->startSession();
                     NetworkUtils::broadcastStartSession(m_localHost, m_networkFrameNum);
                     debugPrintf("All PLAYERS ARE READY!\n");
                 }
@@ -248,6 +247,8 @@ void FPSciServerApp::onNetwork() {
 }
 
 void FPSciServerApp::onInit() {
+    this->setLowerFrameRateInBackground(startupConfig.lowerFrameRateInBackground);
+
     if (enet_initialize()) {
         throw std::runtime_error("Failed to initalize enet!");
     }

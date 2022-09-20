@@ -32,8 +32,6 @@
 #include <ctime>
 #include "Session.h"
 
-enum NetworkedPresentationState;
-
 /* Data storage object for Logging purposes*/
 struct NetworkedClient {
 	FILETIME	time;
@@ -73,7 +71,6 @@ protected:
 
 public:
 
-	NetworkedPresentationState currentState; ///Current Networked State
 	static shared_ptr<NetworkedSession> create(FPSciApp* app) {
 		return createShared<NetworkedSession>(app);
 	}
@@ -83,7 +80,7 @@ public:
 	void addHittableTarget(shared_ptr<TargetEntity> target);
 	void onSimulation(RealTime rdt, SimTime sdt, SimTime idt) override;
 	void onInit(String filename, String description) override;
-	void updateNetworkedPresentationState();
+	void updatePresentationState();
 	void startSession();
 	void resetSession();
 };
