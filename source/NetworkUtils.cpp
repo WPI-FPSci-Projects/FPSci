@@ -100,6 +100,21 @@ void NetworkUtils::handlePingReply(BinaryInput& inBuffer, PingStatistics& stats)
 	}
 }
 
+int NetworkUtils::sendPingData(ENetSocket socket, ENetAddress address, PingStatistics pingStats) {
+	BinaryOutput outBuffer;
+	outBuffer.setEndian(G3D_BIG_ENDIAN);
+	outBuffer.writeUInt8(NetworkUtils::MessageType::PING_DATA);
+	long long rttLatest = pingStats.pingQueue.last();
+	uint16 cappedRTT;
+	rttLatest >= UINT16_MAX ? cappedRTT = UINT16_MAX : cappedRTT = (uint16) rttLatest;
+	outBuffer.writeUInt16(cappedRTT);
+
+	ENetBuffer buff;
+	buff.data = (void*)outBuffer.getCArray();
+	buff.dataLength = outBuffer.length();
+	return enet_socket_send(socket, &address, &buff, 1);
+}
+
 int NetworkUtils::sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);

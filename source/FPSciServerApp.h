@@ -15,7 +15,7 @@ public:
 protected:
 
     Array <NetworkUtils::ConnectedClient> m_connectedClients;          //> List of all connected clients and all atributes needed to comunicate with them
-
+    Table <uint32, uint16> m_clientLatestRTTs;                         //> Table mapping the latest RTT value recorded for each client host address
 
 
 public:

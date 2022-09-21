@@ -155,6 +155,11 @@ void FPSciServerApp::onNetwork() {
                 NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents); // Read the data from the packet and update on the local entity
             }
         }
+        /* Update server-side data on clients' ping */
+        else if (type == NetworkUtils::MessageType::PING_DATA) {
+            uint16 cappedRTT = packet_contents.readUInt16();
+            m_clientLatestRTTs.set(addr_from.host, cappedRTT);
+        }
 
     }
     free(data);

@@ -70,6 +70,14 @@
 			UInt8: type (RESPAWN_CLIENT)
 			...
 
+			Type PING:
+			UInt8: type (PING)
+			std::chrono::steady_clock::time_point: Current system time point
+
+			Type: PING_DATA:
+			UInt8: type (PING_DATA)
+			UInt16: capped latest RTT
+
 */
 
 class NetworkUtils
@@ -97,7 +105,8 @@ public:
 		SET_SPAWN_LOCATION,
 		RESPAWN_CLIENT,
 
-		PING
+		PING,
+		PING_DATA
 	};
 
 	enum NetworkUpdateType {
@@ -132,6 +141,8 @@ public:
 	static int sendPingClient(ENetSocket socket, ENetAddress address);
 	static int sendPingReply(ENetSocket socket, ENetAddress address, ENetBuffer* buff);
 	static void handlePingReply(BinaryInput& inBuffer, PingStatistics& stats);
+
+	static int sendPingData(ENetSocket socket, ENetAddress address, PingStatistics pingStats);
 
 	static int sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer);
 	static void handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer);

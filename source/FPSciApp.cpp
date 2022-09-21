@@ -1058,7 +1058,10 @@ void FPSciApp::onNetwork() {
 			debugPrintf("Initialized ping threads\n");
 			m_startedPinging = true;
 		}
-		
+
+		// Send current ping data to the server
+		NetworkUtils::sendPingData(m_unreliableSocket, m_unreliableServerAddress, m_pingStats);
+
 	}
 
 	ENetAddress addr_from;
