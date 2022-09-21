@@ -461,8 +461,8 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 
 		Array<String> networkedClientValues = {
 		"'" + FPSciLogger::formatFileTime(client.time) + "'",
-		String(std::to_string(client.serverFrame)),
-		String(std::to_string(client.clientFrame)),
+		String(std::to_string(client.localFrame)),
+		String(std::to_string(client.remoteFrame)),
 		String(std::to_string(client.viewDirection.x)),
 		String(std::to_string(client.viewDirection.y)),
 		String(std::to_string(client.position.x)),

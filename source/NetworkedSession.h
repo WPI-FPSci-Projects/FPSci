@@ -38,20 +38,32 @@ struct NetworkedClient {
 	Point2		viewDirection = Point2::zero();
 	Point3		position = Point3::zero();
 	GUniqueID	playerID = GUniqueID::NONE(0);
-	uint32		serverFrame = 0;
-	uint32		clientFrame = 0;
+	uint32		localFrame = 0;
+	uint32		remoteFrame = 0;
 	PresentationState	state;
 	PlayerActionType	action = PlayerActionType::None;
 
 	NetworkedClient() {};
 
-	NetworkedClient(FILETIME t, Point2 playerViewDirection, Point3 playerPosition, GUniqueID id, uint32 server_frame, uint32 client_frame) {
+	NetworkedClient(FILETIME t, Point2 playerViewDirection, Point3 playerPosition, GUniqueID id, uint32 local_frame, uint32 remote_frame) {
 		time = t;
 		viewDirection = playerViewDirection;
 		position = playerPosition;
-		clientFrame = client_frame;
-		serverFrame = server_frame;
+		remoteFrame = remote_frame;
+		localFrame = local_frame;
 		playerID = id;
+	}
+
+	NetworkedClient(FILETIME t, Point2 playerViewDirection, Point3 playerPosition, GUniqueID id, uint32 local_frame, uint32 remote_frame, PresentationState playerState, PlayerActionType playerAction) {
+		time = t;
+		viewDirection = playerViewDirection;
+		position = playerPosition;
+		remoteFrame = remote_frame;
+		localFrame = local_frame;
+		playerID = id;
+		state = playerState;
+		action = playerAction;
+
 	}
 	
 	inline bool noChangeFrom(const NetworkedClient& other) const {
@@ -83,4 +95,7 @@ public:
 	void updatePresentationState();
 	void startSession();
 	void resetSession();
+
+	void logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame, PlayerActionType action);
+	void logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame);
 };

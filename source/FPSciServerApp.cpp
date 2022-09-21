@@ -118,17 +118,11 @@ void FPSciServerApp::onNetwork() {
             for (int i = 0; i < num_packet_members; i++) { // get new frames and update objects
                 shared_ptr<NetworkedEntity> updated_entity = NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents); // Read the data from the packet and update on the local entity
                 if (updated_entity != nullptr) {
-                    //Create the log record for this update
-                    Point2 dir = Point2();//client->frame().rotation;
-                    Point3 loc = updated_entity->frame().translation;
-                    NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, client->guid, m_networkFrameNum, frameNum);
-                    nc.state = static_cast<NetworkedSession*>(sess.get())->currentState;
-                    nc.action = Move;
-                    sess->logger->logNetworkedClient(nc);
+                    static_cast<NetworkedSession*>(sess.get())->logNetworkedEntity(updated_entity, frameNum, Move);
                 }
             }
         }
-        if (frameNum - m_networkFrameNum > 50 || m_networkFrameNum - frameNum > 50) {
+        if (frameNum - m_networkFrameNum > 50 || frameNum - m_networkFrameNum < -50) {
             debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\t Client Frame: %d\n\tServer Frame: %d\n", frameNum, m_networkFrameNum);
         }
     }

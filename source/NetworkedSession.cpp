@@ -44,23 +44,13 @@ void NetworkedSession::addHittableTarget(shared_ptr<TargetEntity> target) {
 void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 {
 	updatePresentationState();
-
-
-	//TODO: Networked Ticks
-	if (notNull(logger)) {
-		Array<shared_ptr<NetworkedEntity>> entityArray;
-		m_app->scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
-		for (std::shared_ptr<NetworkedEntity> client : entityArray) {
-			Point2 dir = Point2();//client->frame().rotation;
-			Point3 loc = client->frame().translation;
-			GUniqueID id = GUniqueID::fromString16(client->name());
-			int frame = m_app->frameNumFromID(id);
-			NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_networkFrameNum, frame);
-			logger->logNetworkedClient(nc);
-			//debugPrintf("Logged...");
-		}
-	}
 	
+
+	Array<shared_ptr<NetworkedEntity>> entityArray;
+	m_app->scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
+	for (std::shared_ptr<NetworkedEntity> client : entityArray) {
+		logNetworkedEntity(client, m_app->frameNumFromID(GUniqueID::fromString16(client->name())));
+	}
 }
 
 void NetworkedSession::onInit(String filename, String description)
@@ -119,4 +109,24 @@ void NetworkedSession::resetSession()
 	currentState = PresentationState::initial;
 	m_player->setPlayerReady(false);
 	m_player->setPlayerMovement(false);
+}
+
+
+void NetworkedSession::logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame) {
+	logNetworkedEntity(entity, remoteFrame, PlayerActionType::None);
+}
+
+void NetworkedSession::logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame, PlayerActionType action)
+{
+	if (notNull(logger)) {
+		Point3 view_cartesian = entity->frame().lookVector();
+		float az = atan2(view_cartesian.x, -view_cartesian.z) * 180 / pif();
+		float el = atan2(view_cartesian.y, sqrtf(view_cartesian.x * view_cartesian.x + view_cartesian.z * view_cartesian.z)) * 180 / pif();
+		Point2 dir = Point2(az, el);
+		Point3 loc = entity->frame().translation;
+		GUniqueID id = GUniqueID::fromString16(entity->name());
+		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_networkFrameNum, remoteFrame, currentState, action);
+		logger->logNetworkedClient(nc);
+		//debugPrintf("Logged...");
+	}
 }
