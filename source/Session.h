@@ -56,12 +56,25 @@ public:
 	FILETIME time;
 	//float idt = 0.0f;
 	float sdt = 0.0f;
+	uint32 network_RTT = 0;
+	uint32 local_frame = 0;
+	uint32 remote_frame = 0;
+	String guid = "";
 
 	FrameInfo() {};
 
 	FrameInfo(FILETIME t, float simDeltaTime) {
 		time = t;
 		sdt = simDeltaTime;
+	}
+
+	FrameInfo(FILETIME t, float simDeltaTime, uint32 rtt, uint32 localFrameNum, uint32 remoteFrameNum, GUniqueID clientGUID) {
+		time = t;
+		sdt = simDeltaTime;
+		network_RTT = rtt;
+		local_frame = localFrameNum;
+		remote_frame = remoteFrameNum;
+		guid = clientGUID.toString16();
 	}
 };
 
@@ -410,7 +423,7 @@ public:
 	void processResponse();
 	void recordTrialResponse(int destroyedTargets, int totalTargets);
 	void accumulateTrajectories();
-	void accumulateFrameInfo(RealTime rdt, float sdt, float idt);
+	virtual void accumulateFrameInfo(RealTime rdt, float sdt, float idt);
 
 	void countDestroy() {
 		m_destroyedTargets++;

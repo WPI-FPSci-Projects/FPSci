@@ -44,12 +44,17 @@ void NetworkedSession::addHittableTarget(shared_ptr<TargetEntity> target) {
 void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 {
 	updatePresentationState();
-	
 
 	Array<shared_ptr<NetworkedEntity>> entityArray;
 	m_app->scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
 	for (std::shared_ptr<NetworkedEntity> client : entityArray) {
 		logNetworkedEntity(client, m_app->frameNumFromID(GUniqueID::fromString16(client->name())));
+	}
+	FPSciServerApp* serverApp = dynamic_cast<FPSciServerApp*> (m_app);
+	if (serverApp != nullptr) {
+		for (NetworkUtils::ConnectedClient* client : serverApp->getConnectedClients()) {
+			logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, client->peer->lastRoundTripTime, serverApp->m_networkFrameNum, client->frameNumber, client->guid));
+		}
 	}
 }
 
@@ -128,5 +133,11 @@ void NetworkedSession::logNetworkedEntity(shared_ptr<NetworkedEntity> entity, ui
 		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_networkFrameNum, remoteFrame, currentState, action);
 		logger->logNetworkedClient(nc);
 		//debugPrintf("Logged...");
+	}
+}
+
+void NetworkedSession::accumulateFrameInfo(RealTime t, float sdt, float idt) {
+	if (notNull(logger) && m_config->logger.logFrameInfo) {
+		logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt));
 	}
 }

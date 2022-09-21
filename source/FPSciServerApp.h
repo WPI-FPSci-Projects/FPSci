@@ -30,4 +30,6 @@ public:
     NetworkUtils::ConnectedClient* getClientFromAddress(ENetAddress e);
     NetworkUtils::ConnectedClient* getClientFromGUID(GUniqueID ID);
     uint32 frameNumFromID(GUniqueID id) override;
+
+    Array<NetworkUtils::ConnectedClient*> getConnectedClients() { return m_connectedClients; }
 };
