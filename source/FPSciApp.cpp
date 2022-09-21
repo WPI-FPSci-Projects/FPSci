@@ -744,7 +744,8 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 		m_userSettingsWindow->setSelectedSession(id);
 		// Create the session based on the loaded config
 		if (experimentConfig.isNetworked) {
-			sess = NetworkedSession::create(this, sessConfig);
+			netSess = NetworkedSession::create(this, sessConfig);
+			sess = (shared_ptr<Session>)netSess;
 		}
 		else {
 			sess = Session::create(this, sessConfig);
@@ -754,7 +755,8 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 	{
 		// Create an empty session
 		sessConfig = SessionConfig::create();
-		sess = NetworkedSession::create(this);
+		netSess = NetworkedSession::create(this);
+		sess = (shared_ptr<Session>)netSess;
 	}
 
 	// Update reticle
@@ -1090,7 +1092,7 @@ void FPSciApp::onNetwork() {
 					target->setColor(G3D::Color3(20.0, 20.0, 200.0));
 
 					(*scene()).insert(target);
-					static_cast<NetworkedSession*>(sess.get())->addHittableTarget(target);
+					netSess.get()->addHittableTarget(target);
 				}
 			}
 
@@ -1137,11 +1139,11 @@ void FPSciApp::onNetwork() {
 			else if (type == NetworkUtils::MessageType::RESPAWN_CLIENT) {
 				debugPrintf("Recieved a request to respawn\n");
 				scene()->typedEntity<PlayerEntity>("player")->respawn();
-				static_cast<NetworkedSession*>(sess.get())->resetSession();
+				netSess.get()->resetSession();
 
 			}
 			else if (type == NetworkUtils::MessageType::START_NETWORKED_SESSION) {
-				static_cast<NetworkedSession*>(sess.get())->startSession();
+				netSess.get()->startSession();
 				m_networkFrameNum = frameNum; // Set the frame number to sync with the server
 				debugPrintf("Recieved a request to start session.\n");
 			}

@@ -120,7 +120,7 @@ void FPSciServerApp::onNetwork() {
             for (int i = 0; i < num_packet_members; i++) { // get new frames and update objects
                 shared_ptr<NetworkedEntity> updated_entity = NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents); // Read the data from the packet and update on the local entity
                 if (updated_entity != nullptr) {
-                    static_cast<NetworkedSession*>(sess.get())->logNetworkedEntity(updated_entity, frameNum, Move);
+                    netSess.get()->logNetworkedEntity(updated_entity, frameNum, Move);
                 }
             }
         }
@@ -227,7 +227,7 @@ void FPSciServerApp::onNetwork() {
                 debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), playersReady);
                 if (playersReady >= experimentConfig.numPlayers)
                 {
-                    static_cast<NetworkedSession*>(sess.get())->startSession();
+                    netSess.get()->startSession();
                     NetworkUtils::broadcastStartSession(m_localHost, m_networkFrameNum);
                     debugPrintf("All PLAYERS ARE READY!\n");
                 }

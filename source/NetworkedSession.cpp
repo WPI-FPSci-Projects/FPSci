@@ -53,7 +53,10 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 	FPSciServerApp* serverApp = dynamic_cast<FPSciServerApp*> (m_app);
 	if (serverApp != nullptr) {
 		for (NetworkUtils::ConnectedClient* client : serverApp->getConnectedClients()) {
-			logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, client->peer->lastRoundTripTime, serverApp->m_networkFrameNum, client->frameNumber, client->guid));
+			//TODO should be accumulate? not sure, but doing this for now to prevent crash:
+			if (notNull(logger)) {
+				logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, client->peer->lastRoundTripTime, serverApp->m_networkFrameNum, client->frameNumber, client->guid));
+			}
 		}
 	}
 }
