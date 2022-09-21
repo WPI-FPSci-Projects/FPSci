@@ -133,7 +133,7 @@ int NetworkUtils::sendHandshakeReply(ENetSocket socket, ENetAddress address) {
 	return enet_socket_send(socket, &address, &buff, 1);
 }
 
-NetworkUtils::ConnectedClient* NetworkUtils::registerClient(ENetEvent event, BinaryInput& inBuffer) {
+NetworkUtils::ConnectedClient* NetworkUtils::registerClient(ENetEvent event, BinaryInput& inBuffer, uint32 frameNum) {
 	/* get the clients information and create a ConnectedClient struct */
 	ConnectedClient* newClient = new ConnectedClient();
 	newClient->peer = event.peer;
@@ -150,7 +150,7 @@ NetworkUtils::ConnectedClient* NetworkUtils::registerClient(ENetEvent event, Bin
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::CLIENT_REGISTRATION_REPLY);
-	outBuffer.writeUInt32(0);	// Dummy frame num
+	outBuffer.writeUInt32(frameNum);	// Dummy frame num
 	clientGUID.serialize(outBuffer);		// Send the GUID as a byte string to the client in confirmation
 	outBuffer.writeUInt8(0);
 	ENetPacket* replyPacket = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);

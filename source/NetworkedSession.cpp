@@ -60,7 +60,12 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 			//debugPrintf("Logged...");
 		}
 	}
-	
+	FPSciServerApp* serverApp = dynamic_cast<FPSciServerApp*> (m_app);
+	if (serverApp != nullptr) {
+		for (NetworkUtils::ConnectedClient* client : serverApp->getConnectedClients()) {
+			logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, client->peer->lastRoundTripTime, serverApp->m_networkFrameNum, client->frameNumber, client->guid));
+		}
+	}
 }
 
 void NetworkedSession::onInit(String filename, String description)
@@ -119,4 +124,10 @@ void NetworkedSession::resetSession()
 	currentState = PresentationState::initial;
 	m_player->setPlayerReady(false);
 	m_player->setPlayerMovement(false);
+}
+
+void NetworkedSession::accumulateFrameInfo(RealTime t, float sdt, float idt) {
+	if (notNull(logger) && m_config->logger.logFrameInfo) {
+		logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt));
+	}
 }

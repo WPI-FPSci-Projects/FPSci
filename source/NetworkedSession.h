@@ -80,6 +80,7 @@ public:
 	void addHittableTarget(shared_ptr<TargetEntity> target);
 	void onSimulation(RealTime rdt, SimTime sdt, SimTime idt) override;
 	void onInit(String filename, String description) override;
+	void accumulateFrameInfo(RealTime t, float sdt, float idt) override;
 	void updatePresentationState();
 	void startSession();
 	void resetSession();

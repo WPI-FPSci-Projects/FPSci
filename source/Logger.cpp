@@ -312,12 +312,17 @@ void FPSciLogger::recordPlayerActions(const Array<PlayerAction>& actions) {
 	insertRowsIntoDB(m_db, "Player_Action", rows);
 }
 
+
 void FPSciLogger::createFrameInfoTable() {
 	// Frame_Info table
 	Columns frameInfoColumns = {
 		{"time", "text"},
 		//{"idt", "real"},
 		{"sdt", "real"},
+		{"network_RTT", "real"},
+		{"local_frame", "real"},
+		{"remote_frame", "real"},
+		{"client_guid", "text"},
 	};
 	createTableInDB(m_db, "Frame_Info", frameInfoColumns);
 }
@@ -328,7 +333,11 @@ void FPSciLogger::recordFrameInfo(const Array<FrameInfo>& frameInfo) {
 		Array<String> frameValues = {
 			"'" + FPSciLogger::formatFileTime(info.time) + "'",
 			//String(std::to_string(info.idt)),
-			String(std::to_string(info.sdt))
+			String(std::to_string(info.sdt)),
+			String(std::to_string(info.network_RTT)),
+			String(std::to_string(info.local_frame)),
+			String(std::to_string(info.remote_frame)),
+			"'" + info.guid + "'"
 		};
 		rows.append(frameValues);
 	}

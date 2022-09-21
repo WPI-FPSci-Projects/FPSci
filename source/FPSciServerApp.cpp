@@ -78,6 +78,8 @@ void FPSciServerApp::initExperiment() {
     }
 
     debugPrintf("Began listening\n");
+    shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
+    player->setPlayerMovement(true);
 }
 
 void FPSciServerApp::onNetwork() {
@@ -173,7 +175,7 @@ void FPSciServerApp::onNetwork() {
 
             if (type == NetworkUtils::MessageType::REGISTER_CLIENT) {
                 debugPrintf("Registering client...\n");
-                NetworkUtils::ConnectedClient* newClient = NetworkUtils::registerClient(event, packet_contents);
+                NetworkUtils::ConnectedClient* newClient = NetworkUtils::registerClient(event, packet_contents, m_networkFrameNum);
                 m_connectedClients.append(newClient);
                 debugPrintf("\tRegistered client: %s\n", newClient->guid.toString16());
 
