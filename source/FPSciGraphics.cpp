@@ -423,21 +423,27 @@ void FPSciApp::updateFPSIndicator(RenderDevice* rd, Vector2 resolution) {
 
 void FPSciApp::updatePingIndicator(RenderDevice* rd, Vector2 resolution) {
 	if (renderPing) {
-		Color3 color;
-		if (m_pingStats.pingQueue.last() < 50) {
-			color = Color3::green();
-		}
-		else if (m_pingStats.pingQueue.last() < 100) {
-			color = Color3::yellow();
-		}
-		else {
-			color = Color3::red();
-		}
+
+		auto getColor = [](long long val) {
+			if (val < 50) {
+				return Color3::green();
+			}
+			else if (val < 100) {
+				return Color3::yellow();
+			}
+			else {
+				return Color3::red();
+			}
+		};
 
 		// Draw the ping indicator
 		const float scale = resolution.x / 1920.0f;
-		String msg = format("[Ping] Latest: %lld ms | SMA: %lld ms", m_pingStats.pingQueue.last(), m_pingStats.smaPing);
-		outputFont->draw2D(rd, msg, Point2(0.05f * resolution.x, 0.05f * resolution.y).floor(), floor(20.0f * scale), color);
+		String msgBase = format("[Ping]", m_pingStats.pingQueue.last(), m_pingStats.smaPing);
+		String msgLatest = format("Latest: %lld ms", m_pingStats.pingQueue.last());
+		String msgSMA = format("SMA: %lld ms", m_pingStats.smaPing);
+		outputFont->draw2D(rd, msgBase, Point2(0.01f * resolution.x, 0.035f * resolution.y).floor(), floor(15.0f * scale), Color3::yellow());
+		outputFont->draw2D(rd, msgLatest, Point2(0.01f * resolution.x, 0.06f * resolution.y).floor(), floor(15.0f * scale), getColor(m_pingStats.pingQueue.last()));
+		outputFont->draw2D(rd, msgSMA, Point2(0.01f * resolution.x, 0.085f * resolution.y).floor(), floor(15.0f * scale), getColor(m_pingStats.smaPing));
 	}
 }
 
