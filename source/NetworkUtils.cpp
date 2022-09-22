@@ -6,7 +6,6 @@
 static void updateEntity(Entity entity, BinaryInput inBuffer) {
 	NetworkUtils::NetworkUpdateType type = (NetworkUtils::NetworkUpdateType)inBuffer.readUInt8();
 }*/
-
 shared_ptr<NetworkedEntity> NetworkUtils::updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer) {
 	GUniqueID entity_id;
 	entity_id.deserialize(inBuffer);
@@ -84,20 +83,39 @@ void NetworkUtils::handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, 
 	NetworkUtils::broadcastRespawn(serverHost, frameNum);
 }
 
-int NetworkUtils::sendPlayerInteract(PlayerInteractType t, ENetPeer* peer, uint32 frameNum)
+int NetworkUtils::sendPlayerInteract(RemotePlayerAction remoteAction, ENetSocket sendSocket, ENetAddress destAddr, uint32 frameNum)
 {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::PLAYER_INTERACT);
 	outBuffer.writeUInt32(frameNum);
-	outBuffer.writeUInt8(t);
-	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
-	return enet_peer_send(peer, 0, packet);
+	outBuffer.writeUInt8(remoteAction.actionType);
+	remoteAction.guid.serialize(outBuffer);
+	
+	ENetBuffer buff;
+	buff.data = (void*)outBuffer.getCArray();
+	buff.dataLength = outBuffer.length();
+	return enet_socket_send(sendSocket, &destAddr, &buff, 1);
 }
 
-NetworkUtils::PlayerInteractType NetworkUtils::handlePlayerInteract(BinaryInput& inBuffer)
+NetworkUtils::RemotePlayerAction NetworkUtils::handlePlayerInteractServer(ENetSocket sendSocket, Array<ConnectedClient*> clients, BinaryInput& inBuffer, uint32 frameNum)
 {
-	return (PlayerInteractType)inBuffer.readUInt8();
+	uint8 action = inBuffer.readUInt8();
+	GUniqueID guid;
+	guid.deserialize(inBuffer);
+	RemotePlayerAction remoteAction = RemotePlayerAction(guid, action);
+	// Tell all the clients about this shot
+	for (ConnectedClient* client : clients) {
+		sendPlayerInteract(remoteAction, sendSocket, client->unreliableAddress, frameNum);
+	}
+	return remoteAction;
+}
+
+NetworkUtils::RemotePlayerAction NetworkUtils::handlePlayerInteractClient(BinaryInput& inBuffer) {
+	RemotePlayerAction remoteAction;
+	remoteAction.actionType = (PlayerActionType)inBuffer.readUInt8();
+	remoteAction.guid.deserialize(inBuffer);
+	return remoteAction;
 }
 
 int NetworkUtils::sendMoveClient(CFrame frame, ENetPeer* peer, uint32 frameNum) {

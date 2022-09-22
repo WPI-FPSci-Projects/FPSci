@@ -127,10 +127,7 @@ void NetworkedSession::logNetworkedEntity(shared_ptr<NetworkedEntity> entity, ui
 void NetworkedSession::logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame, PlayerActionType action)
 {
 	if (notNull(logger)) {
-		Point3 view_cartesian = entity->frame().lookVector();
-		float az = atan2(view_cartesian.x, -view_cartesian.z) * 180 / pif();
-		float el = atan2(view_cartesian.y, sqrtf(view_cartesian.x * view_cartesian.x + view_cartesian.z * view_cartesian.z)) * 180 / pif();
-		Point2 dir = Point2(az, el);
+		Point2 dir = entity->getLookAzEl();
 		Point3 loc = entity->frame().translation;
 		GUniqueID id = GUniqueID::fromString16(entity->name());
 		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_networkFrameNum, remoteFrame, currentState, action);

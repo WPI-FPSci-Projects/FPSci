@@ -1025,6 +1025,24 @@ void FPSciApp::onNetwork() {
 			m_socketConnected = true;
 			debugPrintf("Received HANDSHAKE_REPLY from server\n");
 		}
+		/* check for a notification of other player's actions (like shots that missed) */
+		else if (type == NetworkUtils::MessageType::PLAYER_INTERACT) {
+			NetworkUtils::RemotePlayerAction remoteAction = NetworkUtils::handlePlayerInteractClient(packet_contents);
+			if (remoteAction.guid.toString16() != m_playerGUID.toString16()) {
+				// Only log actions that happen on another machine
+				debugPrintf("The client %s has shot and missed\n", remoteAction.guid.toString16());
+				const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(remoteAction.guid.toString16());
+				PlayerAction pa = PlayerAction();
+				pa.time = sess->logger->getFileTime();
+				pa.viewDirection = clientEntity->getLookAzEl();
+				pa.position = clientEntity->frame().translation;
+				pa.state = sess->currentState;
+				pa.action = (PlayerActionType)remoteAction.actionType;
+				pa.targetName = remoteAction.guid.toString16();
+				sess->logger->logPlayerAction(pa);
+			}
+		}
+
 		if (frameNum - m_networkFrameNum > 50 || frameNum - m_networkFrameNum < -50) {
 			debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\t Client Frame: %d\n\tServer Frame: %d\n", m_networkFrameNum, frameNum);
 		}
@@ -1729,6 +1747,12 @@ void FPSciApp::missEvent() {
 	if (sess)
 	{
 		sess->accumulatePlayerAction(PlayerActionType::Miss); // Declare this shot a miss here
+
+		// If this is a networked experiment send this miss data to the server
+		if (experimentConfig.isNetworked && m_socketConnected) {
+			debugPrintf("This client (%s) has shot and missed\n", m_playerGUID.toString16());
+			NetworkUtils::sendPlayerInteract(NetworkUtils::RemotePlayerAction(m_playerGUID, PlayerActionType::Miss), m_unreliableSocket, m_unreliableServerAddress, m_networkFrameNum);
+		}
 	}
 }
 

@@ -124,6 +124,19 @@ void FPSciServerApp::onNetwork() {
                 }
             }
         }
+        else if (type == NetworkUtils::MessageType::PLAYER_INTERACT) {
+            NetworkUtils::RemotePlayerAction remoteAction = NetworkUtils::handlePlayerInteractServer(m_unreliableSocket, m_connectedClients, packet_contents, m_networkFrameNum);
+            debugPrintf("The client %s has shot and missed\n", remoteAction.guid.toString16());
+            const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(remoteAction.guid.toString16());
+            PlayerAction pa = PlayerAction();
+            pa.time = sess->logger->getFileTime();
+            pa.viewDirection = clientEntity->getLookAzEl();
+            pa.position = clientEntity->frame().translation;
+            pa.state = sess->currentState;
+            pa.action = (PlayerActionType)remoteAction.actionType;
+            pa.targetName = remoteAction.guid.toString16();
+            sess->logger->logPlayerAction(pa);
+        }
         if (frameNum - m_networkFrameNum > 50 || frameNum - m_networkFrameNum < -50) {
             debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\t Client Frame: %d\n\tServer Frame: %d\n", frameNum, m_networkFrameNum);
         }
@@ -221,6 +234,8 @@ void FPSciServerApp::onNetwork() {
             else if (type == NetworkUtils::MessageType::REPORT_HIT) {
                 NetworkUtils::handleHitReport(m_localHost, packet_contents, m_networkFrameNum);
                 playersReady = 0;
+                static_cast<NetworkedSession*>(sess.get())->resetSession();
+                scene()->typedEntity<PlayerEntity>("player")->setPlayerMovement(true); //Allow the server to move freely
             }
             else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {
                 playersReady++;

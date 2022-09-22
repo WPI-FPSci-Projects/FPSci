@@ -143,6 +143,24 @@ public:
 		uint32 frameNumber;
 	};
 
+	enum PlayerActionType;
+	struct RemotePlayerAction {
+		GUniqueID guid;
+		PlayerActionType actionType;
+
+		RemotePlayerAction() {};
+
+		RemotePlayerAction(uint8 action) {
+			actionType = (PlayerActionType)action;
+		}
+
+		RemotePlayerAction(GUniqueID id, uint8 action) {
+			debugPrintf("Created RemotePlayerAction with values (%s, %d)\n", id.toString16(), action);
+			guid = id;
+			actionType = (PlayerActionType)action;
+		}
+	};
+
 	static shared_ptr<NetworkedEntity> updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer);
 	static shared_ptr<Entity> updateEntity(shared_ptr<Entity> entity, BinaryInput& inBuffer);
 	static void createFrameUpdate(GUniqueID id, shared_ptr<Entity> entity, BinaryOutput& outBuffer);
@@ -153,9 +171,10 @@ public:
 	static int sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer, uint32 frameNum);
 	static void handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, uint32 frameNum);
 
-	enum PlayerInteractType { FIRE_SHOT, JUMP };
-	static int sendPlayerInteract(PlayerInteractType t, ENetPeer* peer, uint32 frameNum);
-	static PlayerInteractType handlePlayerInteract(BinaryInput& inBuffer);
+	static int sendPlayerInteract(RemotePlayerAction remoteAction, ENetSocket sendSocket, ENetAddress destAddr, uint32 frameNum);
+	static RemotePlayerAction handlePlayerInteractServer(ENetSocket sendSocket, Array<ConnectedClient*> clients, BinaryInput& inBuffer, uint32 frameNum);
+	static RemotePlayerAction handlePlayerInteractClient(BinaryInput& inBuffer);
+
 
 	static int sendMoveClient(CFrame frame, ENetPeer* peer, uint32 frameNum);
 	static int sendHandshakeReply(ENetSocket socket, ENetAddress address);
