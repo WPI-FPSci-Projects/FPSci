@@ -436,7 +436,7 @@ void FPSciApp::updateControls(bool firstSession) {
 		rect = m_playerControls->rect();
 		removeWidget(m_playerControls);
 	}
-	m_playerControls = PlayerControls::create(*sessConfig, std::bind(&FPSciApp::exportScene, this), theme);
+	m_playerControls = PlayerControls::create(*sessConfig, std::bind(&FPSciApp::exportScene, this), theme   );
 	m_playerControls->setVisible(visible);
 	if (!rect.isEmpty())
 		m_playerControls->setRect(rect);
@@ -743,8 +743,10 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->movementRestrictionZ = &sessConfig->player.movementRestrictionZ;
 	player->restrictedMovementEnabled = &sessConfig->player.restrictedMovementEnabled;
 	player->counterStrafing = &sessConfig->player.counterStrafing;
-	player->propagatePlayerConfigs = &sessConfig->player.propagatePlayerConfigs;
-
+	player->propagatePlayerConfigsToAll = &sessConfig->player.propagatePlayerConfigsToAll;
+	player->propagatePlayerConfigsToSelectedClient = &sessConfig->player.propagatePlayerConfigsToSelectedClient;
+	player->selectedClient = &sessConfig->player.selectedClient;
+	
 	// Respawn player
 	player->respawn();
 	updateMouseSensitivity();
@@ -1187,6 +1189,9 @@ void FPSciApp::onNetwork() {
 				*player->headBobAmplitude = packet_contents.readFloat32();
 				*player->headBobFrequency = packet_contents.readFloat32();
 
+				*player->respawnPos = packet_contents.readVector3();
+				*player->respawnToPos = packet_contents.readBool8();
+
 				*player->movementRestrictionX = packet_contents.readFloat32();
 				*player->movementRestrictionZ = packet_contents.readFloat32();
 				*player->restrictedMovementEnabled = packet_contents.readBool8();
@@ -1371,7 +1376,6 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 		// Get the next session for the current user
 		updateSession(userStatusTable.getNextSession());
 	}
-
 	// Update time at which this simulation finished
 	m_lastOnSimulationRealTime = m_lastOnSimulationRealTime + rdt;
 	m_lastOnSimulationSimTime = m_lastOnSimulationSimTime + sdt;

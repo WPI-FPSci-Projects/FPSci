@@ -303,6 +303,9 @@ int NetworkUtils::broadcastPlayerConfigToClients(ENetHost* serverHost, const sha
 	outBuffer.writeFloat32(*player->headBobAmplitude);
 	outBuffer.writeFloat32(*player->headBobFrequency);
 	
+	outBuffer.writeVector3(*player->respawnPos);
+	outBuffer.writeBool8(true);
+
 	outBuffer.writeFloat32(*player->movementRestrictionX);
 	outBuffer.writeFloat32(*player->movementRestrictionZ);
 	outBuffer.writeBool8(*player->restrictedMovementEnabled);
@@ -312,4 +315,47 @@ int NetworkUtils::broadcastPlayerConfigToClients(ENetHost* serverHost, const sha
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	enet_host_broadcast(serverHost, 0, packet);
 	return 0;
+}
+
+int NetworkUtils::sendPlayerConfigToSelectedClient(ENetPeer* clientPeer, const shared_ptr<PlayerEntity>& player) {
+	BinaryOutput outBuffer;
+	outBuffer.setEndian(G3D_BIG_ENDIAN);
+	outBuffer.writeUInt8(NetworkUtils::MessageType::SEND_PLAYER_CONFIG_TO_CLIENTS);
+	outBuffer.writeUInt16(0);	// Dummy frame num (haven't started a trial yet)
+
+	outBuffer.writeFloat32(*player->moveRate);
+	outBuffer.writeVector2(*player->moveScale);
+
+	outBuffer.writeBool8((*player->axisLock)[0]);
+	outBuffer.writeBool8((*player->axisLock)[1]);
+	outBuffer.writeBool8((*player->axisLock)[2]);
+
+	outBuffer.writeBool8(*player->accelerationEnabled);
+	outBuffer.writeFloat32(*player->movementAcceleration);
+	outBuffer.writeFloat32(*player->movementDeceleration);
+
+	outBuffer.writeFloat32(*player->sprintMultiplier);
+
+	outBuffer.writeFloat32(*player->jumpVelocity);
+	outBuffer.writeFloat32(*player->jumpInterval);
+	outBuffer.writeBool8(*player->jumpTouch);
+
+	outBuffer.writeFloat32(*player->height);
+	outBuffer.writeFloat32(*player->crouchHeight);
+
+	outBuffer.writeBool8(*player->headBobEnabled);
+	outBuffer.writeFloat32(*player->headBobAmplitude);
+	outBuffer.writeFloat32(*player->headBobFrequency);
+
+	outBuffer.writeVector3(*player->respawnPos);
+	outBuffer.writeBool8(true);
+
+	outBuffer.writeFloat32(*player->movementRestrictionX);
+	outBuffer.writeFloat32(*player->movementRestrictionZ);
+	outBuffer.writeBool8(*player->restrictedMovementEnabled);
+
+	outBuffer.writeBool8(*player->counterStrafing);
+
+	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
+	return enet_peer_send(clientPeer, 0, packet);
 }

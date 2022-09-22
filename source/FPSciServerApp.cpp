@@ -231,10 +231,23 @@ void FPSciServerApp::onNetwork() {
     scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
     NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
 
-    if (*player->propagatePlayerConfigs) {
-        *player->propagatePlayerConfigs = false;
+    if (*player->propagatePlayerConfigsToAll) {
+        *player->propagatePlayerConfigsToAll = false;
         NetworkUtils::broadcastPlayerConfigToClients(m_localHost, player);
     }
+
+    if (*player->propagatePlayerConfigsToSelectedClient) {
+        *player->propagatePlayerConfigsToSelectedClient = false;
+        if ((*player->selectedClient).compare("Client 1")) {
+            NetworkUtils::sendPlayerConfigToSelectedClient(m_connectedClients[0].peer, player);
+        }
+        else {
+            NetworkUtils::sendPlayerConfigToSelectedClient(m_connectedClients[1].peer, player);
+        }
+
+    }
+    
+
 }
 
 void FPSciServerApp::onInit() {

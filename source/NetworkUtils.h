@@ -162,4 +162,5 @@ public:
 	static int sendReadyUpMessage(ENetPeer* serverPeer);
 	static void broadcastStartSession(ENetHost* serverHost);
 	static int broadcastPlayerConfigToClients(ENetHost* serverHost, const shared_ptr<PlayerEntity>& player);
+	static int sendPlayerConfigToSelectedClient(ENetPeer* peer, const shared_ptr<PlayerEntity>& player);
 };

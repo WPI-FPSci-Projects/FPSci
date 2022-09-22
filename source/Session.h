@@ -157,9 +157,9 @@ public:
 	float getTrialsPerBlock(void) const;			// Get the total number of trials in this session
 	Array<String> getUniqueTargetIds() const;
 
-	void respawnPlayer() {
-		player.respawnToPos = true;
-	}
+	void respawnPlayer() { player.respawnToPos = true; }
+	void propagatePlayerControlsToAll() { player.propagatePlayerConfigsToAll = true; }
+	void propagatePlayerControlsToSelectedClient() { player.propagatePlayerConfigsToSelectedClient = true; }
 };
 
 class Session : public ReferenceCountedObject {

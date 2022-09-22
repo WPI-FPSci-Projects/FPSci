@@ -285,15 +285,18 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 
 	auto clientCommunicationPane = pane->addPane("Client Communation");
 	clientCommunicationPane->beginRow(); {
-		clientCommunicationPane->addCheckBox("Propagate player controls to all the clients?", &(config.player.propagatePlayerConfigs));
-	} clientCommunicationPane->endRow();
-	clientCommunicationPane->beginRow(); {
 		m_connectedClientIdx = m_connectedClients.findIndex(config.player.selectedClient);
 		clientCommunicationPane->addDropDownList("Select Client", m_connectedClients, &m_connectedClientIdx, std::bind(&PlayerControls::updateConnectedClients, this));
+		clientCommunicationPane->addButton("Propagate player controls", &config, &SessionConfig::propagatePlayerControlsToSelectedClient);
+	} clientCommunicationPane->endRow();
+	clientCommunicationPane->beginRow(); {
+		clientCommunicationPane->addButton("Propagate player controls to all the clients", &config, &SessionConfig::propagatePlayerControlsToAll);
 	} clientCommunicationPane->endRow();
 	pack();
 	moveTo(Vector2(440, 300));
 }
+
+
 
 RenderControls::RenderControls(FPSciApp* app, SessionConfig& config, bool& drawFps, const int numReticles, float& brightness,
 	const shared_ptr<GuiTheme>& theme, const int maxFrameDelay, const float minFrameRate, const float maxFrameRate, float width, float height) :
