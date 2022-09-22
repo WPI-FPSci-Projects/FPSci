@@ -106,8 +106,17 @@ public:
 
 class PlayerControls : public GuiWindow {
 protected:
+	
+	int	m_connectedClientIdx = 0;
+
+	const Array<String> m_connectedClients = { "Client 1", "Client 2" };
+
+	SessionConfig& m_sessionConfig;
+
 	PlayerControls(SessionConfig& config, std::function<void()> exportCallback,
 		const shared_ptr<GuiTheme>& theme, float width = 400.0f, float height = 10.0f);
+
+	void updateConnectedClients(void);
 
 public:
 	static shared_ptr<PlayerControls> create(SessionConfig& config, std::function<void()> exportCallback,

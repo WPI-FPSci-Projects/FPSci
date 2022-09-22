@@ -149,9 +149,14 @@ void WaypointDisplay::setManager(WidgetManager *manager) {
 	}
 }
 
+void PlayerControls::updateConnectedClients()
+{
+	m_sessionConfig.player.selectedClient = m_connectedClients[m_connectedClientIdx];
+}
+
 PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> exportCallback,
 	const shared_ptr<GuiTheme>& theme, float width, float height) :
-	GuiWindow("Player Controls", theme, Rect2D::xywh(5, 5, width, height), GuiTheme::NORMAL_WINDOW_STYLE, GuiWindow::HIDE_ON_CLOSE)
+	GuiWindow("Player Controls", theme, Rect2D::xywh(5, 5, width, height), GuiTheme::NORMAL_WINDOW_STYLE, GuiWindow::HIDE_ON_CLOSE), m_sessionConfig(config)
 {
 
 	// Create the GUI pane
@@ -275,12 +280,16 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 		c->setWidth(width * 0.95f);
 	} positionPane->endRow();
 	positionPane->beginRow(); {
-		positionPane->addCheckBox("Respawn Player Now?", &(config.player.respawnToPos));
+		positionPane->addButton("Respawn Player", &m_sessionConfig, &SessionConfig::respawnPlayer);
 	} positionPane->endRow();
 
 	auto clientCommunicationPane = pane->addPane("Client Communation");
 	clientCommunicationPane->beginRow(); {
 		clientCommunicationPane->addCheckBox("Propagate player controls to all the clients?", &(config.player.propagatePlayerConfigs));
+	} clientCommunicationPane->endRow();
+	clientCommunicationPane->beginRow(); {
+		m_connectedClientIdx = m_connectedClients.findIndex(config.player.selectedClient);
+		clientCommunicationPane->addDropDownList("Select Client", m_connectedClients, &m_connectedClientIdx, std::bind(&PlayerControls::updateConnectedClients, this));
 	} clientCommunicationPane->endRow();
 	pack();
 	moveTo(Vector2(440, 300));
