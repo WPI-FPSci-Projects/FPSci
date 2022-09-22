@@ -441,9 +441,13 @@ void FPSciApp::updatePingIndicator(RenderDevice* rd, Vector2 resolution) {
 		String msgBase = format("[Ping]", m_pingStats.pingQueue.last(), m_pingStats.smaPing);
 		String msgLatest = format("Latest: %lld ms", m_pingStats.pingQueue.last());
 		String msgSMA = format("SMA: %lld ms", m_pingStats.smaPing);
-		outputFont->draw2D(rd, msgBase, Point2(0.01f * resolution.x, 0.035f * resolution.y).floor(), floor(15.0f * scale), Color3::yellow());
-		outputFont->draw2D(rd, msgLatest, Point2(0.01f * resolution.x, 0.06f * resolution.y).floor(), floor(15.0f * scale), getColor(m_pingStats.pingQueue.last()));
-		outputFont->draw2D(rd, msgSMA, Point2(0.01f * resolution.x, 0.085f * resolution.y).floor(), floor(15.0f * scale), getColor(m_pingStats.smaPing));
+		String msgMin = format("Min: %lld ms", m_pingStats.minPing);
+		String msgMax = format("Max: %lld ms", m_pingStats.maxPing);
+		outputFont->draw2D(rd, msgBase, Point2(0.01f * resolution.x, 0.045f * resolution.y).floor(), floor(15.0f * scale), Color3::yellow());
+		outputFont->draw2D(rd, msgLatest, Point2(0.01f * resolution.x, 0.07f * resolution.y).floor(), floor(15.0f * scale), getColor(m_pingStats.pingQueue.last()));
+		outputFont->draw2D(rd, msgSMA, Point2(0.01f * resolution.x, 0.095f * resolution.y).floor(), floor(15.0f * scale), getColor(m_pingStats.smaPing));
+		outputFont->draw2D(rd, msgMin, Point2(0.01f * resolution.x, 0.12f * resolution.y).floor(), floor(15.0f * scale), getColor(m_pingStats.minPing));
+		outputFont->draw2D(rd, msgMax, Point2(0.01f * resolution.x, 0.145f * resolution.y).floor(), floor(15.0f * scale), getColor(m_pingStats.maxPing));
 	}
 }
 

@@ -86,6 +86,8 @@ void NetworkUtils::handlePingReply(BinaryInput& inBuffer, PingStatistics& stats)
 	inBuffer.readBytes((void*)&rttStart, sizeof(std::chrono::steady_clock::time_point));
 	long long rtt = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - rttStart).count();
 	stats.pingQueue.pushBack(rtt);
+
+	// Update the simple moving average for RTT
 	if (stats.pingQueue.length() > stats.smaRTTSize) {
 		stats.pingQueue.popFront();
 	}
@@ -98,6 +100,15 @@ void NetworkUtils::handlePingReply(BinaryInput& inBuffer, PingStatistics& stats)
 	if (stats.pingQueue.length() == stats.smaRTTSize) {
 		stats.smaPing = sum / stats.smaRTTSize;
 	}
+
+	// Check the minimum and maximum recorded RTT values
+	if (stats.minPing == -1 || rtt < stats.minPing) {
+		stats.minPing = rtt;
+	}
+	if (rtt > stats.maxPing) {
+		stats.maxPing = rtt;
+	}
+
 }
 
 int NetworkUtils::sendPingData(ENetSocket socket, ENetAddress address, PingStatistics pingStats) {

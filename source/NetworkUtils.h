@@ -129,6 +129,10 @@ public:
 		Queue<long long> pingQueue;
 		// Stored Simple Moving Average of pings
 		long long smaPing = 0;
+		// Maximum Recorded RTT
+		long long maxPing = 0;
+		// Minimum Recorded RTT
+		long long minPing = -1;
 	};
 
 	static void updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer);
