@@ -207,3 +207,13 @@ public:
 	void updateFromInput(UserInput* ui);
 
 };
+
+class RemotePlayer : public PlayerEntity
+{
+private:
+	int8 m_playerID;
+public:
+	int8 getPlayerID();
+	void set_player_id(int8 id);
+	void updateFromRemoteInput(AlexDataStructure data);
+};
