@@ -287,10 +287,12 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 	clientCommunicationPane->beginRow(); {
 		m_connectedClientIdx = m_connectedClients.findIndex(config.player.selectedClient);
 		clientCommunicationPane->addDropDownList("Select Client", m_connectedClients, &m_connectedClientIdx, std::bind(&PlayerControls::updateConnectedClients, this));
-		clientCommunicationPane->addButton("Propagate player controls", &config, &SessionConfig::propagatePlayerControlsToSelectedClient);
+		clientCommunicationPane->addButton("Send player controls from GUI", &config, &SessionConfig::propagatePlayerControlsToSelectedClientFromGUI);
+		clientCommunicationPane->addButton("Send player controls from File", &config, &SessionConfig::propagatePlayerControlsToSelectedClientFromFile);
 	} clientCommunicationPane->endRow();
 	clientCommunicationPane->beginRow(); {
-		clientCommunicationPane->addButton("Propagate player controls to all the clients", &config, &SessionConfig::propagatePlayerControlsToAll);
+		clientCommunicationPane->addButton("Send player controls from GUI to all the clients", &config, &SessionConfig::propagatePlayerControlsToAllFromGUI);
+		clientCommunicationPane->addButton("Sent player controls from FILE to all the clients", &config, &SessionConfig::propagatePlayerControlsToAllFromFile);
 	} clientCommunicationPane->endRow();
 	pack();
 	moveTo(Vector2(440, 300));

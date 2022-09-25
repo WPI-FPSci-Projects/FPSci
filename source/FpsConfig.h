@@ -87,8 +87,9 @@ public:
 	bool			counterStrafing = false;					///< If true, counter strafing will be enabled. (defaults to false.)
 	bool			propagatePlayerConfigsToAll = false;		///< If true, all players config from the server will be broadcast to clients
 	bool			propagatePlayerConfigsToSelectedClient = false; ///< If true, all players config from the server will be sent to selected client
+	bool			readFromFile = false;						///< Read client configs from file or not
 	String			selectedClient = "Client 1";				///< Indicates the client that player configs will be propagated to
-
+	Array <PlayerConfig>  clientPlayerConfigs;
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;
 };
@@ -195,7 +196,7 @@ public:
 	String sessComplete = "Session complete! You scored %totalTimeLeftS!";							///< Session complete feedback message
 	String allSessComplete = "All Sessions Complete!";												///< All sessions complete feedback message
 	String networkedSesstionInitial = "Press Tab to Ready Up!";										///< Initial Message for Networked Session to Prompt Players to "Ready Up"
-	String networkedSesstionWaitForOthers = "Wait for others to be ready!";							///< Message to display when not all players are ready	
+	String networkedSesstionWaitForOthers = "Wait for others to be ready and connected!";			///< Message to display when not all players are ready	
 
 	float fontSize = 20.0f;											///< Default font scale/size
 

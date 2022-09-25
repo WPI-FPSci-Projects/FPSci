@@ -1,5 +1,6 @@
 #pragma once
 #include <G3D/G3D.h>
+class PlayerConfig;
 
 class PlayerEntity : public VisibleEntity {
 protected:
@@ -96,8 +97,11 @@ public:
 
     bool* propagatePlayerConfigsToAll = nullptr;    ///< Checks if propagating player configs to clients is enabled or not
     bool* propagatePlayerConfigsToSelectedClient = nullptr; ///< Checks if propagating player configs to one client is enabled or not
+    bool* readFromFile = nullptr;
 
-    String* selectedClient = nullptr;
+    String* selectedClient = nullptr;           ///< Indicates to the client thats currently selected
+
+    Array <PlayerConfig>*  clientPlayerConfigs = nullptr;  ///< Holds config for connected clients
 
     /** \brief Computes all triangles that could be hit during a
         slideMove with the current \a velocity, allowing that the

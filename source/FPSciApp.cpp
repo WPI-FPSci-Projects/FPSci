@@ -745,8 +745,9 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->counterStrafing = &sessConfig->player.counterStrafing;
 	player->propagatePlayerConfigsToAll = &sessConfig->player.propagatePlayerConfigsToAll;
 	player->propagatePlayerConfigsToSelectedClient = &sessConfig->player.propagatePlayerConfigsToSelectedClient;
+	player->readFromFile = &sessConfig->player.readFromFile;
 	player->selectedClient = &sessConfig->player.selectedClient;
-	
+	player->clientPlayerConfigs = &sessConfig->player.clientPlayerConfigs;
 	// Respawn player
 	player->respawn();
 	updateMouseSensitivity();
