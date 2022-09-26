@@ -1,6 +1,5 @@
 #include "PlayerEntity.h"
 #include "PhysicsScene.h"
-#include "InputHandler.h"
 
 // Disable collisions
 // #define NO_COLLISIONS

@@ -234,6 +234,9 @@ void FPSciServerApp::onNetwork() {
                     debugPrintf("All PLAYERS ARE READY!\n");
                 }
             }
+            else if (type == NetworkUtils::MessageType::USER_INPUT) {
+                NetworkUtils::deserializeUserInput(&packet_contents, m_inputHandler);
+            }
             enet_packet_destroy(event.packet);
         }
     }
