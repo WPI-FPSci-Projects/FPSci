@@ -166,6 +166,6 @@ public:
 	static int sendReadyUpMessage(ENetPeer* serverPeer);
 	static void broadcastStartSession(ENetHost* serverHost);
 
-	static void deserializeUserInput(G3D::BinaryInput* bi, InputHandler* inputHandler);
-	static void serializeUserInput(ENetSocket socket, ENetAddress address, G3D::UserInput* ui, int frame);
+	void deserializeUserInput(G3D::BinaryInput* bi, InputHandler* inputHandler);
+	void serializeUserInput(ENetSocket socket, ENetAddress address, G3D::UserInput* ui, int frame);
 };

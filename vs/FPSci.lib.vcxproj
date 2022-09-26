@@ -148,7 +148,6 @@
     <ClInclude Include="..\source\CombatText.h" />
     <ClInclude Include="..\source\FPSciServerApp.h" />
     <ClInclude Include="..\source\FpsConfig.h" />
-    <ClInclude Include="..\source\InputHandler.h" />
     <ClInclude Include="..\source\KeyMapping.h" />
     <ClInclude Include="..\source\NetworkedSession.h" />
     <ClInclude Include="..\source\NetworkUtils.h" />
@@ -177,7 +176,6 @@
     <ClCompile Include="..\source\FPSciGraphics.cpp" />
     <ClCompile Include="..\source\FPSciServerApp.cpp" />
     <ClCompile Include="..\source\FpsConfig.cpp" />
-    <ClCompile Include="..\source\InputHandler.cpp" />
     <ClCompile Include="..\source\KeyMapping.cpp" />
     <ClCompile Include="..\source\NetworkedSession.cpp" />
     <ClCompile Include="..\source\NetworkUtils.cpp" />
