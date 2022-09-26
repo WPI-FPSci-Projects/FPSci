@@ -46,3 +46,4 @@ results/
 /dist
 /README.txt
 /scripts/package/fpsci_packager.bat
+vs/.idea/
