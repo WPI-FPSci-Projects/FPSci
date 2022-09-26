@@ -121,7 +121,9 @@ public:
 		RESPAWN_CLIENT,
 
 		READY_UP_CLIENT,
-		START_NETWORKED_SESSION
+		START_NETWORKED_SESSION,
+
+		USER_INPUT
 	};
 
 	enum NetworkUpdateType {
@@ -163,4 +165,7 @@ public:
 	
 	static int sendReadyUpMessage(ENetPeer* serverPeer);
 	static void broadcastStartSession(ENetHost* serverHost);
+
+	void deserializeUserInput(G3D::BinaryInput* bi, InputHandler* inputHandler);
+	void serializeUserInput(ENetSocket socket, ENetAddress address, G3D::UserInput* ui, int frame);
 };

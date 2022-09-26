@@ -35,6 +35,10 @@ float32 G3D::InputHandler::NetworkInput::GetYMouseDelta()
 	return m_YMouseDelta;
 }
 
+Vector2 G3D::InputHandler::NetworkInput::GetXYMouseDelta() {
+	return Vector2(m_XMouseDelta, m_YMouseDelta);
+}
+
 Array<GKey>* G3D::InputHandler::NetworkInput::GetPressCode()
 {
 	return m_pressCode;

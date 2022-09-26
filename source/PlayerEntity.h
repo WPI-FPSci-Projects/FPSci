@@ -224,5 +224,5 @@ public:
 	
 	uint8 getPlayerID();
 	void setPlayerID(uint8 id);
-	void updateFromRemoteInput(AlexDataStructure data);
+	void updateFromRemoteInput(InputHandler::NetworkInput data);
 };

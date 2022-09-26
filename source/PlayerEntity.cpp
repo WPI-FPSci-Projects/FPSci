@@ -1,5 +1,6 @@
 #include "PlayerEntity.h"
 #include "PhysicsScene.h"
+#include "InputHandler.h"
 
 // Disable collisions
 // #define NO_COLLISIONS
@@ -497,7 +498,7 @@ void RemotePlayer::setPlayerID(uint8 id) {
 }
 
 // should mirror code changes in PlayerEntity::updateFromInput();
-void RemotePlayer::updateFromRemoteInput(AlexDataStructure data) {
+void RemotePlayer::updateFromRemoteInput(InputHandler::NetworkInput data) {
 	if (!m_PlayerMovement)
 		return;
 
@@ -514,13 +515,13 @@ void RemotePlayer::updateFromRemoteInput(AlexDataStructure data) {
 		m_linearVector = Vector3(0, 0, 0);
 	}
 	else if ((*axisLock)[0]) {
-		m_linearVector = Vector3(data->getX() * moveScale->x, 0, 0);
+		m_linearVector = Vector3(data.GetXMovement() * moveScale->x, 0, 0);
 	}
 	else if ((*axisLock)[2]) {
-		m_linearVector = Vector3(0, 0, -data->getY() * moveScale->y);
+		m_linearVector = Vector3(0, 0, -data.GetYMovement() * moveScale->y);
 	}
 	else {
-		m_linearVector = Vector3(data->getX() * moveScale->x, 0, -data->getY() * moveScale->y);
+		m_linearVector = Vector3(data.GetXMovement() * moveScale->x, 0, -data.GetYMovement() * moveScale->y);
 	}
 
 	// Counter strafing
@@ -546,7 +547,7 @@ void RemotePlayer::updateFromRemoteInput(AlexDataStructure data) {
 	m_jumpPressed = false;
 
 	// Get the mouse rotation here
-	Vector2 mouseRotate = data->mouseDXY() * turnScale * (float)m_cameraRadiansPerMouseDot;
+	Vector2 mouseRotate = data.GetXYMouseDelta() * turnScale * (float)m_cameraRadiansPerMouseDot;
 	float yaw = mouseRotate.x;
 	float pitch = mouseRotate.y;
 

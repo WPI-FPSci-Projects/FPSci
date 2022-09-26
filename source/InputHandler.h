@@ -26,6 +26,7 @@ namespace G3D{
 			float32 GetYMovement();
 			float32 GetXMouseDelta();
 			float32 GetYMouseDelta();
+			Vector2 GetXYMouseDelta();
 			Array<GKey>* GetPressCode();
 			Array<GKey>* GetReleaseCode();
 		};
