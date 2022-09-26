@@ -509,8 +509,7 @@ public:
 	void fromNetwork(BinaryInput b);
 	BinaryOutput toNetwork();
 
-	void setFrameN(CoordinateFrame f);
-	CoordinateFrame getFrame();
+	//void setFrameN(CoordinateFrame f);
 
 	// TODO: After other implementations are complete.
 	/** For deserialization from Any / loading from file */

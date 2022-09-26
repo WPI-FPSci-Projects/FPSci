@@ -63,7 +63,6 @@ WaypointDisplay::WaypointDisplay(FPSciApp* app, const shared_ptr<GuiTheme>& them
 {
 	// Store the app pointer 
 	m_app = app;
-
 	// Create a pane
 	GuiPane* pane = GuiWindow::pane();
 
@@ -154,6 +153,7 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 	const shared_ptr<GuiTheme>& theme, float width, float height) :
 	GuiWindow("Player Controls", theme, Rect2D::xywh(5, 5, width, height), GuiTheme::NORMAL_WINDOW_STYLE, GuiWindow::HIDE_ON_CLOSE)
 {
+
 	// Create the GUI pane
 	GuiPane* pane = GuiWindow::pane();
 	auto heightPane = pane->addPane("Height");
@@ -175,6 +175,71 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 		c->setWidth(width*0.95f);
 	}movePane->endRow();
 	movePane->beginRow(); {
+		auto c = movePane->addCheckBox("Lock Player X Axis Movement?", &(config.player.axisLock[0]));
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addCheckBox("Lock Player Z Axis Movement?", &(config.player.axisLock[2]));
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addCheckBox("Use Acceleration?", &(config.player.accelerationEnabled));
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addCheckBox("Use Counter-Strafing?", &(config.player.counterStrafing));
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addNumberBox("Movement Acceleration", &(config.player.movementAcceleration), "m/s^2", GuiTheme::LINEAR_SLIDER, 0.001f, 100.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addNumberBox("Movement Deceleration", &(config.player.movementDeceleration), "m/s^2", GuiTheme::LINEAR_SLIDER, 0.001f, 100.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addNumberBox("Sprint Multiplier", &(config.player.sprintMultiplier), "x", GuiTheme::LINEAR_SLIDER, 1.0f, 10.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addCheckBox("Restrict Movement?", &(config.player.restrictedMovementEnabled));
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addNumberBox("Movement Span Over X", &(config.player.movementRestrictionX), "m", GuiTheme::LINEAR_SLIDER, 0.0f, 1000.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addNumberBox("Movement Span Over Z", &(config.player.movementRestrictionZ), "m", GuiTheme::LINEAR_SLIDER, 0.0f, 1000.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addCheckBox("Use Headbob?", &(config.player.headBobEnabled));
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addNumberBox("Headbob Amplitude", &(config.player.headBobAmplitude), "m", GuiTheme::LINEAR_SLIDER, 0.0f, 5.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
+		auto c = movePane->addNumberBox("Headbob Frequency", &(config.player.headBobFrequency), "x", GuiTheme::LINEAR_SLIDER, 0.0f, 10.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
 		auto c = movePane->addNumberBox("Jump Velocity", &(config.player.jumpVelocity), "m/s", GuiTheme::LINEAR_SLIDER, 0.0f, 50.0f, 0.1f);
 		c->setCaptionWidth(width / 2);
 		c->setWidth(width*0.95f);
@@ -194,7 +259,24 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 	positionPane->beginRow(); {
 		positionPane->addButton("Set Start Position", exportCallback);
 	} positionPane->endRow();
-
+	positionPane->beginRow(); {
+		auto c = positionPane->addNumberBox("Respawn X", &(config.player.respawnPos.x), "", GuiTheme::LINEAR_SLIDER, -1000.0f, 1000.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	} positionPane->endRow();
+	positionPane->beginRow(); {
+		auto c = positionPane->addNumberBox("Respawn Y", &(config.player.respawnPos.y), "", GuiTheme::LINEAR_SLIDER, -1000.0f, 1000.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	} positionPane->endRow();
+	positionPane->beginRow(); {
+		auto c = positionPane->addNumberBox("Respawn Z", &(config.player.respawnPos.z), "", GuiTheme::LINEAR_SLIDER, -1000.0f, 1000.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	} positionPane->endRow();
+	positionPane->beginRow(); {
+		positionPane->addCheckBox("Respawn Player Now?", &(config.player.respawnToPos));
+	} positionPane->endRow();
 	pack();
 	moveTo(Vector2(440, 300));
 }
@@ -427,6 +509,7 @@ UserMenu::UserMenu(FPSciApp* app, UserTable& users, UserStatusTable& userStatus,
 		m_expPane->beginRow(); {
 			m_expPane->addDropDownList("Experiment", app->experimentNames(), &(app->experimentIdx));
 			m_expPane->addButton("Select Experiment", this, &UserMenu::updateExperimentPress);
+				
 		} m_expPane->endRow();
 	}
 
@@ -450,7 +533,11 @@ UserMenu::UserMenu(FPSciApp* app, UserTable& users, UserStatusTable& userStatus,
 	} m_expPane->endRow();
 	m_sessDropDown->setVisible(m_config.allowSessionChange);
 	addBtn->setVisible(m_config.allowSessionChange);
-
+	
+	m_expPane->beginRow(); {
+		m_expPane->addCheckBox("Networked Session?", &app->experimentConfig.isNetworked);
+	}
+	m_expPane->endRow();
 	// Hide the experiment settings if not requested to be drawn
 	if (!config.showExperimentSettings) { 
 		m_expPane->setVisible(false);

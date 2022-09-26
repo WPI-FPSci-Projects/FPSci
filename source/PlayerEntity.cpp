@@ -90,21 +90,48 @@ void PlayerEntity::onPose(Array<shared_ptr<Surface> >& surfaceArray) {
 }
 
 void PlayerEntity::updateFromInput(UserInput* ui) {
+	if (!m_PlayerMovement)
+		return;
 
-	const float walkSpeed = *moveRate * units::meters() / units::seconds();
+	m_walkSpeed = 0;
 
-	// Get walking speed here (and normalize if necessary)
-	Vector3 linear = Vector3(ui->getX()*moveScale->x, 0, -ui->getY()*moveScale->y);
-	if (linear.magnitude() > 0) {
-		linear = linear.direction() * walkSpeed;
+	if (!m_sprinting) {
+		m_walkSpeed = *moveRate * units::meters() / units::seconds();
 	}
+	else {
+		m_walkSpeed = *moveRate * *sprintMultiplier * units::meters() / units::seconds();
+	}
+
+	if ((*axisLock)[0] && (*axisLock)[2]){
+		m_linearVector = Vector3(0, 0, 0);
+	}
+	else if ((*axisLock)[0]) {
+		m_linearVector = Vector3(ui->getX() * moveScale->x, 0, 0);
+	}
+	else if ((*axisLock)[2]) {
+		m_linearVector = Vector3(0, 0, -ui->getY() * moveScale->y);
+	}
+	else {
+		m_linearVector = Vector3(ui->getX() * moveScale->x, 0, -ui->getY() * moveScale->y);
+	}
+
+	// Counter strafing
+	if (*counterStrafing && (((m_lastDirection * m_acceleratedVelocity).x > 0 && m_linearVector.x < 0) || ((m_lastDirection * m_acceleratedVelocity).x < 0 && m_linearVector.x > 0))) {
+		m_acceleratedVelocity = 0;
+		m_linearVector.x = 0;
+	}
+
+	if (m_linearVector.magnitude() > 0) {
+		m_gettingMovementInput = true;
+	}
+
 	// Add jump here (if needed)
 	RealTime timeSinceLastJump = System::time() - m_lastJumpTime;
 	if (m_jumpPressed && timeSinceLastJump > *jumpInterval) {
 		// Allow jumping if jumpTouch = False or if jumpTouch = True and the player is in contact w/ the map
 		if (!(*jumpTouch) || m_inContact) {
 			const Vector3 jv(0, *jumpVelocity * units::meters() / units::seconds(), 0);
-			linear += jv;
+			m_linearVector += jv;
 			m_lastJumpTime = System::time();
 		}
 	}
@@ -115,18 +142,17 @@ void PlayerEntity::updateFromInput(UserInput* ui) {
 	float yaw = mouseRotate.x;
 	float pitch = mouseRotate.y;
 
-	// Set the player translation/view velocities
-	setDesiredOSVelocity(linear);
+	// Set the player view velocity
 	setDesiredAngularVelocity(yaw, pitch);
 }
 
 /** Maximum coordinate values for the player ship */
 void PlayerEntity::onSimulation(SimTime absoluteTime, SimTime deltaTime) {
 	// Do not call Entity::onSimulation; that will override with spline animation
-    if (! isNaN(deltaTime) && (deltaTime > 0)) {
-        m_previousFrame = m_frame;
-    }
-    simulatePose(absoluteTime, deltaTime);
+	if (!isNaN(deltaTime) && (deltaTime > 0)) {
+		m_previousFrame = m_frame;
+	}
+	simulatePose(absoluteTime, deltaTime);
 
 	if (!isNaN(deltaTime)) {
 		// Apply rotation first
@@ -136,17 +162,101 @@ void PlayerEntity::onSimulation(SimTime absoluteTime, SimTime deltaTime) {
 		m_headTilt = clamp(m_headTilt, -89.9f * units::degrees(), 89.9f * units::degrees());	// Keep the user's head tilt to <90°
 		// Set player frame rotation based on the heading and tilt
 		m_frame.rotation = Matrix3::fromAxisAngle(Vector3::unitY(), -m_headingRadians) * Matrix3::fromAxisAngle(Vector3::unitX(), m_headTilt);
-		
+
 		// Translation update - in direction after rotating
 		if (m_motionEnable) {
 			m_inContact = slideMove(deltaTime);
 		}
-		
+
 		// Check for "off map" condition and reset position here...
 		if (!isNaN(m_respawnHeight) && m_frame.translation.y < m_respawnHeight) {
 			respawn();
 		}
 	}
+	if (!m_gettingMovementInput) {
+
+		if (accelerationEnabled != nullptr && *accelerationEnabled) {
+			m_acceleratedVelocity = max(m_acceleratedVelocity - *movementDeceleration * deltaTime, 0.0f);
+		}
+		else {
+			m_acceleratedVelocity = 0;
+		}
+
+		if (m_acceleratedVelocity > 0) {
+			m_linearVector = m_acceleratedVelocity * m_lastDirection;
+		}
+	}
+	else {
+
+		if (*accelerationEnabled) {
+			m_acceleratedVelocity = min(m_acceleratedVelocity + *movementAcceleration * deltaTime, m_walkSpeed);
+		}
+		else {
+			m_acceleratedVelocity = m_walkSpeed;
+		}
+
+		m_linearVector = m_linearVector.direction() * m_acceleratedVelocity;
+		m_lastDirection = m_linearVector.direction();
+	}
+	/** The HeadBob uses lerp to achieve the "Bobbing" effect. The lerp function tries to reach
+		the designated amplitude, but as Lerp can never reach final value, we change the polarity
+		when it reaches half of the designated amplitude. The lerp function will then try to reach
+		to the negative(-) of amplitude value. The polarity will again be changed when it reaches
+		half of (-amplitude), thus achieving the effect.
+
+		The frequency (how fast the HeadBob will happen) is controlled by the headBobFrequency value
+		as well as the players current movement speed. So the faster the player moves, faster the
+		effect will be. Its also tied to deltaTime, so FPS will not effect how fast/slow HeadBob
+		happens.
+	*/
+	if (headBobEnabled != nullptr && *headBobEnabled && m_acceleratedVelocity > 0) {
+		if (!m_headBobPolarity) {
+			m_headBobCurrentHeight = lerp(m_headBobCurrentHeight, *headBobAmplitude, *headBobFrequency * m_acceleratedVelocity * deltaTime);
+
+			if (m_headBobCurrentHeight >= *headBobAmplitude / 2) {
+				m_headBobPolarity = !m_headBobPolarity;
+			}
+		}
+		else {
+			m_headBobCurrentHeight = lerp(m_headBobCurrentHeight, -*headBobAmplitude, *headBobFrequency * m_acceleratedVelocity * deltaTime);
+
+			if (m_headBobCurrentHeight <= -*headBobAmplitude / 2) {
+				m_headBobPolarity = !m_headBobPolarity;
+			}
+		}
+	}
+	// Height of the camera will reset to the original position once the player has stopped moving
+	else if (headBobEnabled != nullptr && *headBobEnabled && m_acceleratedVelocity <= 0) {
+		m_headBobCurrentHeight = lerp(m_headBobCurrentHeight, 0, *headBobFrequency * deltaTime);
+	}
+
+	m_gettingMovementInput = false;
+
+	if (respawnToPos != nullptr && *respawnToPos) {
+		setRespawnPosition(*respawnPos);
+		respawn();
+		*respawnToPos = false;
+	}
+
+	if (restrictedMovementEnabled != nullptr && *restrictedMovementEnabled){
+		if ((m_PlayersRestrictedMovementCenterPos.x - m_frame.translation.x) >= ((*movementRestrictionX / 2.0f) + 0.01f)) {
+			m_frame.translation.x = m_PlayersRestrictedMovementCenterPos.x - *movementRestrictionX / 2.0f;
+		}
+		if ((m_PlayersRestrictedMovementCenterPos.x - m_frame.translation.x) <= ((-*movementRestrictionX / 2.0f) - 0.01f)) {
+			m_frame.translation.x = m_PlayersRestrictedMovementCenterPos.x + *movementRestrictionX / 2.0f;
+		}
+		if ((m_PlayersRestrictedMovementCenterPos.z - m_frame.translation.z) >= ((*movementRestrictionZ / 2.0f) + 0.01f)) {
+			m_frame.translation.z = m_PlayersRestrictedMovementCenterPos.z - *movementRestrictionZ / 2.0f;
+		}
+		if ((m_PlayersRestrictedMovementCenterPos.z - m_frame.translation.z) <= ((-*movementRestrictionZ / 2.0f) - 0.01f)) {
+			m_frame.translation.z = m_PlayersRestrictedMovementCenterPos.z + *movementRestrictionZ / 2.0f;
+		}
+	}
+	else if (restrictedMovementEnabled != nullptr && !*restrictedMovementEnabled) {
+		m_PlayersRestrictedMovementCenterPos = m_frame.translation;
+	}
+	//Set Players Translation velocity
+	setDesiredOSVelocity(m_linearVector);
 }
 
 void PlayerEntity::getConservativeCollisionTris(Array<Tri>& triArray, const Vector3& velocity, float deltaTime) const {
@@ -356,4 +466,71 @@ bool PlayerEntity::slideMove(SimTime deltaTime) {
 	
 	return collided;
     //screenPrintf("%d collision iterations", iterations);
+}
+
+/* REMOTE PLAYER CODE GOES HERE ================================================================================================================*/
+
+int8 RemotePlayer::getPlayerID() {
+	return m_playerID;
+}
+
+void RemotePlayer::set_player_id(int8 id) {
+	m_playerID = id;
+}
+
+void RemotePlayer::updateFromRemoteInput(AlexDataStructure data) {
+	if (!m_PlayerMovement)
+		return;
+
+	m_walkSpeed = 0;
+
+	if (!m_sprinting) {
+		m_walkSpeed = *moveRate * units::meters() / units::seconds();
+	}
+	else {
+		m_walkSpeed = *moveRate * *sprintMultiplier * units::meters() / units::seconds();
+	}
+
+	if ((*axisLock)[0] && (*axisLock)[2]){
+		m_linearVector = Vector3(0, 0, 0);
+	}
+	else if ((*axisLock)[0]) {
+		m_linearVector = Vector3(data->getX() * moveScale->x, 0, 0);
+	}
+	else if ((*axisLock)[2]) {
+		m_linearVector = Vector3(0, 0, -data->getY() * moveScale->y);
+	}
+	else {
+		m_linearVector = Vector3(data->getX() * moveScale->x, 0, -data->getY() * moveScale->y);
+	}
+
+	// Counter strafing
+	if (*counterStrafing && (((m_lastDirection * m_acceleratedVelocity).x > 0 && m_linearVector.x < 0) || ((m_lastDirection * m_acceleratedVelocity).x < 0 && m_linearVector.x > 0))) {
+		m_acceleratedVelocity = 0;
+		m_linearVector.x = 0;
+	}
+
+	if (m_linearVector.magnitude() > 0) {
+		m_gettingMovementInput = true;
+	}
+
+	// Add jump here (if needed)
+	RealTime timeSinceLastJump = System::time() - m_lastJumpTime;
+	if (m_jumpPressed && timeSinceLastJump > *jumpInterval) {
+		// Allow jumping if jumpTouch = False or if jumpTouch = True and the player is in contact w/ the map
+		if (!(*jumpTouch) || m_inContact) {
+			const Vector3 jv(0, *jumpVelocity * units::meters() / units::seconds(), 0);
+			m_linearVector += jv;
+			m_lastJumpTime = System::time();
+		}
+	}
+	m_jumpPressed = false;
+
+	// Get the mouse rotation here
+	Vector2 mouseRotate = data->mouseDXY() * turnScale * (float)m_cameraRadiansPerMouseDot;
+	float yaw = mouseRotate.x;
+	float pitch = mouseRotate.y;
+
+	// Set the player view velocity
+	setDesiredAngularVelocity(yaw, pitch);
 }

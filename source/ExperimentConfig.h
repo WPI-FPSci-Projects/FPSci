@@ -17,6 +17,8 @@ public:
 	int clientPort = 12350;								///< Port for the client to listen to
 	int pingPort = 12355;								///< Port for sending and receiving ping packets
 	int pingSMASize = 5;								///< Sample size used for calculating SMA for ping
+	int numPlayers = 2;							///< Number of connections to wait for before starting the game
+	bool isNetworked;									///< Checks if the experiment is networked or not
 	
 	ExperimentConfig() { init(); }
 	ExperimentConfig(const Any& any);

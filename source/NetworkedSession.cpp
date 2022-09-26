@@ -39,3 +39,42 @@
 void NetworkedSession::addHittableTarget(shared_ptr<TargetEntity> target) {
 	m_hittableTargets.append(target);
 }
+
+void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
+{
+	updateNetworkedPresentationState();
+}
+
+void NetworkedSession::onInit(String filename, String description)
+{
+	m_player = m_app->scene()->typedEntity<PlayerEntity>("player");
+	resetSession();
+}
+
+void NetworkedSession::updateNetworkedPresentationState()
+{
+	if (currentState == NetworkedPresentationState::initialNetworkedState) {
+		if (!m_player->getPlayerReady())
+			m_feedbackMessage = formatFeedback(m_config->feedback.networkedSesstionInitial);
+		else
+			m_feedbackMessage = formatFeedback(m_config->feedback.networkedSesstionWaitForOthers);
+	}
+	else if (currentState == NetworkedPresentationState::networkedSessionStart) {
+		// TODO: Experiment Session Ticks
+	}
+}
+
+void NetworkedSession::startSession()
+{
+	sessionStarted = true;
+	currentState = NetworkedPresentationState::networkedSessionStart;
+	m_player->setPlayerMovement(true);
+	m_feedbackMessage.clear();
+}
+
+void NetworkedSession::resetSession()
+{
+	currentState = NetworkedPresentationState::initialNetworkedState;
+	m_player->setPlayerReady(false);
+	m_player->setPlayerMovement(false);
+}

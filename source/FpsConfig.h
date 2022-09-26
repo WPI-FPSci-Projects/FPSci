@@ -72,6 +72,19 @@ public:
 	Array<bool>		axisLock = { false, false, false };			///< World-space player motion axis lock
 	bool			stillBetweenTrials = false;					///< Disable player motion between trials?
 	bool			resetPositionPerTrial = false;				///< Reset the player's position on a per trial basis (to scene default)
+	float			sprintMultiplier = 1.0f;					///< Multiplies with players move rate when player is sprinting (defaults to 1x (off))
+	bool			headBobEnabled = false;						///< Enables/Disables the HeadBob functionality (default is false (disabled))
+	float			headBobAmplitude = 0.17f;					///< Determines how high/low players head will oscillate during movement (defaults to 0.17)
+	float			headBobFrequency = 0.7f;					///< Determines how fast players head will oscillate during movement (defaults to 0.7)
+	bool			accelerationEnabled = false;				///< Enables/Disables the acceleration/deceleration functionality (default is false (disabled))
+	float			movementAcceleration = 12.0f;				///< Player acceleration during movement (defaults to 12.0)
+	float			movementDeceleration = 22.0f;				///< Player deceleration while stopping (defaults to 12.0)
+	Point3			respawnPos = Point3(-46.0f, -2.3f, 0.0f);	///< Player respawn position (defualts to -46, -2.3, 0)
+	bool			respawnToPos = false;						///< If true, player will respawn to respawnPos. (defaults to false)
+	float			movementRestrictionX = 5.0f;				///< Player's restricted movement span along X
+	float			movementRestrictionZ = 5.0f;				///< Player's restricted movement span along Z
+	bool			restrictedMovementEnabled = false;			///< If true, player's movement will be restricted along X and Z
+	bool			counterStrafing = false;					///< If true, counter strafing will be enabled. (defaults to false.)
 
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;
@@ -178,6 +191,8 @@ public:
 	String blockComplete = "Block %lastBlock complete! Starting block %currBlock.";					///< Block complete feedback message
 	String sessComplete = "Session complete! You scored %totalTimeLeftS!";							///< Session complete feedback message
 	String allSessComplete = "All Sessions Complete!";												///< All sessions complete feedback message
+	String networkedSesstionInitial = "Press Tab to Ready Up!";										///< Initial Message for Networked Session to Prompt Players to "Ready Up"
+	String networkedSesstionWaitForOthers = "Wait for others to be ready!";							///< Message to display when not all players are ready	
 
 	float fontSize = 20.0f;											///< Default font scale/size
 
