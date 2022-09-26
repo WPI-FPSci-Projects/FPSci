@@ -240,3 +240,74 @@ void NetworkUtils::broadcastRespawn(ENetHost* serverHost) {
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	enet_host_broadcast(serverHost, 0, packet);
 }
+
+void NetworkUtils::serializeUserInput(ENetSocket socket, ENetAddress address, G3D::UserInput* ui, int frame) {
+	// start
+	BinaryOutput output;
+	//G3D::serialize(userInput, output);
+
+	output.setEndian(G3D_BIG_ENDIAN);
+	output.writeUInt8(NetworkUtils::MessageType::USERINPUT); //Message type
+	output.writeInt32(frame);
+	output.writeFloat32(ui->getX());		// x-axis movement
+	output.writeFloat32(ui->getY());		// y-axis movement
+
+	output.writeFloat32(ui->mouseDX());	// mouseDX
+	output.writeFloat32(ui->mouseDY());	// mouseDY
+
+
+	Array<GKey>* pressCode = new Array<GKey>; //press keys
+	Array<GKey>* releaseCode = new Array<GKey>; //release keys
+	ui->pressedKeys(*pressCode); // get buffers
+	ui->releasedKeys(*releaseCode);
+	output.writeInt32(pressCode->size()); // get size
+	output.writeInt32(releaseCode->size());
+	for (G3D::GKey key: *pressCode) { //serialize all keys in pressCode
+		key.serialize(output);
+	}
+	for (G3D::GKey key : *releaseCode) {//serialize all keys in releaseCode
+		key.serialize(output);
+	}
+
+	
+	// Send user input to server
+	ENetBuffer enet_buff;
+	enet_buff.data = (void*)output.getCArray();
+	enet_buff.dataLength = output.length();
+	//start
+	int status;
+	status = enet_socket_send(socket, &address, &enet_buff, 1);
+	//end
+}
+
+void NetworkUtils::deserializeUserInput(G3D::BinaryInput* bi, InputHandler* inputHandler) {
+	int frame = bi->readInt32();
+	if (inputHandler->CheckFrameAcceptable(frame)) { //Frame farther back than rollback accepts
+		return;
+	}
+	float32 playerX = bi->readFloat32(); // read X movement
+	float32 PlayerY = bi->readFloat32(); // read y movement
+
+	float32 mouseX = bi->readFloat32(); // mouse x delta
+	float32 mouseY = bi->readFloat32(); // mouse y  delta
+
+	int32 pressCodeSize = bi->readInt32();
+	int32 releaseCodeSize = bi->readInt32();
+	
+	Array<GKey>* pressCode = new Array<GKey>;
+	Array<GKey>* releaseCode = new Array<GKey>;
+
+	for (int i = 0; i < pressCodeSize; i++){ //make keys and add them to pressCode
+		G3D::GKey* key = new GKey();
+		key->deserialize(*bi);
+		pressCode->push(*key);
+	}
+	for (int i = 0; i < releaseCodeSize; i++) { //make keys and add them to releaseCode
+		G3D::GKey* key = new GKey();
+		key->deserialize(*bi);
+		releaseCode->push(*key);
+	}
+	
+
+	inputHandler->NewNetworkInput(playerX, PlayerY, mouseX, mouseY, pressCode, releaseCode, frame);
+}

@@ -3,6 +3,8 @@
 #include <enet/enet.h>
 #include "TargetEntity.h"
 #include "PlayerEntity.h"
+#include "InputHandler.h"
+
 
 /*
 			PACKET STRUCTURE:
@@ -95,7 +97,9 @@ public:
 		NOTIFY_HIT,
 
 		SET_SPAWN_LOCATION,
-		RESPAWN_CLIENT
+		RESPAWN_CLIENT,
+
+		USERINPUT,
 	};
 
 	enum NetworkUpdateType {
@@ -133,4 +137,6 @@ public:
 	static void handleSetSpawnPos(shared_ptr<PlayerEntity> player, BinaryInput& inBuffer);
 	static int sendRespawnClient(ENetPeer* peer);
 	static void broadcastRespawn(ENetHost* serverHost);
+	static void serializeUserInput(ENetSocket m_serverSocket, ENetAddress m_unreliableServerAddress, G3D::UserInput* ui, int frame);
+	static void deserializeUserInput(BinaryInput* bi, InputHandler* inputHandler);
 };

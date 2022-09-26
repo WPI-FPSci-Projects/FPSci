@@ -16,6 +16,7 @@ protected:
 
     Array <NetworkUtils::ConnectedClient> m_connectedClients;          //> List of all connected clients and all atributes needed to comunicate with them
 
+    InputHandler* m_inputHandler = new InputHandler();
 
 
 public:
