@@ -272,13 +272,14 @@ void NetworkUtils::broadcastStartSession(ENetHost* serverHost) {
 	enet_host_broadcast(serverHost, 0, packet);
 }
 
-void NetworkUtils::serializeUserInput(ENetSocket socket, ENetAddress address, G3D::UserInput* ui, int frame) {
+void NetworkUtils::serializeUserInput(ENetSocket socket, ENetAddress address, G3D::UserInput* ui, int frame, uint8 playerID) {
 	// start
 	BinaryOutput output;
 	//G3D::serialize(userInput, output);
 
 	output.setEndian(G3D_BIG_ENDIAN);
 	output.writeUInt8(NetworkUtils::MessageType::USER_INPUT); //Message type
+	output.writeUInt8(playerID);
 	output.writeInt32(frame);
 	output.writeFloat32(ui->getX());		// x-axis movement
 	output.writeFloat32(ui->getY());		// y-axis movement
@@ -316,6 +317,7 @@ void NetworkUtils::deserializeUserInput(G3D::BinaryInput* bi, InputHandler* inpu
 	if (inputHandler->CheckFrameAcceptable(frame)) { //Frame farther back than rollback accepts
 		return;
 	}
+	uint8 playerID = bi->readUInt8();
 	float32 playerX = bi->readFloat32(); // read X movement
 	float32 PlayerY = bi->readFloat32(); // read y movement
 
@@ -340,5 +342,5 @@ void NetworkUtils::deserializeUserInput(G3D::BinaryInput* bi, InputHandler* inpu
 	}
 	
 
-	inputHandler->NewNetworkInput(playerX, PlayerY, mouseX, mouseY, pressCode, releaseCode, frame);
+	inputHandler->NewNetworkInput(playerID, playerX, PlayerY, mouseX, mouseY, pressCode, releaseCode, frame);
 }

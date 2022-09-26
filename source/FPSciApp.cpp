@@ -1756,7 +1756,7 @@ void FPSciApp::missEvent() {
 void FPSciApp::onUserInput(UserInput* ui) {
 	BEGIN_PROFILER_EVENT("onUserInput");
 
-	NetworkUtils::serializeUserInput(m_unreliableSocket, m_unreliableServerAddress, ui, m_frameNumber);
+	NetworkUtils::serializeUserInput(m_unreliableSocket, m_unreliableServerAddress, ui, m_frameNumber, m_playerID);
 
 	GApp::onUserInput(ui);
 

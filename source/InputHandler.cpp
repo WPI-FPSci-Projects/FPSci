@@ -1,7 +1,9 @@
 #include "InputHandler.h"
 
-G3D::InputHandler::NetworkInput::NetworkInput(float32 XMovement, float32 YMovement, float32 XMouseDelta, float32 YMouseDelta, Array<GKey>* pressCode, Array<GKey>* releaseCode) :
-	m_XMovement(XMovement), m_YMovement(YMovement), m_XMouseDelta(XMouseDelta), m_YMouseDelta(YMouseDelta), m_pressCode(pressCode), m_releaseCode(releaseCode)
+G3D::InputHandler::NetworkInput::NetworkInput(uint8 playerID, float32 XMovement, float32 YMovement, float32 XMouseDelta, float32 YMouseDelta, Array<GKey>* pressCode, Array<GKey>* releaseCode) :
+	m_playerID(playerID),
+	m_XMovement(XMovement), m_YMovement(YMovement), m_XMouseDelta(XMouseDelta), 
+	m_YMouseDelta(YMouseDelta), m_pressCode(pressCode), m_releaseCode(releaseCode)
 {
 }
 
@@ -50,10 +52,10 @@ Array<GKey>* G3D::InputHandler::NetworkInput::GetReleaseCode()
 }
 
 
-void G3D::InputHandler::NewNetworkInput(float32 XMovement, float32 YMovement, float32 XMouseDelta, float32 YMouseDelta, Array<GKey>* pressCode, Array<GKey>* releaseCode, int frame)
+void G3D::InputHandler::NewNetworkInput(uint8 playerID, float32 XMovement, float32 YMovement, float32 XMouseDelta, float32 YMouseDelta, Array<GKey>* pressCode, Array<GKey>* releaseCode, int frame)
 {
 	//To-do fix client frame getting ahead of server
-	NetworkInput* newInput = new NetworkInput(XMovement, YMovement, XMouseDelta, YMouseDelta, pressCode, releaseCode);
+	NetworkInput* newInput = new NetworkInput(playerID, XMovement, YMovement, XMouseDelta, YMouseDelta, pressCode, releaseCode);
 	m_networkInputs[0][m_leadingFrame - frame + 2]->append(*newInput);
 }
 

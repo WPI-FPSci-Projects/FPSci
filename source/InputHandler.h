@@ -9,6 +9,8 @@ namespace G3D{
 		{
 		private:
 
+			uint8 m_playerID;
+
 			float32 m_XMovement;
 			float32 m_YMovement;
 
@@ -20,7 +22,7 @@ namespace G3D{
 
 		public:
 			NetworkInput();
-			NetworkInput(float32 XMovement, float32 YMovement, float32 XMouseDelta, float32 YMouseDelta, Array<GKey>* pressCode, Array<GKey>* releaseCode);
+			NetworkInput(uint8 playerID, float32 XMovement, float32 YMovement, float32 XMouseDelta, float32 YMouseDelta, Array<GKey>* pressCode, Array<GKey>* releaseCode);
 			~NetworkInput();
 			float32 GetXMovement();
 			float32 GetYMovement();
@@ -39,7 +41,7 @@ namespace G3D{
 	public:
 		InputHandler();
 		~InputHandler();
-		void NewNetworkInput(float32 XMovement, float32 YMovement, float32 XMouseDelta, float32 YMouseDelta, Array<GKey>* pressCode, Array<GKey>* releaseCode, int frame);
+		void NewNetworkInput(uint8 playerID, float32 XMovement, float32 YMovement, float32 XMouseDelta, float32 YMouseDelta, Array<GKey>* pressCode, Array<GKey>* releaseCode, int frame);
 		bool AllClientsFrame(int frame, int clientsConnected);
 		void NewLeadingFrame(int frame);
 		bool CheckFrameAcceptable(int frame);
