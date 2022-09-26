@@ -1117,6 +1117,7 @@ void FPSciApp::onNetwork() {
 				debugPrintf("INFO: Received registration reply...\n");
 				GUniqueID clientGUID;
 				clientGUID.deserialize(packet_contents);
+				uint8 playerID = packet_contents.readUInt8();
 				if (clientGUID == m_playerGUID) {
 					int status = packet_contents.readUInt8();
 					if (status == 0) {

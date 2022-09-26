@@ -167,6 +167,11 @@ protected:
 	bool m_enetConnected;
 	bool m_socketConnected;
 
+	// Authoritative Server
+	uint8 m_playerID = -1;								///< ID of the player (used to identify the player in the network)
+	Array<shared_ptr<RemotePlayer>> m_remotePlayers;	///< Array of remote players
+
+	
 	/** Called from onInit */
 	void makeGUI();
 	void updateControls(bool firstSession = false);
