@@ -169,7 +169,7 @@ void FPSciServerApp::onNetwork() {
             if (type == NetworkUtils::MessageType::REGISTER_CLIENT) {
                 debugPrintf("Registering client...\n");
                 NetworkUtils::ConnectedClient newClient = NetworkUtils::registerClient(
-                    event, packet_contents, RemotePlayers.length() + 1); ///< unsafe: assumes player count is less than 255
+                    event, packet_contents, m_remotePlayers.length() + 1); ///< unsafe: assumes player count is less than 255
                 m_connectedClients.append(newClient);
                 debugPrintf("\tRegistered client: %s\n", newClient.guid.toString16());
 
