@@ -115,7 +115,7 @@ int NetworkUtils::sendHandshakeReply(ENetSocket socket, ENetAddress address) {
 	return enet_socket_send(socket, &address, &buff, 1);
 }
 
-NetworkUtils::ConnectedClient NetworkUtils::registerClient(ENetEvent event, BinaryInput& inBuffer) {
+NetworkUtils::ConnectedClient NetworkUtils::registerClient(ENetEvent event, BinaryInput& inBuffer, uint8 playerID) {
 	/* get the clients information and create a ConnectedClient struct */
 	ConnectedClient newClient;
 	newClient.peer = event.peer;
@@ -134,6 +134,7 @@ NetworkUtils::ConnectedClient NetworkUtils::registerClient(ENetEvent event, Bina
 	outBuffer.writeUInt8(NetworkUtils::MessageType::CLIENT_REGISTRATION_REPLY);
 	outBuffer.writeUInt16(0);	// Dummy frame num
 	clientGUID.serialize(outBuffer);		// Send the GUID as a byte string to the client in confirmation
+	outBuffer.writeUInt8(playerID);	// Send the player ID to the client
 	outBuffer.writeUInt8(0);
 	ENetPacket* replyPacket = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	enet_peer_send(event.peer, 0, replyPacket);

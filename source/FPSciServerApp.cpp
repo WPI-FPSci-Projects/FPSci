@@ -168,7 +168,8 @@ void FPSciServerApp::onNetwork() {
 
             if (type == NetworkUtils::MessageType::REGISTER_CLIENT) {
                 debugPrintf("Registering client...\n");
-                NetworkUtils::ConnectedClient newClient = NetworkUtils::registerClient(event, packet_contents);
+                NetworkUtils::ConnectedClient newClient = NetworkUtils::registerClient(
+                    event, packet_contents, RemotePlayers.length() + 1); ///< unsafe: assumes player count is less than 255
                 m_connectedClients.append(newClient);
                 debugPrintf("\tRegistered client: %s\n", newClient.guid.toString16());
 
@@ -245,6 +246,7 @@ void FPSciServerApp::onNetwork() {
     Array<shared_ptr<NetworkedEntity>> entityArray;
     scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
     NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
+    //  NetworkUtils::serverBatchEntityUpdate(RemotePlayers, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
 }
 
 void FPSciServerApp::onInit() {

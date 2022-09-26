@@ -153,7 +153,7 @@ public:
 	static int sendHandshakeReply(ENetSocket socket, ENetAddress address);
 	static int sendHandshake(ENetSocket socket, ENetAddress address);
 	static int sendRegisterClient(GUniqueID id, uint16 port, ENetPeer* peer);
-	static ConnectedClient registerClient(ENetEvent event, BinaryInput& inBuffer);
+	static ConnectedClient registerClient(ENetEvent event, BinaryInput& inBuffer, uint8 playerID);
 	static void broadcastCreateEntity(GUniqueID id, ENetHost* serverHost, uint16 frameNum);
 	static int sendCreateEntity(GUniqueID guid, ENetPeer* peer, uint16 frameNum);
 	static void broadcastBatchEntityUpdate(Array<shared_ptr<Entity>> entities, Array<ENetAddress> destinations, ENetSocket sendSocket, uint16 frameNum);
