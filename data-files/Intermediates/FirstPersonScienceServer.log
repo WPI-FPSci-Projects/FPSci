@@ -1,0 +1,4 @@
+﻿  ServerMain.cpp
+     Creating library C:\Users\darth\Documents\GitHub\FPSci\vs\Build\FirstPersonScienceServer-x64-Debug\FirstPersonScienceServer.lib and object C:\Users\darth\Documents\GitHub\FPSci\vs\Build\FirstPersonScienceServer-x64-Debug\FirstPersonScienceServer.exp
+waved.lib(wave.obj) : warning LNK4099: PDB 'wave.lib.pdb' was not found with 'waved.lib(wave.obj)' or at 'C:\Users\darth\Documents\GitHub\FPSci\vs\Build\FirstPersonScienceServer-x64-Debug\wave.lib.pdb'; linking object as if no debug info
+  FirstPersonScienceServer.vcxproj -> C:\Users\darth\Documents\GitHub\FPSci\vs\Build\FirstPersonScienceServer-x64-Debug\FirstPersonScienceServer.exe

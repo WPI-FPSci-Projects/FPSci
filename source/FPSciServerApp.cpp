@@ -117,6 +117,9 @@ void FPSciServerApp::onNetwork() {
                 NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents); // Read the data from the packet and update on the local entity
             }
         }
+        else if (type == NetworkUtils::MessageType::USER_INPUT) {
+            NetworkUtils::deserializeUserInput(&packet_contents, m_inputHandler);
+        }
     }
     free(data);
 
