@@ -207,7 +207,7 @@ public:
 	void updateFromInput(UserInput* ui);
 
 };
-
+/* TODO: uncomment once finalized
 class RemotePlayer : public PlayerEntity
 {
 private:
@@ -217,3 +217,4 @@ public:
 	void set_player_id(int8 id);
 	void updateFromRemoteInput(AlexDataStructure data);
 };
+*/

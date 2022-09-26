@@ -92,9 +92,6 @@ void FPSciServerApp::initExperiment() {
         logPrintf("Ping: port %d is already in use, opening up port %d for pinging\n", experimentConfig.pingPort, localAddress.port);
     }
 
-    static_cast<NetworkedSession*>(sess.get())->startSession(); // Set player as ready for the server player.
-}
-
     if (enet_socket_bind(m_pingSocket, &localAddress)) {
         debugPrintf("bind failed with error: %d\n", WSAGetLastError());
         throw std::runtime_error("Could not bind ping to the local address");
@@ -124,7 +121,8 @@ void FPSciServerApp::initExperiment() {
 
     std::thread s2cPing_Th(s2cPing, m_pingSocket);
     s2cPing_Th.detach();
-    
+
+    static_cast<NetworkedSession*>(sess.get())->startSession(); // Set player as ready for the server player.
 }
 
 void FPSciServerApp::onNetwork() {

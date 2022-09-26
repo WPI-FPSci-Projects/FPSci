@@ -128,7 +128,7 @@ public:
 		RESPAWN_CLIENT,
 
 		PING,
-		PING_DATA
+		PING_DATA,
 
 		READY_UP_CLIENT,
 		START_NETWORKED_SESSION
@@ -173,8 +173,6 @@ public:
 
 	static int sendPingData(ENetSocket socket, ENetAddress address, PingStatistics pingStats);
 
-	static int sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer);
-	static void handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer);
 	static int sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer, uint16 frameNum);
 	static void handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, uint16 frameNum);
 

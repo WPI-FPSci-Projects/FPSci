@@ -469,7 +469,7 @@ bool PlayerEntity::slideMove(SimTime deltaTime) {
 }
 
 /* REMOTE PLAYER CODE GOES HERE ================================================================================================================*/
-
+/* TODO: Uncomment once finalized
 int8 RemotePlayer::getPlayerID() {
 	return m_playerID;
 }
@@ -534,3 +534,4 @@ void RemotePlayer::updateFromRemoteInput(AlexDataStructure data) {
 	// Set the player view velocity
 	setDesiredAngularVelocity(yaw, pitch);
 }
+*/

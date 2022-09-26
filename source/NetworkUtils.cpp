@@ -64,6 +64,11 @@ void NetworkUtils::broadcastDestroyEntity(GUniqueID id, ENetHost* serverHost, ui
 	enet_host_broadcast(serverHost, 0, packet);
 }
 
+/* 
+'PING' type packets are sent and processed outside of the main game thread and don't 
+necessarily require frame numbers although they can be added for consistency later 
+*/
+
 int NetworkUtils::sendPingClient(ENetSocket socket, ENetAddress address) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
@@ -116,7 +121,7 @@ int NetworkUtils::sendPingData(ENetSocket socket, ENetAddress address, PingStati
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::PING_DATA);
-	outBuffer.writeUInt16(0); // Ping data is not part of integral game tick packets
+	outBuffer.writeUInt16(0); // Ping data is not part of integral game tick packets (null frame number)
 	long long rttLatest = pingStats.pingQueue.last();
 	uint16 cappedRTT;
 	rttLatest >= UINT16_MAX ? cappedRTT = UINT16_MAX : cappedRTT = (uint16) rttLatest;
@@ -128,7 +133,7 @@ int NetworkUtils::sendPingData(ENetSocket socket, ENetAddress address, PingStati
 	return enet_socket_send(socket, &address, &buff, 1);
 }
 
-int NetworkUtils::sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer) {
+int NetworkUtils::sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer, uint16 frameNum) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::REPORT_HIT);
