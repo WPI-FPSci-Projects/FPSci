@@ -12,7 +12,6 @@
 #include <G3D/G3D.h>
 #include <combaseapi.h>
 #include "NetworkUtils.h"
-
 #include "ExperimentConfig.h"
 #include "StartupConfig.h"
 #include "KeyMapping.h"
@@ -43,6 +42,12 @@ enum PresentationState
 	trialFeedback,
 	sessionFeedback,
 	complete
+};
+enum NetworkedPresentationState
+{
+	initialNetworkedState,
+	networkedSessionStart,
+	networkedSessionComplete
 };
 static String presentationStateToString(const PresentationState& state) {
 	String stateStr = "N/A";
@@ -158,6 +163,7 @@ protected:
 	ENetAddress m_reliableServerAddress;				///< Address of server for reliable traffic
 	ENetAddress m_unreliableServerAddress;				///< Address of server for unreliable traffic
 	GUniqueID m_playerGUID;								///< GUID for the player (used to identify the player in the network)
+	uint16 m_networkFrameNum;							///< The current frame (used to sync remote actions)
 	bool m_enetConnected;
 	bool m_socketConnected;
 

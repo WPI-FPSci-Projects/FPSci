@@ -8,7 +8,6 @@
 
 class FPSciApp;
 class SessionConfig;
-
 class MenuConfig {
 public:
 	// Menu controls
