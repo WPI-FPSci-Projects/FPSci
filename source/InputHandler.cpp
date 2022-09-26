@@ -57,6 +57,7 @@ void G3D::InputHandler::NewNetworkInput(uint8 playerID, float32 XMovement, float
 	//To-do fix client frame getting ahead of server
 	NetworkInput* newInput = new NetworkInput(playerID, XMovement, YMovement, XMouseDelta, YMouseDelta, pressCode, releaseCode);
 	m_networkInputs[0][m_leadingFrame - frame + 2]->append(*newInput);
+	m_unreadFrameBuffer->append(*newInput);
 }
 
 
@@ -86,7 +87,16 @@ void G3D::InputHandler::NewLeadingFrame(int frame)
 	m_networkInputs->append(new Array<NetworkInput>);
 }
 
+void G3D::InputHandler::FlushBuffer()
+{
+	m_unreadFrameBuffer->clear();
+}
+
 bool G3D::InputHandler::CheckFrameAcceptable(int frame)
 {
 	return (m_leadingFrame - frame + 2>= m_frameCutoff);
+}
+
+Array<G3D::InputHandler::NetworkInput>* G3D::InputHandler::GetFrameBuffer() {
+	return m_unreadFrameBuffer;
 }

@@ -38,6 +38,7 @@ namespace G3D{
 		int m_frameCutoff = 10;
 		int m_leadingFrame = 0;
 		Array<Array<NetworkInput>*>* m_networkInputs = new Array<Array<NetworkInput>*>; //hold some future frames
+		Array<NetworkInput>* m_unreadFrameBuffer = new Array<NetworkInput>;
 	public:
 		InputHandler();
 		~InputHandler();
@@ -45,6 +46,8 @@ namespace G3D{
 		bool AllClientsFrame(int frame, int clientsConnected);
 		void NewLeadingFrame(int frame);
 		bool CheckFrameAcceptable(int frame);
+		Array<NetworkInput>* GetFrameBuffer();
+		void FlushBuffer();
 
 		Array<NetworkInput>* GetFrameInputs(int frame);
 	};
