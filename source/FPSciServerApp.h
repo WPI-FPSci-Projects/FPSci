@@ -16,6 +16,7 @@ protected:
 
     Array <NetworkUtils::ConnectedClient> m_connectedClients;          //> List of all connected clients and all atributes needed to comunicate with them
     int   playersReady;                                               ///> Numbers of player(s) that are ready.
+    Array<shared_ptr<RemotePlayer>> m_remotePlayers;                 ///> List of all remote players, not including self(server)
 
 
 

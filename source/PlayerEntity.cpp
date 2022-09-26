@@ -89,6 +89,7 @@ void PlayerEntity::onPose(Array<shared_ptr<Surface> >& surfaceArray) {
     VisibleEntity::onPose(surfaceArray);
 }
 
+// should mirror code changes in RemotePlayer::updateFromInput();
 void PlayerEntity::updateFromInput(UserInput* ui) {
 	if (!m_PlayerMovement)
 		return;
@@ -470,14 +471,32 @@ bool PlayerEntity::slideMove(SimTime deltaTime) {
 
 /* REMOTE PLAYER CODE GOES HERE ================================================================================================================*/
 
-int8 RemotePlayer::getPlayerID() {
+shared_ptr<RemotePlayer> RemotePlayer::create 
+(const String&                           name,
+ Scene*                                  scene,
+ const CFrame&                           position,
+ const shared_ptr<Model>&                model) {
+
+	// Don't initialize in the constructor, where it is unsafe to throw Any parse exceptions
+	shared_ptr<RemotePlayer> remotePlayer(new RemotePlayer());
+
+	// Initialize each base class, which parses its own fields
+	remotePlayer->Entity::init(name, scene, position, shared_ptr<Entity::Track>(), true, true);
+	remotePlayer->VisibleEntity::init(model, true, Surface::ExpressiveLightScatteringProperties(), ArticulatedModel::PoseSpline());
+	remotePlayer->PlayerEntity::init(Sphere(1.0f));
+ 
+	return remotePlayer;
+}
+
+uint8 RemotePlayer::getPlayerID() {
 	return m_playerID;
 }
 
-void RemotePlayer::set_player_id(int8 id) {
+void RemotePlayer::setPlayerID(uint8 id) {
 	m_playerID = id;
 }
 
+// should mirror code changes in PlayerEntity::updateFromInput();
 void RemotePlayer::updateFromRemoteInput(AlexDataStructure data) {
 	if (!m_PlayerMovement)
 		return;

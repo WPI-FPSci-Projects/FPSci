@@ -211,9 +211,18 @@ public:
 class RemotePlayer : public PlayerEntity
 {
 private:
-	int8 m_playerID;
+	uint8 m_playerID = -1;			// should be equal to UINT8_MAX which is 255
+	RemotePlayer() = default;
+
 public:
-	int8 getPlayerID();
-	void set_player_id(int8 id);
+	/** For programmatic construction at runtime */
+	static shared_ptr<RemotePlayer> create 
+	(const String&                           name,
+	 Scene*                                  scene,
+	 const CFrame&                           position,
+	 const shared_ptr<Model>&                model);
+	
+	uint8 getPlayerID();
+	void setPlayerID(uint8 id);
 	void updateFromRemoteInput(AlexDataStructure data);
 };
