@@ -138,7 +138,7 @@ void FPSciServerApp::onNetwork() {
             sess->logger->logRemotePlayerAction(pa);
         }
         if (frameNum - m_networkFrameNum > 50 || frameNum - m_networkFrameNum < -50) {
-            debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\t Client Frame: %d\n\tServer Frame: %d\n", frameNum, m_networkFrameNum);
+            debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\tClient Frame: %d\n\tServer Frame: %d\n", frameNum, m_networkFrameNum);
         }
     }
     free(data);
@@ -232,10 +232,28 @@ void FPSciServerApp::onNetwork() {
                 }
             }
             else if (type == NetworkUtils::MessageType::REPORT_HIT) {
+                // This just causes everyone to respawn
                 NetworkUtils::handleHitReport(m_localHost, packet_contents, m_networkFrameNum);
                 playersReady = 0;
                 static_cast<NetworkedSession*>(sess.get())->resetSession();
                 scene()->typedEntity<PlayerEntity>("player")->setPlayerMovement(true); //Allow the server to move freely
+
+                // Log the hit on the server
+                const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(getClientFromAddress(event.peer->address)->guid.toString16());
+                debugPrintf("%s", getClientFromAddress(event.peer->address)->guid.toString16());
+                PlayerAction pa = PlayerAction();
+                pa.time = sess->logger->getFileTime();
+                pa.viewDirection = clientEntity->getLookAzEl();
+                pa.position = clientEntity->frame().translation;
+                pa.state = sess->currentState;
+                pa.action = PlayerActionType::Hit;
+                pa.targetName = getClientFromAddress(event.peer->address)->guid.toString16();
+                sess->logger->logPlayerAction(pa);
+
+                // Notify every player of the hit
+                for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
+                    NetworkUtils::sendPlayerInteract(NetworkUtils::RemotePlayerAction(getClientFromAddress(event.peer->address)->guid, PlayerActionType::Hit), m_unreliableSocket, client->unreliableAddress, m_networkFrameNum);
+                }
             }
             else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {
                 playersReady++;
@@ -501,7 +519,7 @@ void FPSciServerApp::oneFrame() {
 NetworkUtils::ConnectedClient* FPSciServerApp::getClientFromAddress(ENetAddress e)
 {
     for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
-        if (client->unreliableAddress.port == e.port && client->unreliableAddress.host == e.host) {
+        if (client->unreliableAddress.host == e.host && (client->unreliableAddress.port == e.port || client->peer->address.port == e.port)) {
             return client;
         }
     }
