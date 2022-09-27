@@ -229,9 +229,9 @@ void FPSciServerApp::onNetwork() {
                 NetworkUtils::handleHitReport(m_localHost, packet_contents, m_networkFrameNum);
                 playersReady = 0;
             }
-            else if (type == NetworkUtils::MessageType::REPORT_SHOT) {
+            else if (type == NetworkUtils::MessageType::REPORT_FIRE) {
                 //TODO:
-                //NetworkUtils::handleShotReport(m_localHost, packet_contents, m_networkFrameNum);
+                //NetworkUtils::handleFireReport(m_localHost, packet_contents, m_networkFrameNum);
                 playersReady = 0;
             }
             else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {

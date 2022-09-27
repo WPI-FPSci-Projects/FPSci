@@ -75,12 +75,13 @@ int NetworkUtils::sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPee
 	return enet_peer_send(serverPeer, 0, packet);
 }
 
-int NetworkUtils::sendShotReport(GUniqueID shooter_id, ENetPeer* serverPeer, uint16 frameNum) {
+int NetworkUtils::sendFireReport(GUniqueID shooter_GUID, uint8 shooter_playerID, ENetPeer* serverPeer, uint16 frameNum) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);
-	outBuffer.writeUInt8(NetworkUtils::REPORT_SHOT);
+	outBuffer.writeUInt8(NetworkUtils::REPORT_FIRE);
 	outBuffer.writeUInt16(frameNum);
-	shooter_id.serialize(outBuffer);
+	shooter_GUID.serialize(outBuffer);
+	outBuffer.writeUInt8(shooter_playerID);
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length() + 1, ENET_PACKET_FLAG_RELIABLE);
 	return enet_peer_send(serverPeer, 0, packet);
 }

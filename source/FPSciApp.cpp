@@ -1654,7 +1654,7 @@ void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
 		return;
 	}
 	else if (experimentConfig.isNetworked && experimentConfig.isAuthoritativeServer) {
-		NetworkUtils::sendShotReport(m_playerGUID, m_serverPeer, m_networkFrameNum);
+		NetworkUtils::sendFireReport(m_playerGUID, m_playerID, m_serverPeer, m_networkFrameNum);
 		return;
 	}
 
