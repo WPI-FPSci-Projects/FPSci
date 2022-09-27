@@ -1649,8 +1649,12 @@ void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
 	target->playHitSound();
 
 	debugPrintf("HIT TARGET: %s\n", target->name().c_str());
-	if (experimentConfig.isNetworked) { // TODO DON'T SEND IF NOT NETWORKED
+	if (experimentConfig.isNetworked && !experimentConfig.isAuthoritativeServer) { // TODO DON'T SEND IF NOT NETWORKED
 		NetworkUtils::sendHitReport(GUniqueID::fromString16(target->name().c_str()), m_playerGUID, m_serverPeer, m_networkFrameNum);
+		return;
+	}
+	else if (experimentConfig.isNetworked && experimentConfig.isAuthoritativeServer) {
+		NetworkUtils::sendShotReport(m_playerGUID, m_serverPeer, m_networkFrameNum);
 		return;
 	}
 

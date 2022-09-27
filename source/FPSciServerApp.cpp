@@ -229,6 +229,11 @@ void FPSciServerApp::onNetwork() {
                 NetworkUtils::handleHitReport(m_localHost, packet_contents, m_networkFrameNum);
                 playersReady = 0;
             }
+            else if (type == NetworkUtils::MessageType::REPORT_SHOT) {
+                //TODO:
+                //NetworkUtils::handleShotReport(m_localHost, packet_contents, m_networkFrameNum);
+                playersReady = 0;
+            }
             else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {
                 playersReady++;
                 debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), playersReady);

@@ -15,9 +15,10 @@ public:
 	String serverAddress = "";							///< Address for server
 	int serverPort = 12345;								///< Port for server to listen to
 	int clientPort = 12350;								///< Port for the client to listen to
-	int numPlayers = 2;							///< Number of connections to wait for before starting the game
+	int numPlayers = 2;									///< Number of connections to wait for before starting the game
 	bool isNetworked;									///< Checks if the experiment is networked or not
-	
+	bool isAuthoritativeServer;							///< Checks if using authoritative server; false if using client
+
 	ExperimentConfig() { init(); }
 	ExperimentConfig(const Any& any);
 

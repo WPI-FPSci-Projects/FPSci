@@ -115,6 +115,7 @@ public:
 		HANDSHAKE_REPLY,
 
 		REPORT_HIT,
+		REPORT_SHOT,
 		NOTIFY_HIT,
 
 		SET_SPAWN_LOCATION,
@@ -147,6 +148,7 @@ public:
 	static void broadcastDestroyEntity(GUniqueID id, ENetHost* serverHost, uint16 frameNum);
 
 	static int sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer, uint16 frameNum);
+	static int sendShotReport(GUniqueID shooter_id, ENetPeer* serverPeer, uint16 frameNum);
 	static void handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, uint16 frameNum);
 
 	static int sendMoveClient(CFrame frame, ENetPeer* peer, uint16 frameNum);
