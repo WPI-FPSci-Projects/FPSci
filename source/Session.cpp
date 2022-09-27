@@ -72,6 +72,7 @@ SessionConfig::SessionConfig(const Any& any) : FpsConfig(any, defaultConfig()) {
 		reader.getIfPresent("description", description);
 		reader.getIfPresent("closeOnComplete", closeOnComplete);
 		reader.getIfPresent("blockCount", blockCount);
+		reader.getIfPresent("hitsToKill", hitsToKill);
 		reader.get("trials", trials, format("Issues in the (required) \"trials\" array for session: \"%s\"", id));
 		break;
 	default:

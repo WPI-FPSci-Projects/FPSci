@@ -250,8 +250,10 @@ void FPSciServerApp::onNetwork() {
                 rpa.actorID = getClientFromAddress(event.peer->address)->guid.toString16();
                 rpa.affectedID = hitID.toString16();
                 sess->logger->logRemotePlayerAction(rpa);
+                
+                float damage = 1.001 / sessConfig->hitsToKill;
 
-                if (hitEntity->doDamage(0.5)) { //TODO PARAMETERIZE THIS DAMAGE VALUE SOME HOW! DO IT! DON'T FORGET!  DON'T DO IT!
+                if (hitEntity->doDamage(damage)) { //TODO PARAMETERIZE THIS DAMAGE VALUE SOME HOW! DO IT! DON'T FORGET!  DON'T DO IT!
                     debugPrintf("A player died! Resetting game...\n");
                     playersReady = 0;
                     static_cast<NetworkedSession*>(sess.get())->resetSession();
