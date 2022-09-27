@@ -128,14 +128,14 @@ void FPSciServerApp::onNetwork() {
             NetworkUtils::RemotePlayerAction remoteAction = NetworkUtils::handlePlayerInteractServer(m_unreliableSocket, m_connectedClients, packet_contents, m_networkFrameNum);
             debugPrintf("The client %s has shot and missed\n", remoteAction.guid.toString16());
             const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(remoteAction.guid.toString16());
-            RemotePlayerAction pa = RemotePlayerAction();
-            pa.time = sess->logger->getFileTime();
-            pa.viewDirection = clientEntity->getLookAzEl();
-            pa.position = clientEntity->frame().translation;
-            pa.state = sess->currentState;
-            pa.action = (PlayerActionType)remoteAction.actionType;
-            pa.actorID = remoteAction.guid.toString16();
-            sess->logger->logRemotePlayerAction(pa);
+            RemotePlayerAction rpa = RemotePlayerAction();
+            rpa.time = sess->logger->getFileTime();
+            rpa.viewDirection = clientEntity->getLookAzEl();
+            rpa.position = clientEntity->frame().translation;
+            rpa.state = sess->currentState;
+            rpa.action = (PlayerActionType)remoteAction.actionType;
+            rpa.actorID = remoteAction.guid.toString16();
+            sess->logger->logRemotePlayerAction(rpa);
         }
         if (frameNum - m_networkFrameNum > 50 || frameNum - m_networkFrameNum < -50) {
             //debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\tClient Frame: %d\n\tServer Frame: %d\n", frameNum, m_networkFrameNum);
@@ -247,14 +247,15 @@ void FPSciServerApp::onNetwork() {
                     // Log the hit on the server
                     const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(getClientFromAddress(event.peer->address)->guid.toString16());
                     debugPrintf("%s", getClientFromAddress(event.peer->address)->guid.toString16());
-                    PlayerAction pa = PlayerAction();
-                    pa.time = sess->logger->getFileTime();
-                    pa.viewDirection = clientEntity->getLookAzEl();
-                    pa.position = clientEntity->frame().translation;
-                    pa.state = sess->currentState;
-                    pa.action = PlayerActionType::Hit;
-                    pa.targetName = getClientFromAddress(event.peer->address)->guid.toString16();
-                    sess->logger->logPlayerAction(pa);
+                    RemotePlayerAction rpa = RemotePlayerAction();
+                    rpa.time = sess->logger->getFileTime();
+                    rpa.viewDirection = clientEntity->getLookAzEl();
+                    rpa.position = clientEntity->frame().translation;
+                    rpa.state = sess->currentState;
+                    rpa.action = PlayerActionType::Hit;
+                    rpa.actorID = getClientFromAddress(event.peer->address)->guid.toString16();
+                    rpa.affectedID = hitID.toString16();
+                    sess->logger->logRemotePlayerAction(rpa);
 
                     Array<shared_ptr<NetworkedEntity>> entities;
                     scene()->getTypedEntityArray<NetworkedEntity>(entities);
