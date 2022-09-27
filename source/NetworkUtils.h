@@ -169,7 +169,7 @@ public:
 	static void broadcastDestroyEntity(GUniqueID id, ENetHost* serverHost, uint32 frameNum);
 
 	static int sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer, uint32 frameNum);
-	static void handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, uint32 frameNum);
+	static GUniqueID handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, uint32 frameNum);
 
 	static int sendPlayerInteract(RemotePlayerAction remoteAction, ENetSocket sendSocket, ENetAddress destAddr, uint32 frameNum);
 	static RemotePlayerAction handlePlayerInteractServer(ENetSocket sendSocket, Array<ConnectedClient*> clients, BinaryInput& inBuffer, uint32 frameNum);

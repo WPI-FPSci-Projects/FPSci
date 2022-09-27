@@ -75,12 +75,13 @@ int NetworkUtils::sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPee
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	return enet_peer_send(serverPeer, 0, packet);
 }
-void NetworkUtils::handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, uint32 frameNum) {
+GUniqueID NetworkUtils::handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, uint32 frameNum) {
 	GUniqueID hit_entity, shooter;
 	hit_entity.deserialize(inBuffer);
 	shooter.deserialize(inBuffer);
 	debugPrintf("HIT REPORTED: %s SHOT %s WITH THE CANDLESTICK IN THE LIBRARY\n", shooter.toString16(), hit_entity.toString16());
-	NetworkUtils::broadcastRespawn(serverHost, frameNum);
+	//NetworkUtils::broadcastRespawn(serverHost, frameNum);
+	return hit_entity;
 }
 
 int NetworkUtils::sendPlayerInteract(RemotePlayerAction remoteAction, ENetSocket sendSocket, ENetAddress destAddr, uint32 frameNum)

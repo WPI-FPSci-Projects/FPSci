@@ -556,7 +556,7 @@ void FPSciLogger::loggerThreadEntry()
 		m_playerActions.reserve(playerActions.size() * 2);
 
 		decltype(m_remotePlayerActions) remotePlayerActions;
-		remotePlayerActions.swap(m_remotePlayerActions, m_remotePlayerActions);
+		remotePlayerActions.swap(m_remotePlayerActions, remotePlayerActions);
 		m_remotePlayerActions.reserve(remotePlayerActions.size() * 2);
 
 		decltype(m_questions) questions;

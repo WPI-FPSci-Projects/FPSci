@@ -54,7 +54,7 @@ struct RemotePlayerAction {
 	}
 
 	inline bool noChangeFrom(const RemotePlayerAction& other) const {
-		return viewDirection == other.viewDirection && position == other.position && action == other.action && state == other.state && actorID == other.actorID && affectedID == other.affectedID);
+		return viewDirection == other.viewDirection && position == other.position && action == other.action && state == other.state && actorID == other.actorID && affectedID == other.affectedID;
 	}
 };
 

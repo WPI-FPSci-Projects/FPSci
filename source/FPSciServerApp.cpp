@@ -138,7 +138,7 @@ void FPSciServerApp::onNetwork() {
             sess->logger->logRemotePlayerAction(pa);
         }
         if (frameNum - m_networkFrameNum > 50 || frameNum - m_networkFrameNum < -50) {
-            debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\tClient Frame: %d\n\tServer Frame: %d\n", frameNum, m_networkFrameNum);
+            //debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\tClient Frame: %d\n\tServer Frame: %d\n", frameNum, m_networkFrameNum);
         }
     }
     free(data);
@@ -233,23 +233,36 @@ void FPSciServerApp::onNetwork() {
             }
             else if (type == NetworkUtils::MessageType::REPORT_HIT) {
                 // This just causes everyone to respawn
-                NetworkUtils::handleHitReport(m_localHost, packet_contents, m_networkFrameNum);
-                playersReady = 0;
-                static_cast<NetworkedSession*>(sess.get())->resetSession();
-                scene()->typedEntity<PlayerEntity>("player")->setPlayerMovement(true); //Allow the server to move freely
+                GUniqueID hitID = NetworkUtils::handleHitReport(m_localHost, packet_contents, m_networkFrameNum);
+                shared_ptr<NetworkedEntity> hitEntity = scene()->typedEntity<NetworkedEntity>(hitID.toString16());
+                //NetworkUtils::ConnectedClient* hitClient = getClientFromGUID(hitID);
+                GUniqueID shooter_id = getClientFromAddress(event.peer->address)->guid;
+                debugPrintf("Health is: %f\n", hitEntity->health());
+                if (hitEntity->doDamage(0.5)) { //TODO PARAMETERIZE THIS DAMAGE VALUE SOME HOW! DO IT! DON'T FORGET!  DON'T DO IT!
+                    debugPrintf("A player died! Resetting game...\n");
+                    playersReady = 0;
+                    static_cast<NetworkedSession*>(sess.get())->resetSession();
+                    scene()->typedEntity<PlayerEntity>("player")->setPlayerMovement(true); //Allow the server to move freely
 
-                // Log the hit on the server
-                const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(getClientFromAddress(event.peer->address)->guid.toString16());
-                debugPrintf("%s", getClientFromAddress(event.peer->address)->guid.toString16());
-                PlayerAction pa = PlayerAction();
-                pa.time = sess->logger->getFileTime();
-                pa.viewDirection = clientEntity->getLookAzEl();
-                pa.position = clientEntity->frame().translation;
-                pa.state = sess->currentState;
-                pa.action = PlayerActionType::Hit;
-                pa.targetName = getClientFromAddress(event.peer->address)->guid.toString16();
-                sess->logger->logPlayerAction(pa);
+                    // Log the hit on the server
+                    const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(getClientFromAddress(event.peer->address)->guid.toString16());
+                    debugPrintf("%s", getClientFromAddress(event.peer->address)->guid.toString16());
+                    PlayerAction pa = PlayerAction();
+                    pa.time = sess->logger->getFileTime();
+                    pa.viewDirection = clientEntity->getLookAzEl();
+                    pa.position = clientEntity->frame().translation;
+                    pa.state = sess->currentState;
+                    pa.action = PlayerActionType::Hit;
+                    pa.targetName = getClientFromAddress(event.peer->address)->guid.toString16();
+                    sess->logger->logPlayerAction(pa);
 
+                    Array<shared_ptr<NetworkedEntity>> entities;
+                    scene()->getTypedEntityArray<NetworkedEntity>(entities);
+                    for (shared_ptr<NetworkedEntity> entity : entities) {
+                        entity->respawn();
+                    }
+                    NetworkUtils::broadcastRespawn(m_localHost, m_networkFrameNum);
+                }
                 // Notify every player of the hit
                 for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
                     NetworkUtils::sendPlayerInteract(NetworkUtils::RemotePlayerAction(getClientFromAddress(event.peer->address)->guid, PlayerActionType::Hit), m_unreliableSocket, client->unreliableAddress, m_networkFrameNum);
