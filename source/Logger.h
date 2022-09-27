@@ -11,6 +11,7 @@ using Columns = Array<Array<String>>;
 
 struct TargetLocation;
 struct PlayerAction;
+struct RemotePlayerAction;
 struct FrameInfo;
 struct NetworkedClient;
 
@@ -50,6 +51,7 @@ protected:
 	// Output queues for reported data storage
 	Array<FrameInfo> m_frameInfo;						///< Storage for frame info (sdt, idt, rdt)
 	Array<PlayerAction> m_playerActions;				///< Storage for player action (hit, miss, aim)
+	Array<RemotePlayerAction> m_remotePlayerActions;
 	Array<QuestionResult> m_questions;
 	Array<TargetLocation> m_targetLocations;			///< Storage for target trajectory (vector3 cartesian)
 	Array<TargetInfo> m_targets;
@@ -61,6 +63,7 @@ protected:
 	{
 		return queueBytes(m_frameInfo) +
 			queueBytes(m_playerActions) +
+			queueBytes(m_remotePlayerActions) +
 			queueBytes(m_questions) +
 			queueBytes(m_targetLocations) +
 			queueBytes(m_targets) +
@@ -90,6 +93,9 @@ protected:
 	/** Record an array of player actions */
 	void recordPlayerActions(const Array<PlayerAction>& actions);
 
+	/** Record an array of *remote* player actions */
+	void recordRemotePlayerActions(const Array<RemotePlayerAction>& actions);
+
 	/** Record an array of target locations */
 	void recordTargetLocations(const Array<TargetLocation>& locations);
 
@@ -115,6 +121,7 @@ protected:
 	void createTrialsTable();
 	void createTargetTrajectoryTable();
 	void createPlayerActionTable();
+	void createRemotePlayerActionTable();
 	void createFrameInfoTable();
 	void createQuestionsTable();
 	void createUsersTable();
@@ -143,6 +150,7 @@ public:
 
 	void logFrameInfo(const FrameInfo& frameInfo) { addToQueue(m_frameInfo, frameInfo); }
 	void logPlayerAction(const PlayerAction& playerAction) { addToQueue(m_playerActions, playerAction); }
+	void logRemotePlayerAction(const RemotePlayerAction& playerAction) { addToQueue(m_remotePlayerActions, playerAction); }
 	void logQuestionResult(const QuestionResult& questionResult) { addToQueue(m_questions, questionResult); }
 	void logTargetLocation(const TargetLocation& targetLocation) { addToQueue(m_targetLocations, targetLocation); }
 	void logTargetInfo(const TargetInfo& targetInfo) { addToQueue(m_targets, targetInfo); }

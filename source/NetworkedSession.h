@@ -32,6 +32,32 @@
 #include <ctime>
 #include "Session.h"
 
+struct RemotePlayerAction {
+	FILETIME			time;
+	Point2				viewDirection = Point2::zero();
+	Point3				position = Point3::zero();
+	PresentationState	state;
+	PlayerActionType	action = PlayerActionType::None;
+	String				actorID = "";
+	String				affectedID = "";
+
+	RemotePlayerAction() {};
+
+	RemotePlayerAction(FILETIME t, Point2 playerViewDirection, Point3 playerPosition, PresentationState trialState, PlayerActionType playerAction, String actor, String affected) {
+		time = t;
+		viewDirection = playerViewDirection;
+		position = playerPosition;
+		action = playerAction;
+		state = trialState;
+		actorID = actor;
+		affectedID = affected;
+	}
+
+	inline bool noChangeFrom(const RemotePlayerAction& other) const {
+		return viewDirection == other.viewDirection && position == other.position && action == other.action && state == other.state && actorID == other.actorID && affectedID == other.affectedID);
+	}
+};
+
 /* Data storage object for Logging purposes*/
 struct NetworkedClient {
 	FILETIME	time;

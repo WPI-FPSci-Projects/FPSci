@@ -1032,14 +1032,14 @@ void FPSciApp::onNetwork() {
 				// Only log actions that happen on another machine
 				debugPrintf("The client %s has shot and missed\n", remoteAction.guid.toString16());
 				const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(remoteAction.guid.toString16());
-				PlayerAction pa = PlayerAction();
+				RemotePlayerAction pa = RemotePlayerAction();
 				pa.time = sess->logger->getFileTime();
 				pa.viewDirection = clientEntity->getLookAzEl();
 				pa.position = clientEntity->frame().translation;
 				pa.state = sess->currentState;
 				pa.action = (PlayerActionType)remoteAction.actionType;
-				pa.targetName = remoteAction.guid.toString16();
-				sess->logger->logPlayerAction(pa);
+				pa.actorID = remoteAction.guid.toString16();
+				sess->logger->logRemotePlayerAction(pa);
 			}
 		}
 

@@ -312,6 +312,55 @@ void FPSciLogger::recordPlayerActions(const Array<PlayerAction>& actions) {
 	insertRowsIntoDB(m_db, "Player_Action", rows);
 }
 
+void FPSciLogger::createRemotePlayerActionTable() {
+	// Player_Action table
+	Columns viewTrajectoryColumns = {
+		{ "time", "text" },
+		{ "position_az", "real" },
+		{ "position_el", "real" },
+		{ "position_x", "real"},
+		{ "position_y", "real"},
+		{ "position_z", "real"},
+		{ "state", "text"},
+		{ "event", "text" },
+		{ "actor_id", "text" },
+		{ "affected_id", "text"},
+	};
+	createTableInDB(m_db, "Remote_Player_Action", viewTrajectoryColumns);
+}
+
+void FPSciLogger::recordRemotePlayerActions(const Array<RemotePlayerAction>& actions) {
+	Array<RowEntry> rows;
+	for (RemotePlayerAction action : actions) {
+		String stateStr = presentationStateToString(action.state);
+
+		String actionStr = "";
+		switch (action.action) {
+		case FireCooldown: actionStr = "fireCooldown"; break;
+		case Aim: actionStr = "aim"; break;
+		case Miss: actionStr = "miss"; break;
+		case Hit: actionStr = "hit"; break;
+		case Destroy: actionStr = "destroy"; break;
+		case Move: actionStr = "move"; break;
+		}
+
+		Array<String> playerActionValues = {
+		"'" + FPSciLogger::formatFileTime(action.time) + "'",
+		String(std::to_string(action.viewDirection.x)),
+		String(std::to_string(action.viewDirection.y)),
+		String(std::to_string(action.position.x)),
+		String(std::to_string(action.position.y)),
+		String(std::to_string(action.position.z)),
+		"'" + stateStr + "'",
+		"'" + actionStr + "'",
+		"'" + action.actorID + "'",
+		"'" + action.affectedID + "'",
+		};
+		rows.append(playerActionValues);
+	}
+	insertRowsIntoDB(m_db, "Remote_Player_Action", rows);
+}
+
 
 void FPSciLogger::createFrameInfoTable() {
 	// Frame_Info table
@@ -438,8 +487,8 @@ void FPSciLogger::createNetworkedClientTable() {
 	// Player_Action table
 	Columns clientColumns = {
 		{ "time", "text" },
-		{ "server_frame", "real"},
-		{ "client_frame", "real"},
+		{ "local_frame", "real"},
+		{ "remote_frame", "real"},
 		{ "position_az", "real" },
 		{ "position_el", "real" },
 		{ "position_x", "real"},
@@ -506,6 +555,10 @@ void FPSciLogger::loggerThreadEntry()
 		playerActions.swap(m_playerActions, playerActions);
 		m_playerActions.reserve(playerActions.size() * 2);
 
+		decltype(m_remotePlayerActions) remotePlayerActions;
+		remotePlayerActions.swap(m_remotePlayerActions, m_remotePlayerActions);
+		m_remotePlayerActions.reserve(remotePlayerActions.size() * 2);
+
 		decltype(m_questions) questions;
 		questions.swap(m_questions, questions);
 		m_questions.reserve(questions.size() * 2);
@@ -535,6 +588,7 @@ void FPSciLogger::loggerThreadEntry()
 
 		recordFrameInfo(frameInfo);
 		recordPlayerActions(playerActions);
+		recordRemotePlayerActions(remotePlayerActions);
 		recordTargetLocations(targetLocations);
 
 		recordNetworkedClients(networkedClients);
