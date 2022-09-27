@@ -161,5 +161,5 @@ public:
 	
 	static int sendReadyUpMessage(ENetPeer* serverPeer);
 	static void broadcastStartSession(ENetHost* serverHost);
-	static int sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* peer, PlayerConfig playerConfig, bool broadcast);
+	static int sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* peer, PlayerConfig* playerConfig, bool broadcast);
 };

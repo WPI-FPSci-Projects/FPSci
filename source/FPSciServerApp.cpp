@@ -82,7 +82,6 @@ void FPSciServerApp::initExperiment() {
 
 void FPSciServerApp::onNetwork() {
     /* None of this is from the upsteam project */
-    const shared_ptr<PlayerEntity>& player = scene()->typedEntity<PlayerEntity>("player");
 
     if (!sess->currentState == NetworkedPresentationState::networkedSessionStart) {
         m_networkFrameNum++;
@@ -231,18 +230,18 @@ void FPSciServerApp::onNetwork() {
     scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
     NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
 
-    if (*player->propagatePlayerConfigsToAll) {
-        *player->propagatePlayerConfigsToAll = false;
-        NetworkUtils::sendPlayerConfigToClient(m_localHost, nullptr, sessConfig->player, true);
+    if (sessConfig->player.propagatePlayerConfigsToAll) {
+        sessConfig->player.propagatePlayerConfigsToAll = false;
+        NetworkUtils::sendPlayerConfigToClient(m_localHost, nullptr, &sessConfig->player, true);
     }
 
-    if (*player->propagatePlayerConfigsToSelectedClient) {
-        *player->propagatePlayerConfigsToSelectedClient = false;
-        if (*player->selectedClientIdx == 0) {
-            NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[0].peer, sessConfig->player, false);
+    if (sessConfig->player.propagatePlayerConfigsToSelectedClient) {
+        sessConfig->player.propagatePlayerConfigsToSelectedClient = false;
+        if (sessConfig->player.selectedClientIdx == 0) {
+            NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[0].peer, &sessConfig->player, false);
         }
         else {
-            NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[1].peer, sessConfig->player, false);
+            NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[1].peer, &sessConfig->player, false);
         }
 
     }

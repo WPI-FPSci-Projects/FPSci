@@ -272,17 +272,17 @@ void NetworkUtils::broadcastStartSession(ENetHost* serverHost) {
 	enet_host_broadcast(serverHost, 0, packet);
 }
 
-int NetworkUtils::sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* clientPeer, PlayerConfig playerConfig, bool broadcast) {
+int NetworkUtils::sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* clientPeer, PlayerConfig *playerConfig, bool broadcast) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::SEND_PLAYER_CONFIG_TO_CLIENTS);
 	outBuffer.writeUInt16(0);	// Dummy frame num (haven't started a trial yet)
-	PlayerConfig selectedConfig = playerConfig;
+	PlayerConfig selectedConfig = *playerConfig;
 
-	if (playerConfig.readFromFile == true) {
-		int index = playerConfig.selectedClientIdx ? index = 0 : index = 1;
-		selectedConfig = playerConfig.clientPlayerConfigs[index];
-		playerConfig.readFromFile = false;
+	if ((*playerConfig).readFromFile == true) {
+		int index = (*playerConfig).selectedClientIdx ? index = 0 : index = 1;
+		selectedConfig = (*playerConfig).clientPlayerConfigs[index];
+		(*playerConfig).readFromFile = false;
 	}
 
 	outBuffer.writeFloat32(selectedConfig.moveRate);
@@ -317,7 +317,7 @@ int NetworkUtils::sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* clien
 	outBuffer.writeBool8(selectedConfig.restrictedMovementEnabled);
 
 	outBuffer.writeBool8(selectedConfig.counterStrafing);
-	
+
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	if(!broadcast)
 		return enet_peer_send(clientPeer, 0, packet);
