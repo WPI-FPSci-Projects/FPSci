@@ -60,6 +60,7 @@ void FPSciLogger::initResultsFile(const String& filename,
 		createTrialsTable();
 		createTargetTrajectoryTable();
 		createPlayerActionTable();
+		createRemotePlayerActionTable();
 		createFrameInfoTable();
 		createQuestionsTable();
 		createUsersTable();

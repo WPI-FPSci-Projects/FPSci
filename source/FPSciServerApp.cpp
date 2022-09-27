@@ -237,25 +237,25 @@ void FPSciServerApp::onNetwork() {
                 shared_ptr<NetworkedEntity> hitEntity = scene()->typedEntity<NetworkedEntity>(hitID.toString16());
                 //NetworkUtils::ConnectedClient* hitClient = getClientFromGUID(hitID);
                 GUniqueID shooter_id = getClientFromAddress(event.peer->address)->guid;
-                debugPrintf("Health is: %f\n", hitEntity->health());
+
+                // Log the hit on the server
+                const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(getClientFromAddress(event.peer->address)->guid.toString16());
+                debugPrintf("%s", getClientFromAddress(event.peer->address)->guid.toString16());
+                RemotePlayerAction rpa = RemotePlayerAction();
+                rpa.time = sess->logger->getFileTime();
+                rpa.viewDirection = clientEntity->getLookAzEl();
+                rpa.position = clientEntity->frame().translation;
+                rpa.state = sess->currentState;
+                rpa.action = PlayerActionType::Hit;
+                rpa.actorID = getClientFromAddress(event.peer->address)->guid.toString16();
+                rpa.affectedID = hitID.toString16();
+                sess->logger->logRemotePlayerAction(rpa);
+
                 if (hitEntity->doDamage(0.5)) { //TODO PARAMETERIZE THIS DAMAGE VALUE SOME HOW! DO IT! DON'T FORGET!  DON'T DO IT!
                     debugPrintf("A player died! Resetting game...\n");
                     playersReady = 0;
                     static_cast<NetworkedSession*>(sess.get())->resetSession();
                     scene()->typedEntity<PlayerEntity>("player")->setPlayerMovement(true); //Allow the server to move freely
-
-                    // Log the hit on the server
-                    const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(getClientFromAddress(event.peer->address)->guid.toString16());
-                    debugPrintf("%s", getClientFromAddress(event.peer->address)->guid.toString16());
-                    RemotePlayerAction rpa = RemotePlayerAction();
-                    rpa.time = sess->logger->getFileTime();
-                    rpa.viewDirection = clientEntity->getLookAzEl();
-                    rpa.position = clientEntity->frame().translation;
-                    rpa.state = sess->currentState;
-                    rpa.action = PlayerActionType::Hit;
-                    rpa.actorID = getClientFromAddress(event.peer->address)->guid.toString16();
-                    rpa.affectedID = hitID.toString16();
-                    sess->logger->logRemotePlayerAction(rpa);
 
                     Array<shared_ptr<NetworkedEntity>> entities;
                     scene()->getTypedEntityArray<NetworkedEntity>(entities);
