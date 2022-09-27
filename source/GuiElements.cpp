@@ -292,7 +292,6 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 	} clientCommunicationPane->endRow();
 	clientCommunicationPane->beginRow(); {
 		clientCommunicationPane->addButton("Send player controls from GUI to all the clients", &config, &SessionConfig::propagatePlayerControlsToAllFromGUI);
-		clientCommunicationPane->addButton("Sent player controls from FILE to all the clients", &config, &SessionConfig::propagatePlayerControlsToAllFromFile);
 	} clientCommunicationPane->endRow();
 	pack();
 	moveTo(Vector2(440, 300));

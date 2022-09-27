@@ -259,6 +259,8 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client2counterStrafing", clientPlayerConfigs[1].counterStrafing);
 		reader.getIfPresent("Client2propagatePlayerConfigs", clientPlayerConfigs[1].propagatePlayerConfigsToAll);
 
+		//TODO: CHECK FOR TYPOS
+
 		break;
 	default:
 		throw format("Did not recognize settings version: %d", settingsVersion);

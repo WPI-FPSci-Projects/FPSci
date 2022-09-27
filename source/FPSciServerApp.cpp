@@ -233,16 +233,16 @@ void FPSciServerApp::onNetwork() {
 
     if (*player->propagatePlayerConfigsToAll) {
         *player->propagatePlayerConfigsToAll = false;
-        NetworkUtils::broadcastPlayerConfigToClients(m_localHost, player);
+        NetworkUtils::sendPlayerConfigToClient(m_localHost, nullptr, sessConfig->player, true);
     }
 
     if (*player->propagatePlayerConfigsToSelectedClient) {
         *player->propagatePlayerConfigsToSelectedClient = false;
         if ((*player->selectedClient).compare("Client 1")) {
-            NetworkUtils::sendPlayerConfigToSelectedClient(m_connectedClients[0].peer, player);
+            NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[0].peer, sessConfig->player, false);
         }
         else {
-            NetworkUtils::sendPlayerConfigToSelectedClient(m_connectedClients[1].peer, player);
+            NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[1].peer, sessConfig->player, false);
         }
 
     }

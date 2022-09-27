@@ -272,167 +272,55 @@ void NetworkUtils::broadcastStartSession(ENetHost* serverHost) {
 	enet_host_broadcast(serverHost, 0, packet);
 }
 
-int NetworkUtils::broadcastPlayerConfigToClients(ENetHost* serverHost, const shared_ptr<PlayerEntity>& player)
-{
+int NetworkUtils::sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* clientPeer, PlayerConfig playerConfig, bool broadcast) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::SEND_PLAYER_CONFIG_TO_CLIENTS);
 	outBuffer.writeUInt16(0);	// Dummy frame num (haven't started a trial yet)
+	PlayerConfig selectedConfig = playerConfig;
 
-	if (*player->readFromFile == false) {
-		outBuffer.writeFloat32(*player->moveRate);
-		outBuffer.writeVector2(*player->moveScale);
-
-		outBuffer.writeBool8((*player->axisLock)[0]);
-		outBuffer.writeBool8((*player->axisLock)[1]);
-		outBuffer.writeBool8((*player->axisLock)[2]);
-
-		outBuffer.writeBool8(*player->accelerationEnabled);
-		outBuffer.writeFloat32(*player->movementAcceleration);
-		outBuffer.writeFloat32(*player->movementDeceleration);
-
-		outBuffer.writeFloat32(*player->sprintMultiplier);
-
-		outBuffer.writeFloat32(*player->jumpVelocity);
-		outBuffer.writeFloat32(*player->jumpInterval);
-		outBuffer.writeBool8(*player->jumpTouch);
-
-		outBuffer.writeFloat32(*player->height);
-		outBuffer.writeFloat32(*player->crouchHeight);
-
-		outBuffer.writeBool8(*player->headBobEnabled);
-		outBuffer.writeFloat32(*player->headBobAmplitude);
-		outBuffer.writeFloat32(*player->headBobFrequency);
-
-		outBuffer.writeVector3(*player->respawnPos);
-		outBuffer.writeBool8(true);
-
-		outBuffer.writeFloat32(*player->movementRestrictionX);
-		outBuffer.writeFloat32(*player->movementRestrictionZ);
-		outBuffer.writeBool8(*player->restrictedMovementEnabled);
-
-		outBuffer.writeBool8(*player->counterStrafing);
-	}
-	else {
-		int index = (*player->selectedClient).compare("Client 1") ? index = 0 : index = 1;
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].moveRate);
-		outBuffer.writeVector2((*player->clientPlayerConfigs)[index].moveScale);
-
-		outBuffer.writeBool8(((*player->clientPlayerConfigs)[index].axisLock)[0]);
-		outBuffer.writeBool8(((*player->clientPlayerConfigs)[index].axisLock)[1]);
-		outBuffer.writeBool8(((*player->clientPlayerConfigs)[index].axisLock)[2]);
-
-		outBuffer.writeBool8((*player->clientPlayerConfigs)[index].accelerationEnabled);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].movementAcceleration);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].movementDeceleration);
-
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].sprintMultiplier);
-
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].jumpVelocity);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].jumpInterval);
-		outBuffer.writeBool8((*player->clientPlayerConfigs)[index].jumpTouch);
-
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].height);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].crouchHeight);
-
-		outBuffer.writeBool8((*player->clientPlayerConfigs)[index].headBobEnabled);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].headBobAmplitude);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].headBobFrequency);
-
-		outBuffer.writeVector3((*player->clientPlayerConfigs)[index].respawnPos);
-		outBuffer.writeBool8(true);
-
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].movementRestrictionX);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].movementRestrictionZ);
-		outBuffer.writeBool8((*player->clientPlayerConfigs)[index].restrictedMovementEnabled);
-
-		outBuffer.writeBool8((*player->clientPlayerConfigs)[index].counterStrafing);
-
-		*player->readFromFile = false;
+	if (playerConfig.readFromFile == true) {
+		int index = (playerConfig.selectedClient).compare("Client 1") ? index = 0 : index = 1;
+		selectedConfig = playerConfig.clientPlayerConfigs[index];
+		playerConfig.readFromFile = false;
 	}
 
+	outBuffer.writeFloat32(selectedConfig.moveRate);
+	outBuffer.writeVector2(selectedConfig.moveScale);
+
+	outBuffer.writeBool8((selectedConfig.axisLock)[0]);
+	outBuffer.writeBool8((selectedConfig.axisLock)[1]);
+	outBuffer.writeBool8((selectedConfig.axisLock)[2]);
+
+	outBuffer.writeBool8(selectedConfig.accelerationEnabled);
+	outBuffer.writeFloat32(selectedConfig.movementAcceleration);
+	outBuffer.writeFloat32(selectedConfig.movementDeceleration);
+
+	outBuffer.writeFloat32(selectedConfig.sprintMultiplier);
+
+	outBuffer.writeFloat32(selectedConfig.jumpVelocity);
+	outBuffer.writeFloat32(selectedConfig.jumpInterval);
+	outBuffer.writeBool8(selectedConfig.jumpTouch);
+
+	outBuffer.writeFloat32(selectedConfig.height);
+	outBuffer.writeFloat32(selectedConfig.crouchHeight);
+
+	outBuffer.writeBool8(selectedConfig.headBobEnabled);
+	outBuffer.writeFloat32(selectedConfig.headBobAmplitude);
+	outBuffer.writeFloat32(selectedConfig.headBobFrequency);
+
+	outBuffer.writeVector3(selectedConfig.respawnPos);
+	outBuffer.writeBool8(true);
+
+	outBuffer.writeFloat32(selectedConfig.movementRestrictionX);
+	outBuffer.writeFloat32(selectedConfig.movementRestrictionZ);
+	outBuffer.writeBool8(selectedConfig.restrictedMovementEnabled);
+
+	outBuffer.writeBool8(selectedConfig.counterStrafing);
+	
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
+	if(!broadcast)
+		return enet_peer_send(clientPeer, 0, packet);
 	enet_host_broadcast(serverHost, 0, packet);
 	return 0;
-}
-
-int NetworkUtils::sendPlayerConfigToSelectedClient(ENetPeer* clientPeer, const shared_ptr<PlayerEntity>& player) {
-	BinaryOutput outBuffer;
-	outBuffer.setEndian(G3D_BIG_ENDIAN);
-	outBuffer.writeUInt8(NetworkUtils::MessageType::SEND_PLAYER_CONFIG_TO_CLIENTS);
-	outBuffer.writeUInt16(0);	// Dummy frame num (haven't started a trial yet)
-	if (*player->readFromFile == false) {
-		outBuffer.writeFloat32(*player->moveRate);
-		outBuffer.writeVector2(*player->moveScale);
-
-		outBuffer.writeBool8((*player->axisLock)[0]);
-		outBuffer.writeBool8((*player->axisLock)[1]);
-		outBuffer.writeBool8((*player->axisLock)[2]);
-
-		outBuffer.writeBool8(*player->accelerationEnabled);
-		outBuffer.writeFloat32(*player->movementAcceleration);
-		outBuffer.writeFloat32(*player->movementDeceleration);
-
-		outBuffer.writeFloat32(*player->sprintMultiplier);
-
-		outBuffer.writeFloat32(*player->jumpVelocity);
-		outBuffer.writeFloat32(*player->jumpInterval);
-		outBuffer.writeBool8(*player->jumpTouch);
-
-		outBuffer.writeFloat32(*player->height);
-		outBuffer.writeFloat32(*player->crouchHeight);
-
-		outBuffer.writeBool8(*player->headBobEnabled);
-		outBuffer.writeFloat32(*player->headBobAmplitude);
-		outBuffer.writeFloat32(*player->headBobFrequency);
-
-		outBuffer.writeVector3(*player->respawnPos);
-		outBuffer.writeBool8(true);
-
-		outBuffer.writeFloat32(*player->movementRestrictionX);
-		outBuffer.writeFloat32(*player->movementRestrictionZ);
-		outBuffer.writeBool8(*player->restrictedMovementEnabled);
-
-		outBuffer.writeBool8(*player->counterStrafing);
-	}
-	else {
-		int index = (*player->selectedClient).compare("Client 1") ? index = 0 : index = 1;
-
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].moveRate);
-		outBuffer.writeVector2((*player->clientPlayerConfigs)[index].moveScale);
-
-		outBuffer.writeBool8(((*player->clientPlayerConfigs)[index].axisLock)[0]);
-		outBuffer.writeBool8(((*player->clientPlayerConfigs)[index].axisLock)[1]);
-		outBuffer.writeBool8(((*player->clientPlayerConfigs)[index].axisLock)[2]);
-
-		outBuffer.writeBool8((*player->clientPlayerConfigs)[index].accelerationEnabled);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].movementAcceleration);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].movementDeceleration);
-
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].sprintMultiplier);
-
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].jumpVelocity);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].jumpInterval);
-		outBuffer.writeBool8((*player->clientPlayerConfigs)[index].jumpTouch);
-
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].height);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].crouchHeight);
-
-		outBuffer.writeBool8((*player->clientPlayerConfigs)[index].headBobEnabled);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].headBobAmplitude);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].headBobFrequency);
-
-		outBuffer.writeVector3((*player->clientPlayerConfigs)[index].respawnPos);
-		outBuffer.writeBool8(true);
-
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].movementRestrictionX);
-		outBuffer.writeFloat32((*player->clientPlayerConfigs)[index].movementRestrictionZ);
-		outBuffer.writeBool8((*player->clientPlayerConfigs)[index].restrictedMovementEnabled);
-
-		outBuffer.writeBool8((*player->clientPlayerConfigs)[index].counterStrafing);
-
-		*player->readFromFile = false;
-	}
-	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
-	return enet_peer_send(clientPeer, 0, packet);
 }
