@@ -746,7 +746,7 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->propagatePlayerConfigsToAll = &sessConfig->player.propagatePlayerConfigsToAll;
 	player->propagatePlayerConfigsToSelectedClient = &sessConfig->player.propagatePlayerConfigsToSelectedClient;
 	player->readFromFile = &sessConfig->player.readFromFile;
-	player->selectedClient = &sessConfig->player.selectedClient;
+	player->selectedClientIdx = &sessConfig->player.selectedClientIdx;
 	player->clientPlayerConfigs = &sessConfig->player.clientPlayerConfigs;
 	// Respawn player
 	player->respawn();
@@ -1165,39 +1165,39 @@ void FPSciApp::onNetwork() {
 			}
 			else if (type == NetworkUtils::MessageType::SEND_PLAYER_CONFIG_TO_CLIENTS) {
 				shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
+				//initPlayer(true);
+				sessConfig->player.moveRate = packet_contents.readFloat32();
+				sessConfig->player.moveScale = packet_contents.readVector2();
 
-				*player->moveRate = packet_contents.readFloat32();
-				*player->moveScale = packet_contents.readVector2();
+				(sessConfig->player.axisLock)[0] = packet_contents.readBool8();
+				(sessConfig->player.axisLock)[1] = packet_contents.readBool8();
+				(sessConfig->player.axisLock)[2] = packet_contents.readBool8();
 
-				(*player->axisLock)[0] = packet_contents.readBool8();
-				(*player->axisLock)[1] = packet_contents.readBool8();
-				(*player->axisLock)[2] = packet_contents.readBool8();
+				sessConfig->player.accelerationEnabled = packet_contents.readBool8();
+				sessConfig->player.movementAcceleration = packet_contents.readFloat32();
+				sessConfig->player.movementDeceleration = packet_contents.readFloat32();
 
-				*player->accelerationEnabled = packet_contents.readBool8();
-				*player->movementAcceleration = packet_contents.readFloat32();
-				*player->movementDeceleration = packet_contents.readFloat32();
+				sessConfig->player.sprintMultiplier = packet_contents.readFloat32();
 
-				*player->sprintMultiplier = packet_contents.readFloat32();
+				sessConfig->player.jumpVelocity = packet_contents.readFloat32();
+				sessConfig->player.jumpInterval = packet_contents.readFloat32();
+				sessConfig->player.jumpTouch = packet_contents.readBool8();
 
-				*player->jumpVelocity = packet_contents.readFloat32();
-				*player->jumpInterval = packet_contents.readFloat32();
-				*player->jumpTouch = packet_contents.readBool8();
+				sessConfig->player.height = packet_contents.readFloat32();
+				sessConfig->player.crouchHeight = packet_contents.readFloat32();
 
-				*player->height = packet_contents.readFloat32();
-				*player->crouchHeight = packet_contents.readFloat32();
+				sessConfig->player.headBobEnabled = packet_contents.readBool8();
+				sessConfig->player.headBobAmplitude = packet_contents.readFloat32();
+				sessConfig->player.headBobFrequency = packet_contents.readFloat32();
 
-				*player->headBobEnabled = packet_contents.readBool8();
-				*player->headBobAmplitude = packet_contents.readFloat32();
-				*player->headBobFrequency = packet_contents.readFloat32();
+				sessConfig->player.respawnPos = packet_contents.readVector3();
+				sessConfig->player.respawnToPos = packet_contents.readBool8();
 
-				*player->respawnPos = packet_contents.readVector3();
-				*player->respawnToPos = packet_contents.readBool8();
+				sessConfig->player.movementRestrictionX = packet_contents.readFloat32();
+				sessConfig->player.movementRestrictionZ = packet_contents.readFloat32();
+				sessConfig->player.restrictedMovementEnabled = packet_contents.readBool8();
 
-				*player->movementRestrictionX = packet_contents.readFloat32();
-				*player->movementRestrictionZ = packet_contents.readFloat32();
-				*player->restrictedMovementEnabled = packet_contents.readBool8();
-
-				*player->counterStrafing = packet_contents.readBool8();
+				sessConfig->player.counterStrafing = packet_contents.readBool8();
 				debugPrintf("Recieved a request to set player config.\n");
 			}
 			

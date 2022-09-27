@@ -116,7 +116,7 @@ protected:
 	PlayerControls(SessionConfig& config, std::function<void()> exportCallback,
 		const shared_ptr<GuiTheme>& theme, float width = 400.0f, float height = 10.0f);
 
-	void updateConnectedClients(void);
+	void setConnectedClients(void);
 
 public:
 	static shared_ptr<PlayerControls> create(SessionConfig& config, std::function<void()> exportCallback,

@@ -159,9 +159,8 @@ public:
 
 	void respawnPlayer() { player.respawnToPos = true; }
 	void propagatePlayerControlsToAllFromGUI() { player.propagatePlayerConfigsToAll = true; }
-	void propagatePlayerControlsToSelectedClientFromFile() { player.propagatePlayerConfigsToAll = true; player.readFromFile = true; }
+	void propagatePlayerControlsToSelectedClientFromFile() { player.propagatePlayerConfigsToSelectedClient = true; player.readFromFile = true; }
 	void propagatePlayerControlsToSelectedClientFromGUI() { player.propagatePlayerConfigsToSelectedClient = true; }
-	void propagatePlayerControlsToAllFromFile() { player.propagatePlayerConfigsToAll = true; player.readFromFile = true; }
 };
 
 class Session : public ReferenceCountedObject {

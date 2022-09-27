@@ -280,7 +280,7 @@ int NetworkUtils::sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* clien
 	PlayerConfig selectedConfig = playerConfig;
 
 	if (playerConfig.readFromFile == true) {
-		int index = (playerConfig.selectedClient).compare("Client 1") ? index = 0 : index = 1;
+		int index = playerConfig.selectedClientIdx ? index = 0 : index = 1;
 		selectedConfig = playerConfig.clientPlayerConfigs[index];
 		playerConfig.readFromFile = false;
 	}

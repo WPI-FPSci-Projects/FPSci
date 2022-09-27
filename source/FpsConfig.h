@@ -88,8 +88,8 @@ public:
 	bool			propagatePlayerConfigsToAll = false;		///< If true, all players config from the server will be broadcast to clients
 	bool			propagatePlayerConfigsToSelectedClient = false; ///< If true, all players config from the server will be sent to selected client
 	bool			readFromFile = false;						///< Read client configs from file or not
-	String			selectedClient = "Client 1";				///< Indicates the client that player configs will be propagated to
-	Array <PlayerConfig>  clientPlayerConfigs;
+	int				selectedClientIdx = 0;						///< Indicates the index of the client that player configs will be propagated to
+	Array <PlayerConfig>  clientPlayerConfigs;					///< Player config for all the clients
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;
 };

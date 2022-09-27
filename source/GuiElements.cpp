@@ -149,9 +149,9 @@ void WaypointDisplay::setManager(WidgetManager *manager) {
 	}
 }
 
-void PlayerControls::updateConnectedClients()
+void PlayerControls::setConnectedClients()
 {
-	m_sessionConfig.player.selectedClient = m_connectedClients[m_connectedClientIdx];
+	m_sessionConfig.player.selectedClientIdx = m_connectedClientIdx;
 }
 
 PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> exportCallback,
@@ -285,8 +285,8 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 
 	auto clientCommunicationPane = pane->addPane("Client Communation");
 	clientCommunicationPane->beginRow(); {
-		m_connectedClientIdx = m_connectedClients.findIndex(config.player.selectedClient);
-		clientCommunicationPane->addDropDownList("Select Client", m_connectedClients, &m_connectedClientIdx, std::bind(&PlayerControls::updateConnectedClients, this));
+		m_connectedClientIdx = config.player.selectedClientIdx;
+		clientCommunicationPane->addDropDownList("Select Client", m_connectedClients, &m_connectedClientIdx, std::bind(&PlayerControls::setConnectedClients, this));
 		clientCommunicationPane->addButton("Send player controls from GUI", &config, &SessionConfig::propagatePlayerControlsToSelectedClientFromGUI);
 		clientCommunicationPane->addButton("Send player controls from File", &config, &SessionConfig::propagatePlayerControlsToSelectedClientFromFile);
 	} clientCommunicationPane->endRow();
