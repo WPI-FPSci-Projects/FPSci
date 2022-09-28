@@ -122,10 +122,15 @@ int NetworkUtils::sendPingData(ENetSocket socket, ENetAddress address, PingStati
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::PING_DATA);
 	outBuffer.writeUInt16(0); // Ping data is not part of integral game tick packets (null frame number)
-	long long rttLatest = pingStats.pingQueue.last();
-	uint16 cappedRTT;
-	rttLatest >= UINT16_MAX ? cappedRTT = UINT16_MAX : cappedRTT = (uint16) rttLatest;
-	outBuffer.writeUInt16(cappedRTT);
+
+	auto truncateToUInt16 = [](long long val) {
+		return val >= UINT16_MAX ? UINT16_MAX : (uint16) val;
+	};
+
+	outBuffer.writeUInt16(truncateToUInt16(pingStats.pingQueue.last()));
+	outBuffer.writeUInt16(truncateToUInt16(pingStats.smaPing));
+	outBuffer.writeUInt16(truncateToUInt16(pingStats.minPing));
+	outBuffer.writeUInt16(truncateToUInt16(pingStats.maxPing));
 
 	ENetBuffer buff;
 	buff.data = (void*)outBuffer.getCArray();

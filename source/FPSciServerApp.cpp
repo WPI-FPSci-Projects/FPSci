@@ -165,7 +165,12 @@ void FPSciServerApp::onNetwork() {
         /* Update server-side data on clients' ping */
         else if (type == NetworkUtils::MessageType::PING_DATA) {
             uint16 cappedRTT = packet_contents.readUInt16();
-            m_clientLatestRTTs.set(addr_from.host, cappedRTT);
+            uint16 cappedSMARTT = packet_contents.readUInt16();
+            uint16 cappedMinRTT = packet_contents.readUInt16();
+            uint16 cappedMaxRTT = packet_contents.readUInt16();
+            Array<uint16> rttStatsArray = {cappedRTT, cappedSMARTT, cappedMinRTT, cappedMaxRTT};
+            
+            m_clientLatestRTTs.set(addr_from.host, rttStatsArray);
         }
     }
     free(data);

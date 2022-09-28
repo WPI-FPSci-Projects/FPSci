@@ -91,6 +91,9 @@
 			UInt8: type (PING_DATA)
 			UInt16: Frame Number
 			UInt16: capped latest RTT
+			UInt16: capped SMA of RTT
+			UInt16: capped minimum recorded RTT
+			UInt16: capped maximum recorded RTT
 
 			Type READY_UP_CLIENT:
 			UInt8: type (READY_UP_CLIENT)

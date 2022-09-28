@@ -1082,8 +1082,10 @@ void FPSciApp::onNetwork() {
 			m_startedPinging = true;
 		}
 
-		// Send current ping data to the server
-		NetworkUtils::sendPingData(m_unreliableSocket, m_unreliableServerAddress, m_pingStats);
+		// Send current ping data to the server, due to packet size send every 30 frames to reduce network traffic
+		if (m_frameNumber % 30 == 0) {
+			NetworkUtils::sendPingData(m_unreliableSocket, m_unreliableServerAddress, m_pingStats);
+		}
 
 	}
 
