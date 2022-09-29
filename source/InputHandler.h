@@ -8,7 +8,6 @@ namespace G3D{
 		class NetworkInput // need to store X amount of last arrays
 		{
 		private:
-
 			uint8 m_playerID;
 
 			float32 m_XMovement;
@@ -48,6 +47,54 @@ namespace G3D{
 		bool CheckFrameAcceptable(int frame);
 		Array<NetworkInput>* GetFrameBuffer();
 		void FlushBuffer();
+
+		Array<NetworkInput>* GetFrameInputs(int frame);
+	};
+
+}
+
+namespace G3D {
+	class NetworkHandler {
+	public:
+		class NetworkInput // need to store X amount of last arrays
+		{
+		private:
+			uint8 m_playerID;
+
+			CoordinateFrame m_cframe;
+			bool m_fired;
+
+		public:
+			NetworkInput();
+			NetworkInput(uint8 playerID, CoordinateFrame cframe, bool fired);
+			~NetworkInput();
+			bool GetFired();
+			CoordinateFrame GetCFrame();
+
+			void SetCFrame(CoordinateFrame cframe);
+			void SetFired(bool fired)
+
+		};
+
+	private:
+	private:
+		int m_frameCutoff = 10;
+		int m_leadingFrame = 0;
+		Array<Array<NetworkInput>*>* m_networkInputs = new Array<Array<NetworkInput>*>; //hold some future frames
+		//TODO: keep track of how many clients are present during a single frame
+		Array<NetworkInput>* m_unreadFrameBuffer = new Array<NetworkInput>;
+	public:
+		NetworkHandler();
+		~NetworkHandler();
+		void NewNetworkInput(uint8 playerID, CoordinateFrame cframe, bool fired, int frame);
+		bool AllClientsFrame(int frame, int clientsConnected);
+		void NewLeadingFrame(int frame, int clientsConnected);
+		bool CheckFrameAcceptable(int frame);
+		Array<NetworkInput>* GetFrameBuffer();
+		void FlushBuffer();
+
+		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, bool fired, int frame);
+		void UpdateFired(uint8 playerID, CoordinateFrame cframe, bool fired, int frame);
 
 		Array<NetworkInput>* GetFrameInputs(int frame);
 	};
