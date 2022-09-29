@@ -178,6 +178,14 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 	case 1:
 		reader.getIfPresent("moveRate", moveRate);
 		reader.getIfPresent("moveScale", moveScale);
+		reader.getIfPresent("sprintMultiplier", sprintMultiplier);
+		reader.getIfPresent("headBobEnabled", headBobEnabled);
+		reader.getIfPresent("headBobAmplitude", headBobAmplitude);
+		reader.getIfPresent("headBobFrequency", headBobFrequency);
+		reader.getIfPresent("respawnPos", respawnPos);
+		reader.getIfPresent("accelerationEnabled", accelerationEnabled);
+		reader.getIfPresent("movementAcceleration", movementAcceleration);
+		reader.getIfPresent("movementDeceleration", movementDeceleration);
 		reader.getIfPresent("turnScale", turnScale);
 		reader.getIfPresent("playerHeight", height);
 		reader.getIfPresent("crouchHeight", crouchHeight);
@@ -188,6 +196,10 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("playerAxisLock", axisLock);
 		reader.getIfPresent("disablePlayerMotionBetweenTrials", stillBetweenTrials);
 		reader.getIfPresent("resetPlayerPositionBetweenTrials", resetPositionPerTrial);
+		reader.getIfPresent("movementRestrictionX", movementRestrictionX);
+		reader.getIfPresent("movementRestrictionZ", movementRestrictionZ);
+		reader.getIfPresent("restrictedMovementEnabled", restrictedMovementEnabled);
+		reader.getIfPresent("counterStrafing", counterStrafing);
 		break;
 	default:
 		throw format("Did not recognize settings version: %d", settingsVersion);
