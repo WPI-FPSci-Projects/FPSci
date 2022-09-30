@@ -292,8 +292,8 @@ void NetworkUtils::serializeUserInput(ENetSocket socket, ENetAddress address, G3
 
 	output.setEndian(G3D_BIG_ENDIAN);
 	output.writeUInt8(NetworkUtils::MessageType::USER_INPUT); //Message type
-	output.writeUInt8(playerID);
 	output.writeInt32(frame);
+	output.writeUInt8(playerID);
 	output.writeFloat32(ui->getX());		// x-axis movement
 	output.writeFloat32(ui->getY());		// y-axis movement
 

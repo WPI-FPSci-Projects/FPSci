@@ -141,12 +141,12 @@ void FPSciServerApp::onNetwork() {
                     m_connectedClients[i].peer->address.port == event.peer->address.port) {
 
                     // iterate through m_remotePlayers and remove the player with the same playerID
-                    for (int j = 0; j < m_remotePlayers.size(); j++) {
-                        if (m_remotePlayers[j]->getPlayerID() == m_connectedClients[i].playerID) {
-                            m_remotePlayers.remove(j, 1);
-                            break;
-                        }
-                    }
+                    //for (int j = 0; j < m_remotePlayers.size(); j++) {
+                    //    if (m_remotePlayers[j]->getPlayerID() == m_connectedClients[i].playerID) {
+                    //        m_remotePlayers.remove(j, 1);
+                    //        break;
+                    //    }
+                    //}
                     
                     GUniqueID id = m_connectedClients[i].guid;
                     shared_ptr<NetworkedEntity> entity = scene()->typedEntity<NetworkedEntity>(id.toString16());
@@ -188,10 +188,11 @@ void FPSciServerApp::onNetwork() {
                 shared_ptr<Model> model = ArticulatedModel::create(modelSpec);
                 /* Create a new entity for the client */
                 const shared_ptr<NetworkedEntity>& target = NetworkedEntity::create(newClient.guid.toString16(), &(*scene()), model, CFrame());
-                shared_ptr<RemotePlayer> newPlayer = RemotePlayer::create(
-                    String(m_remotePlayers.length() + 1), scene().get(), CFrame(), model);
-                scene()->insert(newPlayer);
-                m_remotePlayers.append(newPlayer);
+                //shared_ptr<RemotePlayer> newPlayer = RemotePlayer::create(
+                //    String(m_remotePlayers.length() + 1), &(*scene()), CFrame(), model);
+                //debugPrintf("%d\n", newPlayer->axisLock);
+                //(*scene()).insert(newPlayer);
+                //m_remotePlayers.append(newPlayer);
 
                 target->setWorldSpace(true);
                 target->setColor(G3D::Color3(20.0, 20.0, 200.0));
