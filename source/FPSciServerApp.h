@@ -29,4 +29,5 @@ public:
     void onNetwork() override;
     void oneFrame() override;
 
+    void onASBroadcast();
 };

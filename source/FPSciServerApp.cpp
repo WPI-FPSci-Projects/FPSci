@@ -247,11 +247,15 @@ void FPSciServerApp::onNetwork() {
         }
     }
 
-    /* Now we send the position of all entities to all connected clients */
-    Array<shared_ptr<NetworkedEntity>> entityArray;
-    scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
-    NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
-    //  NetworkUtils::serverBatchEntityUpdate(RemotePlayers, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
+    // only do if not in authoritative server mode, if yes, onASBroadcast() will handle this
+    if (!experimentConfig.isAuthoritativeServer)
+    {
+        /* Now we send the position of all entities to all connected clients */
+        Array<shared_ptr<NetworkedEntity>> entityArray;
+        scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
+        NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
+        //  NetworkUtils::serverBatchEntityUpdate(RemotePlayers, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
+    }
 }
 
 void FPSciServerApp::onInit() {
@@ -370,6 +374,9 @@ void FPSciServerApp::oneFrame() {
         }
         m_simulationWatch.tock();
         END_PROFILER_EVENT();
+
+        // will only broadcast if in authoritative server mode
+        onASBroadcast();
     }
 
     // Pose
@@ -490,5 +497,18 @@ void FPSciServerApp::oneFrame() {
 
     if (m_endProgram && window()->requiresMainLoop()) {
         window()->popLoopBody();
+    }
+}
+
+void FPSciServerApp::onASBroadcast()
+{
+    // only do if in authoritative server mode
+    if (experimentConfig.isAuthoritativeServer)
+    {
+        /* Now we send the position of all entities to all connected clients */
+        Array<shared_ptr<NetworkedEntity>> entityArray;
+        scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
+        NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
+        //  NetworkUtils::serverBatchEntityUpdate(RemotePlayers, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
     }
 }
