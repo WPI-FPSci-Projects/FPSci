@@ -72,17 +72,15 @@ namespace G3D {
 			CoordinateFrame GetCFrame();
 
 			void SetCFrame(CoordinateFrame cframe);
-			void SetFired(bool fired)
+			void SetFired(bool fired);
 
 		};
-
-	private:
 	private:
 		int m_frameCutoff = 10;
 		int m_leadingFrame = 0;
-		Array<Array<NetworkInput>*>* m_networkInputs = new Array<Array<NetworkInput>*>; //hold some future frames
+		Array<Array<NetworkInput>*>* m_networkInputs = new Array<Array<NetworkInput>*>; //hold some future frames //this will be full hopfully
 		//TODO: keep track of how many clients are present during a single frame
-		Array<NetworkInput>* m_unreadFrameBuffer = new Array<NetworkInput>;
+		Array<NetworkInput>* m_unreadFrameBuffer = new Array<NetworkInput>;//these will be half empty
 	public:
 		NetworkHandler();
 		~NetworkHandler();
@@ -93,8 +91,8 @@ namespace G3D {
 		Array<NetworkInput>* GetFrameBuffer();
 		void FlushBuffer();
 
-		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, bool fired, int frame);
-		void UpdateFired(uint8 playerID, CoordinateFrame cframe, bool fired, int frame);
+		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frame);
+		void UpdateFired(uint8 playerID, bool fired, int frame);
 
 		Array<NetworkInput>* GetFrameInputs(int frame);
 	};

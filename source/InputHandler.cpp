@@ -142,18 +142,19 @@ void G3D::NetworkHandler::NetworkInput::SetCFrame(CoordinateFrame cframe)
 
 void G3D::NetworkHandler::NetworkInput::SetFired(bool fired)
 {
-	fired = fired;
+	m_fired = fired;
 }
 
-void G3D::NetworkHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, bool fired, int frame)
+void G3D::NetworkHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frame)
 {
 	//NetworkInput* newInput = new NetworkInput(playerID, cframe, fired);
 	//m_networkInputs[0][m_leadingFrame - frame + 2]->append(*newInput);
 	//m_unreadFrameBuffer->append(*newInput);
 }
 
-void G3D::NetworkHandler::UpdateFired(uint8 playerID, CoordinateFrame cframe, bool fired, int frame)
+void G3D::NetworkHandler::UpdateFired(uint8 playerID, bool fired, int frame)
 {
+	m_networkInputs[0][m_leadingFrame - frame + 2][0][playerID].SetFired(fired);
 	//m_networkInputs->getCArray()[m_leadingFrame - frame + 2]->getCArray()[playerID]->SetFired();
 	//m_unreadFrameBuffer->append(*newInput);
 }
@@ -182,7 +183,7 @@ void G3D::NetworkHandler::NewLeadingFrame(int frame, int clientsConnected)
 	//debugPrintf("%d\t%d\n", m_leadingFrame, frame);
 	m_leadingFrame = frame;
 	m_networkInputs->pop();
-	Array<NetworkInput>* arr = new Array<NetworkInput>;
+	Array<NetworkInput>* arr = new Array<NetworkInput>();
 	//TODO: Does this actually make clientsConnected worth of network inputs or just the size of them
 	arr->resize(clientsConnected, false);
 	m_networkInputs->append(arr);
