@@ -114,7 +114,7 @@ void FPSciServerApp::onNetwork() {
             //update locally entity displayed on the server: 
             int num_packet_members = packet_contents.readUInt8(); // get # of frames in this packet
             for (int i = 0; i < num_packet_members; i++) { // get new frames and update objects
-                NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents); // Read the data from the packet and update on the local entity
+                NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents, m_networkHandler); // Read the data from the packet and update on the local entity
             }
         }
     }

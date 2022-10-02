@@ -140,9 +140,9 @@ public:
 		uint8 playerID;
 	};
 
-	static void updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer);
-	static void updateEntity(shared_ptr<Entity> entity, BinaryInput& inBuffer);
-	static void createFrameUpdate(GUniqueID id, shared_ptr<Entity> entity, BinaryOutput& outBuffer);
+	static void updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer, NetworkHandler* networkHandler);
+	static void updateEntity(shared_ptr<Entity> entity, BinaryInput& inBuffer, NetworkHandler* networkHandler, GUniqueID playerID);
+	static void createFrameUpdate(GUniqueID id, shared_ptr<Entity> entity, BinaryOutput& outBuffer, uint16 frameNum);
 
 	static void handleDestroyEntity(shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer);
 	static void broadcastDestroyEntity(GUniqueID id, ENetHost* serverHost, uint16 frameNum);

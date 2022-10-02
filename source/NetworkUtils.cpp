@@ -7,7 +7,7 @@ static void updateEntity(Entity entity, BinaryInput inBuffer) {
 	NetworkUtils::NetworkUpdateType type = (NetworkUtils::NetworkUpdateType)inBuffer.readUInt8();
 }*/
 
-void NetworkUtils::updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer) {
+void NetworkUtils::updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer, NetworkHandler* networkHandler) {
 	GUniqueID entity_id;
 	entity_id.deserialize(inBuffer);;
 	shared_ptr<NetworkedEntity> entity = (*scene).typedEntity<NetworkedEntity>(entity_id.toString16());
@@ -17,27 +17,32 @@ void NetworkUtils::updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Sce
 	if (ignoreIDs.contains(entity_id)) { // don't let the server move ignored entities
 		entity = nullptr;
 	}
-	updateEntity(entity, inBuffer); // Allways call this even if the entity is ignored so we remove the data from the BinaryInput
-
+	updateEntity(entity, inBuffer, networkHandler, entity_id); // Allways call this even if the entity is ignored so we remove the data from the BinaryInput
 }
 
-void NetworkUtils::updateEntity(shared_ptr<Entity> entity, BinaryInput& inBuffer) {
+void NetworkUtils::updateEntity(shared_ptr<Entity> entity, BinaryInput& inBuffer, NetworkHandler* networkHandler, GUniqueID playerID) {
 	NetworkUtils::NetworkUpdateType type = (NetworkUtils::NetworkUpdateType)inBuffer.readUInt8();
+	uint16 frameNum = inBuffer.readUInt16();
 	if (type == NOOP) {
 		return;
 	}
 	else if (type == NetworkUpdateType::REPLACE_FRAME) {
 		CoordinateFrame* frame = new CoordinateFrame();
 		frame->deserialize(inBuffer);
+		//fill networkInput structure
+		if (networkHandler != nullptr) {
+			networkHandler->UpdateCframe(playerID, *frame, (int) frameNum);
+		}
 		if (entity != nullptr) {
 			entity->setFrame(*frame);
 		}
 	}
 }
 
-void NetworkUtils::createFrameUpdate(GUniqueID id, shared_ptr<Entity> entity, BinaryOutput& outBuffer) {
+void NetworkUtils::createFrameUpdate(GUniqueID id, shared_ptr<Entity> entity, BinaryOutput& outBuffer, uint16 frameNum) {
 	id.serialize(outBuffer);
 	outBuffer.writeUInt8(NetworkUpdateType::REPLACE_FRAME);
+	outBuffer.writeUInt16(frameNum);
 	entity->frame().serialize(outBuffer);
 }
 
@@ -203,7 +208,7 @@ void NetworkUtils::broadcastBatchEntityUpdate(Array<shared_ptr<Entity>> entities
 			debugPrintf("Oops, updated with a nan\n");
 		}
 		GUniqueID guid = GUniqueID::fromString16((*e).name().c_str());
-		NetworkUtils::createFrameUpdate(guid, e, outBuffer);
+		NetworkUtils::createFrameUpdate(guid, e, outBuffer, frameNum);
 	}
 	ENetBuffer enet_buff;
 	enet_buff.data = (void*)outBuffer.getCArray();

@@ -42,13 +42,13 @@ namespace G3D{
 		InputHandler();
 		~InputHandler();
 		void NewNetworkInput(uint8 playerID, float32 XMovement, float32 YMovement, float32 XMouseDelta, float32 YMouseDelta, Array<GKey>* pressCode, Array<GKey>* releaseCode, int frame);
-		bool AllClientsFrame(int frame, int clientsConnected);
-		void NewLeadingFrame(int frame);
-		bool CheckFrameAcceptable(int frame);
+		bool AllClientsFrame(int frameNum, int clientsConnected);
+		void NewLeadingFrame(int frameNum);
+		bool CheckFrameAcceptable(int frameNum);
 		Array<NetworkInput>* GetFrameBuffer();
 		void FlushBuffer();
 
-		Array<NetworkInput>* GetFrameInputs(int frame);
+		Array<NetworkInput>* GetFrameInputs(int frameNum);
 	};
 
 }
@@ -84,15 +84,14 @@ namespace G3D {
 	public:
 		NetworkHandler();
 		~NetworkHandler();
-		void NewNetworkInput(uint8 playerID, CoordinateFrame cframe, bool fired, int frame);
-		bool AllClientsFrame(int frame, int clientsConnected);
-		void NewLeadingFrame(int frame, int clientsConnected);
-		bool CheckFrameAcceptable(int frame);
+		bool AllClientsFrame(int frameNum, int clientsConnected);
+		void NewLeadingFrame(int frameNum, int clientsConnected);
+		bool CheckFrameAcceptable(int frameNum);
 		Array<NetworkInput>* GetFrameBuffer();
 		void FlushBuffer();
 
-		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frame);
-		void UpdateFired(uint8 playerID, bool fired, int frame);
+		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum);
+		void UpdateFired(uint8 playerID, bool fired, int frameNum);
 
 		Array<NetworkInput>* GetFrameInputs(int frame);
 	};

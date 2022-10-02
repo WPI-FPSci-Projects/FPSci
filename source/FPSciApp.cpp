@@ -1001,7 +1001,7 @@ void FPSciApp::onNetwork() {
 		output.writeUInt16(m_networkFrameNum);
 		output.writeUInt8(1);				// Only update the player
 		//TODO: allow for non-player entities (i.e. projectiles)?
-		NetworkUtils::createFrameUpdate(m_playerGUID, scene()->entity("player"), output);
+		NetworkUtils::createFrameUpdate(m_playerGUID, scene()->entity("player"), output, m_networkFrameNum);
 		ENetBuffer enet_buff;
 		enet_buff.data = (void*)output.getCArray();
 		enet_buff.dataLength = output.length();
@@ -1034,7 +1034,7 @@ void FPSciApp::onNetwork() {
 			ignore.append(m_playerGUID); // don't let the server update our location here.
 
 			for (int i = 0; i < num_packet_members; i++) { // get new frames and update objects
-				NetworkUtils::updateEntity(ignore, scene(), packet_contents);
+				NetworkUtils::updateEntity(ignore, scene(), packet_contents, nullptr);
 			}
 		}
 		/* check for reply to a handshake*/
@@ -1133,7 +1133,7 @@ void FPSciApp::onNetwork() {
 			else if (type == NetworkUtils::MessageType::MOVE_CLIENT) {
 				//updates the players cframe with what the server says it should be
 				shared_ptr<PlayerEntity> entity = scene()->typedEntity<PlayerEntity>("player");
-				NetworkUtils::updateEntity(entity, packet_contents);
+				NetworkUtils::updateEntity(entity, packet_contents, nullptr, m_playerGUID);
 			}
 			/* remove a networked entity */
 			else if (type == NetworkUtils::MessageType::DESTROY_ENTITY) {
