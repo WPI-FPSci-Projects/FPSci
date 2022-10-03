@@ -56,12 +56,31 @@ public:
 	FILETIME time;
 	//float idt = 0.0f;
 	float sdt = 0.0f;
+	uint16 latest_RTT = 0;
+	uint16 sma_RTT = 0;
+	uint16 min_RTT = 0;
+	uint16 max_RTT = 0;
+	uint32 local_frame = 0;
+	uint32 remote_frame = 0;
+	String guid = "";
 
 	FrameInfo() {};
 
 	FrameInfo(FILETIME t, float simDeltaTime) {
 		time = t;
 		sdt = simDeltaTime;
+	}
+
+	FrameInfo(FILETIME t, float simDeltaTime, Array<uint16> rttStats, uint32 localFrameNum, uint32 remoteFrameNum, GUniqueID clientGUID) {
+		time = t;
+		sdt = simDeltaTime;
+		latest_RTT = rttStats[0];
+		sma_RTT = rttStats[1];
+		min_RTT = rttStats[2];
+		max_RTT = rttStats[3];
+		local_frame = localFrameNum;
+		remote_frame = remoteFrameNum;
+		guid = clientGUID.toString16();
 	}
 };
 
@@ -91,7 +110,8 @@ enum PlayerActionType{
 	FireCooldown,
 	Miss,
 	Hit,
-	Destroy
+	Destroy,
+	Move
 };
 
 struct PlayerAction {
@@ -409,7 +429,7 @@ public:
 	void processResponse();
 	void recordTrialResponse(int destroyedTargets, int totalTargets);
 	void accumulateTrajectories();
-	void accumulateFrameInfo(RealTime rdt, float sdt, float idt);
+	virtual void accumulateFrameInfo(RealTime rdt, float sdt, float idt);
 
 	void countDestroy() {
 		m_destroyedTargets++;

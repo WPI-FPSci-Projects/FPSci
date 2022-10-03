@@ -545,4 +545,6 @@ public:
 	virtual Any toAny(const bool forceAll = false) const override;
 
 	virtual void onSimulation(SimTime absoluteTime, SimTime deltaTime) override;
+
+	Point2 getLookAzEl();
 };

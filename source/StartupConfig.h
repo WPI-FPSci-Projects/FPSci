@@ -47,4 +47,6 @@ public:
 	static StartupConfig load(const String& filename);			///< Load the startup config from file (create if needed)
 	Any toAny(const bool forceAll = true) const;				///< Convert to any
 	bool validateExperiments() const;							///< Validate the experiments in the experiment list
+
+	bool lowerFrameRateInBackground = true;						///< Run windows in the background at a 4fps or at full speed
 };

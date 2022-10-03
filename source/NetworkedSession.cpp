@@ -27,6 +27,7 @@
 ***************************************************************************/
 #include "NetworkedSession.h"
 #include "FPSciApp.h"
+#include "FPSciServerApp.h"
 #include "Logger.h"
 #include "TargetEntity.h"
 #include "PlayerEntity.h"
@@ -42,24 +43,63 @@ void NetworkedSession::addHittableTarget(shared_ptr<TargetEntity> target) {
 
 void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 {
-	updateNetworkedPresentationState();
+	updatePresentationState();
+
+	Array<shared_ptr<NetworkedEntity>> entityArray;
+	m_app->scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
+	for (std::shared_ptr<NetworkedEntity> client : entityArray) {
+		logNetworkedEntity(client, m_app->frameNumFromID(GUniqueID::fromString16(client->name())));
+	}
+	FPSciServerApp* serverApp = dynamic_cast<FPSciServerApp*> (m_app);
+	if (serverApp != nullptr) {
+		for (NetworkUtils::ConnectedClient* client : serverApp->getConnectedClients()) {
+			//TODO should be accumulate? not sure, but doing this for now to prevent crash:
+			if (notNull(logger) && serverApp->m_clientLatestRTTs.size() > 0) {
+				logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, serverApp->m_clientLatestRTTs.get(client->unreliableAddress.host), serverApp->m_networkFrameNum, client->frameNumber, client->guid));
+			}
+		}
+	}
 }
 
 void NetworkedSession::onInit(String filename, String description)
 {
+	//TODO: Networked Init
+	m_player = m_app->scene()->typedEntity<PlayerEntity>("player");
+	m_scene = m_app->scene().get();
+	m_camera = m_app->activeCamera();
+	String filenameBase = filename;
+
+	if (m_config->logger.enable) {
+		UserConfig user = *m_app->currentUser();
+		// Setup the logger and create results file
+		FPSciServerApp* server_app = dynamic_cast<FPSciServerApp*>(m_app);
+		if (server_app != nullptr) {
+			filename += "-server.db";
+		}
+		else {
+			filename += "-client-" + m_app->m_playerGUID.toString16() + ".db";
+		}
+		logger = FPSciLogger::create(filename, user.id,
+			m_app->startupConfig.experimentList[m_app->experimentIdx].experimentConfigFilename,
+			m_config, description);
+		logger->logTargetTypes(m_app->experimentConfig.getSessionTargets(m_config->id));			// Log target info at start of session
+		logger->logUserConfig(user, m_config->id, m_config->player.turnScale);						// Log user info at start of session
+		m_dbFilename = filenameBase;
+	}
 	m_player = m_app->scene()->typedEntity<PlayerEntity>("player");
 	resetSession();
+	String testStr = presentationStateToString(currentState);
 }
 
-void NetworkedSession::updateNetworkedPresentationState()
+void NetworkedSession::updatePresentationState()
 {
-	if (currentState == NetworkedPresentationState::initialNetworkedState) {
+	if (currentState == PresentationState::initial) {
 		if (!m_player->getPlayerReady())
 			m_feedbackMessage = formatFeedback(m_config->feedback.networkedSesstionInitial);
 		else
 			m_feedbackMessage = formatFeedback(m_config->feedback.networkedSesstionWaitForOthers);
 	}
-	else if (currentState == NetworkedPresentationState::networkedSessionStart) {
+	else if (currentState == PresentationState::trialTask) {
 		// TODO: Experiment Session Ticks
 	}
 }
@@ -67,14 +107,37 @@ void NetworkedSession::updateNetworkedPresentationState()
 void NetworkedSession::startSession()
 {
 	sessionStarted = true;
-	currentState = NetworkedPresentationState::networkedSessionStart;
+	currentState = PresentationState::trialTask;
 	m_player->setPlayerMovement(true);
 	m_feedbackMessage.clear();
 }
 
 void NetworkedSession::resetSession()
 {
-	currentState = NetworkedPresentationState::initialNetworkedState;
+	currentState = PresentationState::initial;
 	m_player->setPlayerReady(false);
 	m_player->setPlayerMovement(false);
+}
+
+
+void NetworkedSession::logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame) {
+	logNetworkedEntity(entity, remoteFrame, PlayerActionType::None);
+}
+
+void NetworkedSession::logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame, PlayerActionType action)
+{
+	if (notNull(logger)) {
+		Point2 dir = entity->getLookAzEl();
+		Point3 loc = entity->frame().translation;
+		GUniqueID id = GUniqueID::fromString16(entity->name());
+		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_networkFrameNum, remoteFrame, currentState, action);
+		logger->logNetworkedClient(nc);
+		//debugPrintf("Logged...");
+	}
+}
+
+void NetworkedSession::accumulateFrameInfo(RealTime t, float sdt, float idt) {
+	if (notNull(logger) && m_config->logger.logFrameInfo) {
+		logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt));
+	}
 }

@@ -1154,3 +1154,10 @@ void NetworkedEntity::onSimulation(SimTime absoluteTime, SimTime deltaTime) {
 	debugDraw(Sphere(m_frame.translation, BOUNDING_SPHERE_RADIUS), 0.0f, Color4::clear(), Color3::black());
 #endif
 }
+
+Point2 NetworkedEntity::getLookAzEl() {
+	Point3 view_cartesian = this->frame().lookVector();
+	float az = atan2(view_cartesian.x, -view_cartesian.z) * 180 / pif();
+	float el = atan2(view_cartesian.y, sqrtf(view_cartesian.x * view_cartesian.x + view_cartesian.z * view_cartesian.z)) * 180 / pif();
+	return Point2(az, el);
+}

@@ -21,6 +21,7 @@ FPSciApp::FPSciApp(const GApp::Settings& settings, OSWindow* window, RenderDevic
 
 /** Initialize the app */
 void FPSciApp::onInit() {
+	this->setLowerFrameRateInBackground(startupConfig.lowerFrameRateInBackground);
 	// Seed random based on the time
 	Random::common().reset(uint32(time(0)));
 
@@ -784,7 +785,8 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 		m_userSettingsWindow->setSelectedSession(id);
 		// Create the session based on the loaded config
 		if (experimentConfig.isNetworked) {
-			sess = NetworkedSession::create(this, sessConfig);
+			netSess = NetworkedSession::create(this, sessConfig);
+			sess = (shared_ptr<Session>)netSess;
 		}
 		else {
 			sess = Session::create(this, sessConfig);
@@ -794,7 +796,8 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 	{
 		// Create an empty session
 		sessConfig = SessionConfig::create();
-		sess = NetworkedSession::create(this);
+		netSess = NetworkedSession::create(this);
+		sess = (shared_ptr<Session>)netSess;
 	}
 
 	// Update reticle
@@ -1006,9 +1009,9 @@ void FPSciApp::onAI() {
 void FPSciApp::onNetwork() {
 	GApp::onNetwork();
 
-	if (experimentConfig.isNetworked && sess->currentState == NetworkedPresentationState::networkedSessionStart) {
+	//if (experimentConfig.isNetworked && sess->currentState == NetworkedPresentationState::networkedSessionStart) {
 		m_networkFrameNum++;
-	}
+	//}
 
 	BinaryOutput output;
 	output.setEndian(G3D_BIG_ENDIAN);
@@ -1024,7 +1027,7 @@ void FPSciApp::onNetwork() {
 		// Get and serialize the players frame
 		// TODO: refactor this to move ENet code into NetworkUtils
 		output.writeUInt8(NetworkUtils::MessageType::BATCH_ENTITY_UPDATE);
-		output.writeUInt16(m_networkFrameNum);
+		output.writeUInt32(m_networkFrameNum);
 		output.writeUInt8(1);				// Only update the player
 		//TODO: allow for non-player entities (i.e. projectiles)?
 		NetworkUtils::createFrameUpdate(m_playerGUID, scene()->entity("player"), output);
@@ -1101,7 +1104,8 @@ void FPSciApp::onNetwork() {
 		enet_address_get_host_ip(&addr_from, ip, 16);
 		BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
 		NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
-		uint16 frameNum = packet_contents.readUInt16();
+		uint32 frameNum = packet_contents.readUInt32();
+		m_serverFrame = frameNum; // TODO MAX(m_serverFrame, frameNum);??????
 
 		/* Take a set of entity updates from the server and apply them to local entities */
 		if (type == NetworkUtils::MessageType::BATCH_ENTITY_UPDATE) {
@@ -1120,6 +1124,27 @@ void FPSciApp::onNetwork() {
 		else if (type == NetworkUtils::MessageType::HANDSHAKE_REPLY) {
 			m_socketConnected = true;
 			debugPrintf("Received HANDSHAKE_REPLY from server\n");
+		}
+		/* check for a notification of other player's actions (like shots that missed) */
+		else if (type == NetworkUtils::MessageType::PLAYER_INTERACT) {
+			NetworkUtils::RemotePlayerAction remoteAction = NetworkUtils::handlePlayerInteractClient(packet_contents);
+			if (remoteAction.guid.toString16() != m_playerGUID.toString16()) {
+				// Only log actions that happen on another machine
+				debugPrintf("The client %s has shot and missed\n", remoteAction.guid.toString16());
+				const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(remoteAction.guid.toString16());
+				PlayerAction pa = PlayerAction();
+				pa.time = sess->logger->getFileTime();
+				pa.viewDirection = clientEntity->getLookAzEl();
+				pa.position = clientEntity->frame().translation;
+				pa.state = sess->currentState;
+				pa.action = (PlayerActionType)remoteAction.actionType;
+				pa.targetName = remoteAction.guid.toString16();
+				sess->logger->logPlayerAction(pa);
+			}
+		}
+
+		if (frameNum - m_networkFrameNum > 50 || frameNum - m_networkFrameNum < -50) {
+			debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\t Client Frame: %d\n\tServer Frame: %d\n", m_networkFrameNum, frameNum);
 		}
 	}
 	free(data);
@@ -1148,7 +1173,7 @@ void FPSciApp::onNetwork() {
 			// Pull data out of packet
 			BinaryInput packet_contents(event.packet->data, event.packet->dataLength, G3D_BIG_ENDIAN);
 			NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
-			uint16 frameNum = packet_contents.readUInt16();
+			uint32 frameNum = packet_contents.readUInt32();
 
 			/* for now, batch updates on the reliable channel are ignored.*/
 			if (type == NetworkUtils::MessageType::BATCH_ENTITY_UPDATE) {
@@ -1185,7 +1210,7 @@ void FPSciApp::onNetwork() {
 					target->setColor(G3D::Color3(20.0, 20.0, 200.0));
 
 					(*scene()).insert(target);
-					static_cast<NetworkedSession*>(sess.get())->addHittableTarget(target);
+					netSess.get()->addHittableTarget(target);
 				}
 			}
 
@@ -1193,6 +1218,8 @@ void FPSciApp::onNetwork() {
 			else if (type == NetworkUtils::MessageType::CLIENT_REGISTRATION_REPLY) {
 				// create entity and add it to the entity storage
 				//TODO: move network IO to NetworkUtils?
+				// Also sync frame number of this client to be the servers frame number
+				m_networkFrameNum = frameNum;
 				debugPrintf("INFO: Received registration reply...\n");
 				GUniqueID clientGUID;
 				clientGUID.deserialize(packet_contents);
@@ -1230,11 +1257,11 @@ void FPSciApp::onNetwork() {
 			else if (type == NetworkUtils::MessageType::RESPAWN_CLIENT) {
 				debugPrintf("Recieved a request to respawn\n");
 				scene()->typedEntity<PlayerEntity>("player")->respawn();
-				static_cast<NetworkedSession*>(sess.get())->resetSession();
+				netSess.get()->resetSession();
 
 			}
 			else if (type == NetworkUtils::MessageType::START_NETWORKED_SESSION) {
-				static_cast<NetworkedSession*>(sess.get())->startSession();
+				netSess.get()->startSession();
 				m_networkFrameNum = frameNum; // Set the frame number to sync with the server
 				debugPrintf("Recieved a request to start session.\n");
 			}
@@ -1828,6 +1855,12 @@ void FPSciApp::missEvent() {
 	if (sess)
 	{
 		sess->accumulatePlayerAction(PlayerActionType::Miss); // Declare this shot a miss here
+
+		// If this is a networked experiment send this miss data to the server
+		if (experimentConfig.isNetworked && m_socketConnected) {
+			debugPrintf("This client (%s) has shot and missed\n", m_playerGUID.toString16());
+			NetworkUtils::sendPlayerInteract(NetworkUtils::RemotePlayerAction(m_playerGUID, PlayerActionType::Miss), m_unreliableSocket, m_unreliableServerAddress, m_networkFrameNum);
+		}
 	}
 }
 
@@ -2255,4 +2288,9 @@ FPSciApp::Settings::Settings(const StartupConfig& startupConfig, int argc, const
 
 	renderer.deferredShading = true;
 	renderer.orderIndependentTransparency = false;
+}
+
+uint32 FPSciApp::frameNumFromID(GUniqueID id)
+{
+	return m_serverFrame;
 }

@@ -88,6 +88,7 @@ StartupConfig::StartupConfig(const Any& any) {
 		reader.getIfPresent("windowSize", windowSize);
 		reader.getIfPresent("jsonAnyOutput", jsonAnyOutput);
 		reader.getIfPresent("pingInterval", pingInterval);
+		reader.getIfPresent("lowerFrameRateInBackground", lowerFrameRateInBackground);
 		
 		foundDefault = reader.getIfPresent("defaultExperiment", defaultExperiment);
 		if (!foundDefault) {
@@ -148,7 +149,8 @@ Any StartupConfig::toAny(const bool forceAll) const {
 	if (forceAll || def.waypointEditorMode != waypointEditorMode)					a["waypointEditorMode"] = waypointEditorMode;
 	if (forceAll || def.fullscreen != fullscreen)									a["fullscreen"] = fullscreen;
 	if (forceAll || def.audioEnable != audioEnable)									a["audioEnable"] = audioEnable;
-	if (forceAll || def.jsonAnyOutput != jsonAnyOutput)									a["jsonAnyOutput"] = jsonAnyOutput;
+	if (forceAll || def.jsonAnyOutput != jsonAnyOutput)								a["jsonAnyOutput"] = jsonAnyOutput;
+	if (forceAll || def.lowerFrameRateInBackground != lowerFrameRateInBackground)	a["lowerFrameRateInBackground"] = lowerFrameRateInBackground;
 	a["defaultExperiment"] = defaultExperiment;
 	a["experimentList"] = experimentList;
 
