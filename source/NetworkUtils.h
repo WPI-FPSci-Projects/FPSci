@@ -162,6 +162,7 @@ public:
 	static void serverBatchEntityUpdate(Array<shared_ptr<NetworkedEntity>> entities, Array<ConnectedClient> clients, ENetSocket sendSocket, uint16 frameNum);
 	static int sendSetSpawnPos(G3D::Point3 position, float heading, ENetPeer* peer);
 	static void handleSetSpawnPos(shared_ptr<PlayerEntity> player, BinaryInput& inBuffer);
+	static void handleFireReport(BinaryInput& inBuffer, NetworkHandler* networkHandler, uint16 frameNum);
 	static int sendRespawnClient(ENetPeer* peer, uint16 frameNum);
 	static void broadcastRespawn(ENetHost* serverHost, uint16 frameNum);
 	

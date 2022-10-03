@@ -228,9 +228,7 @@ void FPSciServerApp::onNetwork() {
                 playersReady = 0;
             }
             else if (type == NetworkUtils::MessageType::REPORT_FIRE) {
-                //TODO:
-                //NetworkUtils::handleFireReport(m_localHost, packet_contents, m_networkFrameNum);
-                playersReady = 0;
+                NetworkUtils::handleFireReport(packet_contents, m_networkHandler, frameNum);
             }
             else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {
                 playersReady++;
@@ -240,9 +238,6 @@ void FPSciServerApp::onNetwork() {
                     NetworkUtils::broadcastStartSession(m_localHost);
                     debugPrintf("All PLAYERS ARE READY!\n");
                 }
-            }
-            else if (type == NetworkUtils::MessageType::USER_INPUT) {
-                NetworkUtils::deserializeUserInput(&packet_contents, m_inputHandler);
             }
             enet_packet_destroy(event.packet);
         }

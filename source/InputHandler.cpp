@@ -186,6 +186,10 @@ void G3D::NetworkHandler::NewLeadingFrame(int frameNum, int clientsConnected)
 	Array<NetworkInput>* arr = new Array<NetworkInput>();
 	//TODO: Does this actually make clientsConnected worth of network inputs or just the size of them
 	arr->resize(clientsConnected, false);
+	for (int i = 0; i < arr->length(); i++) {
+		arr[0][i].SetFired(m_networkInputs[0][m_leadingFrame + 3][0][i].GetFired());
+		arr[0][i].SetCFrame(m_networkInputs[0][m_leadingFrame + 3][0][i].GetCFrame());
+	}
 	m_networkInputs->append(arr);
 }
 

@@ -99,6 +99,15 @@ void NetworkUtils::handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, 
 	NetworkUtils::broadcastRespawn(serverHost, frameNum);
 }
 
+void NetworkUtils::handleFireReport(BinaryInput& inBuffer, NetworkHandler* networkHandler, uint16 frameNum){
+	GUniqueID shooter_GUID;
+	uint8 shooter_playerID;
+	shooter_GUID.deserialize(inBuffer);
+	shooter_playerID = inBuffer.readUInt8();
+	networkHandler->UpdateFired(shooter_playerID, true, frameNum);
+	debugPrintf("HIT REPORTED: %s SHOT %s WITH THE CANDLESTICK IN THE LIBRARY\n", shooter_GUID.toString16(), shooter_GUID.toString16());
+}
+
 int NetworkUtils::sendMoveClient(CFrame frame, ENetPeer* peer, uint16 frameNum) {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);

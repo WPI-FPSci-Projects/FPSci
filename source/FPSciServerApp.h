@@ -18,7 +18,6 @@ protected:
     int   playersReady;                                               ///> Numbers of player(s) that are ready.
     Array<shared_ptr<RemotePlayer>> m_remotePlayers;                 ///> List of all remote players, not including self(server)
 
-    InputHandler* m_inputHandler = new InputHandler();
     NetworkHandler* m_networkHandler = new NetworkHandler();
 
 
