@@ -3,7 +3,7 @@
 #include <enet/enet.h>
 #include "TargetEntity.h"
 #include "PlayerEntity.h"
-
+#include "Packet.h"
 /*
 			PACKET STRUCTURE:
 			UInt8: type
@@ -181,6 +181,7 @@ public:
 	static int sendHandshake(ENetSocket socket, ENetAddress address);
 	static int sendRegisterClient(GUniqueID id, uint16 port, ENetPeer* peer);
 	static ConnectedClient* registerClient(ENetEvent event, BinaryInput& inBuffer, uint32 frameNum);
+	static ConnectedClient* registerClient(RegisterClientPacket* packet);
 	static void broadcastCreateEntity(GUniqueID id, ENetHost* serverHost, uint32 frameNum);
 	static int sendCreateEntity(GUniqueID guid, ENetPeer* peer, uint32 frameNum);
 	static void broadcastBatchEntityUpdate(Array<shared_ptr<Entity>> entities, Array<ENetAddress> destinations, ENetSocket sendSocket, uint32 frameNum);
@@ -192,4 +193,10 @@ public:
 	
 	static int sendReadyUpMessage(ENetPeer* serverPeer);
 	static void broadcastStartSession(ENetHost* serverHost, uint32 frameNum);
+
+	static shared_ptr<GenericPacket> createTypedPacket(PacketType type, ENetAddress srcAddr, BinaryInput& inBuffer, ENetEvent* event = NULL);
+	static shared_ptr<GenericPacket> receivePacket(ENetHost* host, ENetSocket* socket);
+
+	static void broadcastReliable(shared_ptr<GenericPacket> packet, ENetHost* localHost);
+	static void broadcastUnreliable(shared_ptr<GenericPacket> packet, ENetSocket* srcSocket, Array<ENetAddress*> addresses);
 };

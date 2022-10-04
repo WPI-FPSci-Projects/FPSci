@@ -1,7 +1,5 @@
 #include "NetworkUtils.h"
 #include "TargetEntity.h"
-
-#include <enet/enet.h>
 /*
 static void updateEntity(Entity entity, BinaryInput inBuffer) {
 	NetworkUtils::NetworkUpdateType type = (NetworkUtils::NetworkUpdateType)inBuffer.readUInt8();
@@ -177,6 +175,19 @@ NetworkUtils::ConnectedClient* NetworkUtils::registerClient(ENetEvent event, Bin
 	return newClient;
 }
 
+NetworkUtils::ConnectedClient* NetworkUtils::registerClient(RegisterClientPacket* packet) {
+	ConnectedClient* newClient = new ConnectedClient();
+	newClient->peer = packet->m_peer;
+	newClient->guid = packet->m_guid;
+	ENetAddress addr;
+	addr.host = packet->m_peer->address.host;
+	addr.port = packet->m_portNum;
+	newClient->unreliableAddress = addr;
+	debugPrintf("\tPort: %i\n", addr.port);
+	debugPrintf("\tHost: %i\n", addr.host);
+	return newClient;
+}
+
 int NetworkUtils::sendRegisterClient(GUniqueID id, uint16 port, ENetPeer* peer) {
 	ENetPacket* registerPacket;
 	BinaryOutput outBuffer;
@@ -307,4 +318,108 @@ void NetworkUtils::broadcastStartSession(ENetHost* serverHost, uint32 frameNum) 
 	outBuffer.writeUInt32(frameNum);	// this is where we sync and reset the client frame numbers
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	enet_host_broadcast(serverHost, 0, packet);
+}
+
+shared_ptr<GenericPacket> NetworkUtils::createTypedPacket(PacketType type, ENetAddress srcAddr, BinaryInput& inBuffer, ENetEvent* event) {
+	switch (type) {
+	case BATCH_ENTITY_UPDATE:
+		return GenericPacket::createReceive<BatchEntityUpdatePacket>(srcAddr, inBuffer);
+		break;
+	case CREATE_ENTITY:
+		return GenericPacket::createReceive<CreateEntityPacket>(srcAddr, inBuffer);
+		break;
+	case DESTROY_ENTITY:
+		return GenericPacket::createReceive<DestroyEntityPacket>(srcAddr, inBuffer);
+		break;
+	case MOVE_CLIENT:
+		return GenericPacket::createReceive<MoveClientPacket>(srcAddr, inBuffer);
+		break;
+	case REGISTER_CLIENT: {
+		if (event == nullptr) {
+			debugPrintf("WARNING: received a RegisterClientPacket on the unreliable channel\n");
+			break;
+		}
+		shared_ptr<RegisterClientPacket> packet = GenericPacket::createReceive<RegisterClientPacket>(srcAddr, inBuffer);
+		packet->m_peer = event->peer;
+		break;
+	}
+	case CLIENT_REGISTRATION_REPLY:
+		return GenericPacket::createReceive<RegistrationReplyPacket>(srcAddr, inBuffer);
+		break;
+	case HANDSHAKE:
+		return GenericPacket::createReceive<HandshakePacket>(srcAddr, inBuffer);
+		break;
+	case HANDSHAKE_REPLY:
+		return GenericPacket::createReceive<HandshakeReplyPacket>(srcAddr, inBuffer);
+		break;
+	case REPORT_HIT:
+		return GenericPacket::createReceive<ReportHitPacket>(srcAddr, inBuffer);
+		break;
+	case SET_SPAWN_LOCATION:
+		return GenericPacket::createReceive<SetSpawnPacket>(srcAddr, inBuffer);
+		break;
+	case RESPAWN_CLIENT:
+		return GenericPacket::createReceive<RespawnClientPacket>(srcAddr, inBuffer);
+		break;
+	case READY_UP_CLIENT:
+		return GenericPacket::createReceive<ReadyUpClientPacket>(srcAddr, inBuffer);
+		break;
+	case START_NETWORKED_SESSION:
+		return GenericPacket::createReceive<StartSessionPacket>(srcAddr, inBuffer);
+		break;
+	case PLAYER_INTERACT:
+		return GenericPacket::createReceive<PlayerInteractPacket>(srcAddr, inBuffer);
+		break;
+	}
+	debugPrintf("WARNING: Received a packet of unknown type, returning nullptr\n");
+}
+
+shared_ptr<GenericPacket> NetworkUtils::receivePacket(ENetHost* host, ENetSocket* socket) {
+	ENetAddress srcAddr;
+	ENetBuffer buff;
+	void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
+	buff.data = data;
+	buff.dataLength = ENET_HOST_DEFAULT_MTU;
+	if (enet_socket_receive(*socket, &srcAddr, &buff, 1)) {
+		BinaryInput inBuffer((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
+		shared_ptr<GenericPacket> genPacket =  GenericPacket::createReceive<GenericPacket>(srcAddr, inBuffer);
+		inBuffer.setPosition(0);
+		return NetworkUtils::createTypedPacket(genPacket->type(), srcAddr, inBuffer);
+	}
+	ENetEvent event;
+	if (enet_host_service(host, &event, 0)) {
+		 switch( event.type){
+			 case ENET_EVENT_TYPE_CONNECT:
+				return ReliableConnectPacket::createReceive(srcAddr);
+				break;
+			 case ENET_EVENT_TYPE_DISCONNECT:
+				 return ReliableDisconnectPacket::createReceive(srcAddr);
+				 break;
+			 case ENET_EVENT_TYPE_RECEIVE: {
+				 BinaryInput inBuffer((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
+				 shared_ptr<GenericPacket> genPacket = GenericPacket::createReceive<GenericPacket>(srcAddr, inBuffer);
+				 inBuffer.setPosition(0);
+				 return NetworkUtils::createTypedPacket(genPacket->type(), srcAddr, inBuffer, &event);
+				 break;
+			 }
+		}
+		 enet_packet_destroy(event.packet);
+	}
+	free(data);
+	// No new packets to receive
+	return nullptr;
+}
+
+void NetworkUtils::broadcastReliable(shared_ptr<GenericPacket> packet, ENetHost* localHost) {
+	for (int i = 0; i < localHost->peerCount; i ++) {
+		packet->setReliableDest(&localHost->peers[i]);
+		packet->send();
+	}
+}
+
+void NetworkUtils::broadcastUnreliable(shared_ptr<GenericPacket> packet, ENetSocket* srcSocket, Array<ENetAddress*> addresses) {
+	for (ENetAddress* destAddr : addresses) {
+		packet->setUnreliableDest(srcSocket, destAddr);
+		packet->send();
+	}
 }

@@ -152,6 +152,7 @@
     <ClInclude Include="..\source\NetworkedSession.h" />
     <ClInclude Include="..\source\NetworkUtils.h" />
     <ClInclude Include="..\source\NoWindow.h" />
+    <ClInclude Include="..\source\Packet.h" />
     <ClInclude Include="..\source\Session.h" />
     <ClInclude Include="..\source\ExperimentConfig.h" />
     <ClInclude Include="..\source\Logger.h" />
@@ -180,6 +181,7 @@
     <ClCompile Include="..\source\NetworkedSession.cpp" />
     <ClCompile Include="..\source\NetworkUtils.cpp" />
     <ClCompile Include="..\source\NoWindow.cpp" />
+    <ClCompile Include="..\source\Packet.cpp" />
     <ClCompile Include="..\source\Session.cpp" />
     <ClCompile Include="..\source\Logger.cpp" />
     <ClCompile Include="..\source\PhysicsScene.cpp" />
