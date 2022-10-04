@@ -230,6 +230,11 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 		c->setWidth(width * 0.95f);
 	}movePane->endRow();
 	movePane->beginRow(); {
+		auto c = movePane->addNumberBox("Restriction Box Angle", &(config.player.restrictionBoxAngle), "\xB0", GuiTheme::LINEAR_SLIDER, -90.0f, 90.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
 		auto c = movePane->addCheckBox("Use Headbob?", &(config.player.headBobEnabled));
 		c->setCaptionWidth(width / 2);
 		c->setWidth(width * 0.95f);

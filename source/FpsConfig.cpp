@@ -198,6 +198,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("resetPlayerPositionBetweenTrials", resetPositionPerTrial);
 		reader.getIfPresent("movementRestrictionX", movementRestrictionX);
 		reader.getIfPresent("movementRestrictionZ", movementRestrictionZ);
+		reader.getIfPresent("restrictionBoxAngle", restrictionBoxAngle);
 		reader.getIfPresent("restrictedMovementEnabled", restrictedMovementEnabled);
 		reader.getIfPresent("counterStrafing", counterStrafing);
 		reader.getIfPresent("propagatePlayerConfigs", propagatePlayerConfigsToAll);
@@ -228,6 +229,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client1resetPlayerPositionBetweenTrials", clientPlayerConfigs[0].resetPositionPerTrial);
 		reader.getIfPresent("Client1movementRestrictionX", clientPlayerConfigs[0].movementRestrictionX);
 		reader.getIfPresent("Client1movementRestrictionZ", clientPlayerConfigs[0].movementRestrictionZ);
+		reader.getIfPresent("Client1restrictionBoxAngle", clientPlayerConfigs[0].restrictionBoxAngle);
 		reader.getIfPresent("Client1restrictedMovementEnabled", clientPlayerConfigs[0].restrictedMovementEnabled);
 		reader.getIfPresent("Client1counterStrafing", clientPlayerConfigs[0].counterStrafing);
 		reader.getIfPresent("Client1propagatePlayerConfigs", clientPlayerConfigs[0].propagatePlayerConfigsToAll);
@@ -255,6 +257,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client2resetPlayerPositionBetweenTrials", clientPlayerConfigs[1].resetPositionPerTrial);
 		reader.getIfPresent("Client2movementRestrictionX", clientPlayerConfigs[1].movementRestrictionX);
 		reader.getIfPresent("Client2movementRestrictionZ", clientPlayerConfigs[1].movementRestrictionZ);
+		reader.getIfPresent("Client2restrictionBoxAngle", clientPlayerConfigs[0].restrictionBoxAngle);
 		reader.getIfPresent("Client2restrictedMovementEnabled", clientPlayerConfigs[1].restrictedMovementEnabled);
 		reader.getIfPresent("Client2counterStrafing", clientPlayerConfigs[1].counterStrafing);
 		reader.getIfPresent("Client2propagatePlayerConfigs", clientPlayerConfigs[1].propagatePlayerConfigsToAll);

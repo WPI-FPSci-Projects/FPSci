@@ -237,20 +237,26 @@ void PlayerEntity::onSimulation(SimTime absoluteTime, SimTime deltaTime) {
 		respawn();
 		*respawnToPos = false;
 	}
-
+	
 	if (restrictedMovementEnabled != nullptr && *restrictedMovementEnabled){
-		if ((m_PlayersRestrictedMovementCenterPos.x - m_frame.translation.x) >= ((*movementRestrictionX / 2.0f) + 0.01f)) {
-			m_frame.translation.x = m_PlayersRestrictedMovementCenterPos.x - *movementRestrictionX / 2.0f;
+
+		float theta = 360.0f - *restrictionBoxAngle;
+		double newX = rotatePointXwrtCenter(m_frame.translation.x, m_frame.translation.z, theta);
+		double newY = rotatePointYwrtCenter(m_frame.translation.x, m_frame.translation.z, theta);
+
+		if ((m_PlayersRestrictedMovementCenterPos.x - newX) >= ((*movementRestrictionX / 2.0f))) {
+			m_frame.translation.x = rotatePointXwrtCenter(m_PlayersRestrictedMovementCenterPos.x - *movementRestrictionX / 2.0f, newY, *restrictionBoxAngle);
 		}
-		if ((m_PlayersRestrictedMovementCenterPos.x - m_frame.translation.x) <= ((-*movementRestrictionX / 2.0f) - 0.01f)) {
-			m_frame.translation.x = m_PlayersRestrictedMovementCenterPos.x + *movementRestrictionX / 2.0f;
+		if ((m_PlayersRestrictedMovementCenterPos.x - newX) <= ((-*movementRestrictionX / 2.0f))) {
+			m_frame.translation.x = rotatePointXwrtCenter(m_PlayersRestrictedMovementCenterPos.x + *movementRestrictionX / 2.0f, newY, *restrictionBoxAngle);
 		}
-		if ((m_PlayersRestrictedMovementCenterPos.z - m_frame.translation.z) >= ((*movementRestrictionZ / 2.0f) + 0.01f)) {
-			m_frame.translation.z = m_PlayersRestrictedMovementCenterPos.z - *movementRestrictionZ / 2.0f;
+		if ((m_PlayersRestrictedMovementCenterPos.z - newY) >= ((*movementRestrictionZ / 2.0f))) {
+			m_frame.translation.z = rotatePointYwrtCenter(newX, m_PlayersRestrictedMovementCenterPos.z - *movementRestrictionZ / 2.0f, *restrictionBoxAngle);
 		}
-		if ((m_PlayersRestrictedMovementCenterPos.z - m_frame.translation.z) <= ((-*movementRestrictionZ / 2.0f) - 0.01f)) {
-			m_frame.translation.z = m_PlayersRestrictedMovementCenterPos.z + *movementRestrictionZ / 2.0f;
+		if ((m_PlayersRestrictedMovementCenterPos.z - newY) <= ((-*movementRestrictionZ / 2.0f))) {
+			m_frame.translation.z  = rotatePointYwrtCenter(newX, m_PlayersRestrictedMovementCenterPos.z + *movementRestrictionZ / 2.0f, *restrictionBoxAngle);
 		}
+		
 	}
 	else if (restrictedMovementEnabled != nullptr && !*restrictedMovementEnabled) {
 		m_PlayersRestrictedMovementCenterPos = m_frame.translation;
@@ -466,4 +472,20 @@ bool PlayerEntity::slideMove(SimTime deltaTime) {
 	
 	return collided;
     //screenPrintf("%d collision iterations", iterations);
+}
+
+double PlayerEntity::rotatePointXwrtCenter(double x, double y, float angle)
+{
+	x -= m_PlayersRestrictedMovementCenterPos.x;
+	y -= m_PlayersRestrictedMovementCenterPos.y;
+	x = x * cos(angle * (pi() / 180.0f)) - y * sin(angle * (pi() / 180.0f));
+	return x + m_PlayersRestrictedMovementCenterPos.x;
+}
+
+double PlayerEntity::rotatePointYwrtCenter(double x, double y, float angle)
+{
+	x -= m_PlayersRestrictedMovementCenterPos.x;
+	y -= m_PlayersRestrictedMovementCenterPos.y;
+	y = x * sin(angle * (pi() / 180.0f)) + y * cos(angle * (pi() / 180.0f));
+	return y + m_PlayersRestrictedMovementCenterPos.y;
 }

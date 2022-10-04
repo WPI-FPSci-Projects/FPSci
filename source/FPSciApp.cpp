@@ -742,6 +742,7 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->movementRestrictionX = &sessConfig->player.movementRestrictionX;
 	player->movementRestrictionZ = &sessConfig->player.movementRestrictionZ;
 	player->restrictedMovementEnabled = &sessConfig->player.restrictedMovementEnabled;
+	player->restrictionBoxAngle = &sessConfig->player.restrictionBoxAngle;
 	player->counterStrafing = &sessConfig->player.counterStrafing;
 	player->propagatePlayerConfigsToAll = &sessConfig->player.propagatePlayerConfigsToAll;
 	player->propagatePlayerConfigsToSelectedClient = &sessConfig->player.propagatePlayerConfigsToSelectedClient;
@@ -1196,6 +1197,7 @@ void FPSciApp::onNetwork() {
 				sessConfig->player.movementRestrictionX = packet_contents.readFloat32();
 				sessConfig->player.movementRestrictionZ = packet_contents.readFloat32();
 				sessConfig->player.restrictedMovementEnabled = packet_contents.readBool8();
+				sessConfig->player.restrictionBoxAngle = packet_contents.readFloat32();
 
 				sessConfig->player.counterStrafing = packet_contents.readBool8();
 				debugPrintf("Recieved a request to set player config.\n");

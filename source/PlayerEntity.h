@@ -49,6 +49,8 @@ protected:
 
     Point3          m_PlayersRestrictedMovementCenterPos; ///< Indicates the center ponint from which restricted movement will be applied
 
+    Point3          m_PlayerLastPosition;                 ///< Holds players last frame position 
+
     PlayerEntity() {}
 
 #ifdef G3D_OSX
@@ -92,6 +94,7 @@ public:
     float* movementRestrictionX;               ///< Holds the X distance of how far player can go when restricted movement is enabled.
     float* movementRestrictionZ;               ///< Holds the Z distance of how far player can go when restricted movement is enabled.
     bool* restrictedMovementEnabled;           ///< Checks if restricted movement is enabled or not
+    float* restrictionBoxAngle;                ///< Adds an angle element to the movement restriction
 
     bool* counterStrafing = nullptr;           ///< Checks if counter strafing is enabled or not
 
@@ -214,5 +217,7 @@ public:
     virtual void onPose(Array<shared_ptr<Surface> >& surfaceArray) override;
 	virtual void onSimulation(SimTime absoluteTime, SimTime deltaTime) override;
 	void updateFromInput(UserInput* ui);
-
+    
+    double rotatePointXwrtCenter(double x, double y, float angle);
+    double rotatePointYwrtCenter(double x, double y, float angle);
 };
