@@ -158,9 +158,14 @@ public:
 	Array<String> getUniqueTargetIds() const;
 
 	void respawnPlayer() { player.respawnToPos = true; }
-	void propagatePlayerControlsToAllFromGUI() { player.propagatePlayerConfigsToAll = true; }
-	void propagatePlayerControlsToSelectedClientFromFile() { player.propagatePlayerConfigsToSelectedClient = true; player.readFromFile = true; }
-	void propagatePlayerControlsToSelectedClientFromGUI() { player.propagatePlayerConfigsToSelectedClient = true; }
+	void propagatePlayerControlsToAllFromGUI() { propagatePlayerControlsToClient(true, false); }
+	void propagatePlayerControlsToSelectedClientFromFile() { propagatePlayerControlsToClient(false, true); }
+	void propagatePlayerControlsToSelectedClientFromGUI() { propagatePlayerControlsToClient(false, false); }
+	void propagatePlayerControlsToClient(bool sendToAll, bool sendFromFile){ 
+		player.propagatePlayerConfigsToSelectedClient = !sendToAll; 
+		player.readFromFile = sendFromFile; 
+		player.propagatePlayerConfigsToAll = sendToAll;
+	}
 };
 
 class Session : public ReferenceCountedObject {
