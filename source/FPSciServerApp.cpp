@@ -55,6 +55,9 @@ void FPSciServerApp::initExperiment() {
     const Array<String> sessions = m_userSettingsWindow->updateSessionDropDown();	// Update the session drop down to remove already completed sessions
     updateSession(sessions[0], true);		// Update session to create results file/start collection
 
+    //Setup dataHandler
+    m_dataHandler->SetParameters(experimentConfig.frameCutoff, experimentConfig.futureFrame);
+
     /* This is where added code begins */
 
     // Setup the network and start listening for clients
@@ -114,7 +117,7 @@ void FPSciServerApp::onNetwork() {
             //update locally entity displayed on the server: 
             int num_packet_members = packet_contents.readUInt8(); // get # of frames in this packet
             for (int i = 0; i < num_packet_members; i++) { // get new frames and update objects
-                NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents, m_networkHandler); // Read the data from the packet and update on the local entity
+                NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents, m_dataHandler); // Read the data from the packet and update on the local entity
             }
         }
     }
@@ -228,7 +231,7 @@ void FPSciServerApp::onNetwork() {
                 playersReady = 0;
             }
             else if (type == NetworkUtils::MessageType::REPORT_FIRE) {
-                NetworkUtils::handleFireReport(packet_contents, m_networkHandler, frameNum);
+                NetworkUtils::handleFireReport(packet_contents, m_dataHandler, frameNum);
             }
             else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {
                 playersReady++;

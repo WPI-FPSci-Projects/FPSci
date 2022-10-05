@@ -18,6 +18,8 @@ public:
 	int numPlayers = 2;									///< Number of connections to wait for before starting the game
 	bool isNetworked;									///< Checks if the experiment is networked or not
 	bool isAuthoritativeServer;							///< Checks if using authoritative server; false if using client
+	int frameCutoff = 10;
+	int futureFrame = 2;
 
 	ExperimentConfig() { init(); }
 	ExperimentConfig(const Any& any);

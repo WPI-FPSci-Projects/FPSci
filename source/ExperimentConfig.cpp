@@ -17,6 +17,9 @@ ExperimentConfig::ExperimentConfig(const Any& any) : FpsConfig(any) {
 		reader.getIfPresent("numPlayers", numPlayers);
 		reader.getIfPresent("isNetworked", isNetworked);
 		reader.getIfPresent("isAuthoritativeServer", isAuthoritativeServer);
+		reader.getIfPresent("frameCutoff", frameCutoff);
+		reader.getIfPresent("futureFrame", futureFrame);
+
 		logPrintf("serverAddress is : %s:%d\n", serverAddress.c_str(), serverPort);
 		break;
 	default:

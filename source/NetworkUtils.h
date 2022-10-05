@@ -140,8 +140,8 @@ public:
 		uint8 playerID;
 	};
 
-	static void updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer, NetworkHandler* networkHandler);
-	static void updateEntity(shared_ptr<Entity> entity, BinaryInput& inBuffer, NetworkHandler* networkHandler, GUniqueID playerID);
+	static void updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer, DataHandler* networkHandler);
+	static void updateEntity(shared_ptr<Entity> entity, BinaryInput& inBuffer, DataHandler* networkHandler, GUniqueID playerID);
 	static void createFrameUpdate(GUniqueID id, shared_ptr<Entity> entity, BinaryOutput& outBuffer, uint16 frameNum);
 
 	static void handleDestroyEntity(shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer);
@@ -162,7 +162,7 @@ public:
 	static void serverBatchEntityUpdate(Array<shared_ptr<NetworkedEntity>> entities, Array<ConnectedClient> clients, ENetSocket sendSocket, uint16 frameNum);
 	static int sendSetSpawnPos(G3D::Point3 position, float heading, ENetPeer* peer);
 	static void handleSetSpawnPos(shared_ptr<PlayerEntity> player, BinaryInput& inBuffer);
-	static void handleFireReport(BinaryInput& inBuffer, NetworkHandler* networkHandler, uint16 frameNum);
+	static void handleFireReport(BinaryInput& inBuffer, DataHandler* networkHandler, uint16 frameNum);
 	static int sendRespawnClient(ENetPeer* peer, uint16 frameNum);
 	static void broadcastRespawn(ENetHost* serverHost, uint16 frameNum);
 	

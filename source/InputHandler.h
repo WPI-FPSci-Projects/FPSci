@@ -34,7 +34,7 @@ namespace G3D{
 
 	private:
 	private:
-		int m_frameCutoff = 10;
+		int m_pastFrames = 10;
 		int m_leadingFrame = 0;
 		Array<Array<NetworkInput>*>* m_networkInputs = new Array<Array<NetworkInput>*>; //hold some future frames
 		Array<NetworkInput>* m_unreadFrameBuffer = new Array<NetworkInput>;
@@ -54,7 +54,7 @@ namespace G3D{
 }
 
 namespace G3D {
-	class NetworkHandler {
+	class DataHandler {
 	public:
 		class NetworkInput // need to store X amount of last arrays
 		{
@@ -68,6 +68,7 @@ namespace G3D {
 			NetworkInput();
 			NetworkInput(uint8 playerID, CoordinateFrame cframe, bool fired);
 			~NetworkInput();
+
 			bool GetFired();
 			CoordinateFrame GetCFrame();
 
@@ -76,14 +77,16 @@ namespace G3D {
 
 		};
 	private:
-		int m_frameCutoff = 10;
-		int m_leadingFrame = 0;
+		int m_pastFrames = 10;
+		int m_futureFrames = 2; //SpEllCorEcrly //You can remove that note now
+		int m_currentFrame = 0; 
 		Array<Array<NetworkInput>*>* m_networkInputs = new Array<Array<NetworkInput>*>; //hold some future frames //this will be full hopfully
 		//TODO: keep track of how many clients are present during a single frame
 		Array<NetworkInput>* m_unreadFrameBuffer = new Array<NetworkInput>;//these will be half empty
 	public:
-		NetworkHandler();
-		~NetworkHandler();
+		DataHandler();
+		~DataHandler();
+		void SetParameters(int frameCutoff, int futureFrames);
 		bool AllClientsFrame(int frameNum, int clientsConnected);
 		void NewLeadingFrame(int frameNum, int clientsConnected);
 		bool CheckFrameAcceptable(int frameNum);
@@ -92,6 +95,8 @@ namespace G3D {
 
 		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum);
 		void UpdateFired(uint8 playerID, bool fired, int frameNum);
+
+		NetworkInput* PredictFrame(int frameNum, uint8 playerID);
 
 		Array<NetworkInput>* GetFrameInputs(int frame);
 	};

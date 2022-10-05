@@ -7,7 +7,7 @@ static void updateEntity(Entity entity, BinaryInput inBuffer) {
 	NetworkUtils::NetworkUpdateType type = (NetworkUtils::NetworkUpdateType)inBuffer.readUInt8();
 }*/
 
-void NetworkUtils::updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer, NetworkHandler* networkHandler) {
+void NetworkUtils::updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer, DataHandler* networkHandler) {
 	GUniqueID entity_id;
 	entity_id.deserialize(inBuffer);;
 	shared_ptr<NetworkedEntity> entity = (*scene).typedEntity<NetworkedEntity>(entity_id.toString16());
@@ -20,7 +20,7 @@ void NetworkUtils::updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Sce
 	updateEntity(entity, inBuffer, networkHandler, entity_id); // Allways call this even if the entity is ignored so we remove the data from the BinaryInput
 }
 
-void NetworkUtils::updateEntity(shared_ptr<Entity> entity, BinaryInput& inBuffer, NetworkHandler* networkHandler, GUniqueID playerID) {
+void NetworkUtils::updateEntity(shared_ptr<Entity> entity, BinaryInput& inBuffer, DataHandler* networkHandler, GUniqueID playerID) {
 	NetworkUtils::NetworkUpdateType type = (NetworkUtils::NetworkUpdateType)inBuffer.readUInt8();
 	uint16 frameNum = inBuffer.readUInt16();
 	if (type == NOOP) {
@@ -99,13 +99,13 @@ void NetworkUtils::handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, 
 	NetworkUtils::broadcastRespawn(serverHost, frameNum);
 }
 
-void NetworkUtils::handleFireReport(BinaryInput& inBuffer, NetworkHandler* networkHandler, uint16 frameNum){
+void NetworkUtils::handleFireReport(BinaryInput& inBuffer, DataHandler* networkHandler, uint16 frameNum){
 	GUniqueID shooter_GUID;
 	uint8 shooter_playerID;
 	shooter_GUID.deserialize(inBuffer);
 	shooter_playerID = inBuffer.readUInt8();
 	networkHandler->UpdateFired(shooter_playerID, true, frameNum);
-	debugPrintf("HIT REPORTED: %s SHOT %s WITH THE CANDLESTICK IN THE LIBRARY\n", shooter_GUID.toString16(), shooter_GUID.toString16());
+	debugPrintf("FIRE REPORTED: %s SHOT WITH THE CANDLESTICK IN THE LIBRARY\n", shooter_GUID.toString16());
 }
 
 int NetworkUtils::sendMoveClient(CFrame frame, ENetPeer* peer, uint16 frameNum) {
