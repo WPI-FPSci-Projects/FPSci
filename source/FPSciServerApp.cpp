@@ -56,7 +56,7 @@ void FPSciServerApp::initExperiment() {
     updateSession(sessions[0], true);		// Update session to create results file/start collection
 
     //Setup dataHandler
-    m_dataHandler->SetParameters(experimentConfig.frameCutoff, experimentConfig.futureFrame);
+    m_dataHandler->SetParameters(experimentConfig.pastFrame, experimentConfig.futureFrame);
 
     /* This is where added code begins */
 

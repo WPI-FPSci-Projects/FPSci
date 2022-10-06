@@ -78,7 +78,7 @@ namespace G3D {
 		};
 	private:
 		int m_pastFrames = 10;
-		int m_futureFrames = 2; //SpEllCorEcrly //You can remove that note now
+		int m_futureFrames = 2;
 		int m_currentFrame = 0; 
 		Array<Array<NetworkInput>*>* m_DataInputs = new Array<Array<NetworkInput>*>; //hold some future frames //this will be full hopfully
 		//TODO: keep track of how many clients are present during a single frame
@@ -88,7 +88,7 @@ namespace G3D {
 		~DataHandler();
 		void SetParameters(int frameCutoff, int futureFrames);
 		bool AllClientsFrame(int frameNum, int clientsConnected);
-		void NewLeadingFrame(int frameNum, int clientsConnected);
+		void NewCurrentFrame(int frameNum, int clientsConnected);
 		bool CheckFrameAcceptable(int frameNum);
 		Array<NetworkInput>* GetFrameBuffer();
 		void FlushBuffer();

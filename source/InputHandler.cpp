@@ -183,7 +183,7 @@ Array<G3D::DataHandler::NetworkInput>* G3D::DataHandler::GetFrameInputs(int fram
 	return m_DataInputs[0][m_currentFrame - frameNum + 2];
 }
 
-void G3D::DataHandler::NewLeadingFrame(int frameNum, int clientsConnected)
+void G3D::DataHandler::NewCurrentFrame(int frameNum, int clientsConnected)
 {
 	//Call per frame
 	//debugPrintf("%d\t%d\n", m_leadingFrame, frameNum);
@@ -198,6 +198,7 @@ void G3D::DataHandler::NewLeadingFrame(int frameNum, int clientsConnected)
 
 void G3D::DataHandler::FlushBuffer()
 {
+	//clears the buffer of unapplied networkInputs must be called every frame
 	m_unreadFrameBuffer->clear();
 }
 
@@ -207,15 +208,22 @@ bool G3D::DataHandler::CheckFrameAcceptable(int frameNum)
 }
 
 Array<G3D::DataHandler::NetworkInput>* G3D::DataHandler::GetFrameBuffer() {
+	//return buffer of all frames that have not yet been applied
 	return m_unreadFrameBuffer;
 }
 
 G3D::DataHandler::NetworkInput* G3D::DataHandler::PredictFrame(int frameNum, uint8 playerID) {
-	//dont worry about it
+	//frame number is the frame you wish to predict
+	
+	//form delta around frameNum + 1 frame in past and frameNum + 2 frames in past
 	Point3 translation_d = m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames + 1][0][playerID].GetCFrame().translation - m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames + 2][0][playerID].GetCFrame().translation;
 	Matrix3 matrix_d = m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID].GetCFrame().rotation - m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames + 1][0][playerID].GetCFrame().rotation;
+	//new cframe from calculated deltas
 	CoordinateFrame* cframe = new CoordinateFrame(matrix_d, translation_d);
+	//new network input based on cframe, previous frames get fired (keep or change to false by default)
 	NetworkInput* prediction = new NetworkInput(playerID, *cframe, m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID].GetFired());
+	//add predicted frame to dataInputs
 	m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID] = *prediction;
+	//return the created networkInput
 	return prediction;
 }
