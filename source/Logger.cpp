@@ -64,6 +64,7 @@ void FPSciLogger::initResultsFile(const String& filename,
 		createQuestionsTable();
 		createUsersTable();
 		createNetworkedClientTable();
+		createPingStatisticsTable();
 	}
 
 	// Add the session info to the sessions table
@@ -492,6 +493,33 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 	insertRowsIntoDB(m_db, "Client_States", rows);
 }
 
+void FPSciLogger::createPingStatisticsTable() {
+	Columns clientPingColumns = {
+		{"time", "text"},
+		{"latest_RTT", "real"},
+		{"sma_RTT", "real"},
+		{"min_RTT", "real"},
+		{"max_RTT", "real"}
+	};
+	createTableInDB(m_db, "Client_Ping_Statistics", clientPingColumns);
+}
+
+void FPSciLogger::recordPingStatistics(const Array<LoggedPingStatistics>& pingStats) {
+	Array<RowEntry> rows;
+	for (LoggedPingStatistics pingStat : pingStats) {
+		const String time = genUniqueTimestamp();
+		Array<String> pingValues = {
+			"'" + time + "'",
+			String(std::to_string(pingStat.pingQueue.last())),
+			String(std::to_string(pingStat.smaPing)),
+			String(std::to_string(pingStat.minPing)),
+			String(std::to_string(pingStat.maxPing))
+		};
+		rows.append(pingValues);
+	}
+	insertRowsIntoDB(m_db, "Client_Ping_Statistics", rows);
+}
+
 void FPSciLogger::loggerThreadEntry()
 {
 	std::unique_lock<std::mutex> lk(m_queueMutex);
@@ -536,6 +564,11 @@ void FPSciLogger::loggerThreadEntry()
 		networkedClients.swap(m_networkedClients, networkedClients);
 		m_networkedClients.reserve(networkedClients.size() * 2);
 
+		decltype(m_pingStatistics) pingStats;
+		pingStats.swap(m_pingStatistics, pingStats);
+		m_pingStatistics.reserve(pingStats.size() * 2);
+
+
 		// Unlock all the now-empty queues and write out our temporary copies
 		lk.unlock();
 
@@ -544,6 +577,8 @@ void FPSciLogger::loggerThreadEntry()
 		recordTargetLocations(targetLocations);
 
 		recordNetworkedClients(networkedClients);
+
+		recordPingStatistics(pingStats);
 
 		insertRowsIntoDB(m_db, "Questions", questions);
 		insertRowsIntoDB(m_db, "Targets", targets);
@@ -566,6 +601,8 @@ FPSciLogger::FPSciLogger(const String& filename,
 	m_targetLocations.reserve(5000);
 
 	m_networkedClients.reserve(5000);
+
+	m_pingStatistics.reserve(5000);
 	
 	// Create the results file
 	initResultsFile(filename, subjectID, expConfigFilename, sessConfig, description);

@@ -13,6 +13,7 @@ struct TargetLocation;
 struct PlayerAction;
 struct FrameInfo;
 struct NetworkedClient;
+struct LoggedPingStatistics;
 
 template<typename ItemType> static size_t queueBytes(Array<ItemType>& queue)
 {
@@ -56,6 +57,7 @@ protected:
 	Array<TrialValues> m_trials;						///< Trial ID, start/end time etc.
 	Array<UserValues> m_users;
 	Array<NetworkedClient> m_networkedClients;
+	Array<LoggedPingStatistics> m_pingStatistics;
 
 	size_t getTotalQueueBytes()
 	{
@@ -65,7 +67,8 @@ protected:
 			queueBytes(m_targetLocations) +
 			queueBytes(m_targets) +
 			queueBytes(m_trials) + 
-			queueBytes(m_networkedClients);
+			queueBytes(m_networkedClients) +
+			queueBytes(m_pingStatistics);
 	}
 
 	template<typename ItemType> void addToQueue(Array<ItemType>& queue, const ItemType& item)
@@ -96,6 +99,9 @@ protected:
 
 	void recordNetworkedClients(const Array<NetworkedClient>& clients);
 
+	/** Record Ping statistics on client */
+	void recordPingStatistics(const Array<LoggedPingStatistics>& pingStats);
+
 	/** Open a results file, or create it if it doesn't exist */
 	void initResultsFile(const String& filename, 
 		const String& subjectID, 
@@ -119,6 +125,7 @@ protected:
 	void createQuestionsTable();
 	void createUsersTable();
 	void createNetworkedClientTable();
+	void createPingStatisticsTable();
 
 	// Functions that assume the schema from above
 	//void insertSession(sessionInfo);
@@ -152,6 +159,8 @@ public:
 	void logTargetTypes(const Array<shared_ptr<TargetConfig>>& targets);
 
 	void logNetworkedClient(const NetworkedClient& client) { addToQueue(m_networkedClients, client); }
+
+	void logPingStatistics(const LoggedPingStatistics& pingStats) { addToQueue(m_pingStatistics, pingStats); }
 
 	/** Wakes up the logging thread and flushes even if the buffer limit is not reached yet. */
 	void flush(bool blockUntilDone);

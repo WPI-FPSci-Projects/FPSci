@@ -304,6 +304,9 @@ public:
 	Array<String> updateSessionDropDown(void) { return m_userSettingsWindow->updateSessionDropDown(); }
 	shared_ptr<UserConfig> const currentUser(void) { return userTable.getUserById(userStatusTable.currentUser); }
 
+	/** Gets statistics for ping / RTT */
+	NetworkUtils::PingStatistics getPingStatistics() { return m_pingStats; }
+
 	void markSessComplete(String id);
 	/** Updates experiment state to the provided session id and updates player parameters (including mouse sensitivity) */
 	virtual void updateSession(const String& id, bool forceReload = false);

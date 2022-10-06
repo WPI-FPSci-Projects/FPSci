@@ -54,9 +54,16 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 	if (serverApp != nullptr) {
 		for (NetworkUtils::ConnectedClient* client : serverApp->getConnectedClients()) {
 			//TODO should be accumulate? not sure, but doing this for now to prevent crash:
-			if (notNull(logger) && serverApp->m_clientLatestRTTs.size() > 0) {
-				logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, serverApp->m_clientLatestRTTs.get(client->unreliableAddress.host), serverApp->m_networkFrameNum, client->frameNumber, client->guid));
+			if (notNull(logger) && serverApp->getClientLatestRTTs().size() > 0) {
+				logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, serverApp->getClientLatestRTTs().get(client->unreliableAddress.host), serverApp->m_networkFrameNum, client->frameNumber, client->guid));
 			}
+		}
+	}
+	// Client-side logging
+	else {
+		if (notNull(logger)) {
+			NetworkUtils::PingStatistics pingStatistics = m_app->getPingStatistics();
+			logger->logPingStatistics(LoggedPingStatistics(pingStatistics.pingQueue, pingStatistics.smaPing, pingStatistics.maxPing, pingStatistics.minPing));
 		}
 	}
 }
@@ -132,6 +139,7 @@ void NetworkedSession::logNetworkedEntity(shared_ptr<NetworkedEntity> entity, ui
 		GUniqueID id = GUniqueID::fromString16(entity->name());
 		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_networkFrameNum, remoteFrame, currentState, action);
 		logger->logNetworkedClient(nc);
+
 		//debugPrintf("Logged...");
 	}
 }

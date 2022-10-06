@@ -72,6 +72,23 @@ struct NetworkedClient {
 
 };
 
+/* Ping statistics designated for logging */
+struct LoggedPingStatistics {
+	Queue<long long> pingQueue;
+	long long smaPing;
+	long long maxPing;
+	long long minPing;
+
+	LoggedPingStatistics() {};
+
+	LoggedPingStatistics(Queue<long long> rttQueue, long long smaRTT, long long maxRTT, long long minRTT) {
+		pingQueue = rttQueue;
+		smaPing = smaRTT;
+		maxPing = maxRTT;
+		minPing = minRTT;
+	}
+};
+
 
 class NetworkedSession : public Session {
 protected:

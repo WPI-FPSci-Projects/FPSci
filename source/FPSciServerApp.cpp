@@ -126,6 +126,10 @@ void FPSciServerApp::initExperiment() {
     std::thread s2cPing_Th(s2cPing, m_pingSocket);
     s2cPing_Th.detach();
 
+    // Initialize dummy ping statistics
+    m_pingStats.pingQueue.pushBack(0);
+    experimentConfig.pingSMASize > 0 ? m_pingStats.smaRTTSize = experimentConfig.pingSMASize : m_pingStats.smaRTTSize = 5;
+
     static_cast<NetworkedSession*>(sess.get())->startSession(); // Set player as ready for the server player.
 }
 
