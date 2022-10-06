@@ -8,6 +8,8 @@
 FPSciServerApp::FPSciServerApp(const GApp::Settings& settings) : FPSciApp(settings) {}
 
 
+
+
 void FPSciServerApp::initExperiment() {
     playersReady = 0;
     // Load config from files
@@ -76,16 +78,16 @@ void FPSciServerApp::initExperiment() {
     }
 
     debugPrintf("Began listening\n");
-
-    static_cast<NetworkedSession*>(sess.get())->startSession(); // Set player as ready for the server player.
+    shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
+    player->setPlayerMovement(true);
 }
 
 void FPSciServerApp::onNetwork() {
     /* None of this is from the upsteam project */
 
-    if (!sess->currentState == NetworkedPresentationState::networkedSessionStart) {
+    //if (!static_cast<NetworkedSession*>(sess.get())->currentState == NetworkedPresentationState::networkedSessionStart) {
         m_networkFrameNum++;
-    }
+    //}
     
     /* First we receive on the unreliable connection */
 
@@ -100,7 +102,9 @@ void FPSciServerApp::onNetwork() {
         enet_address_get_host_ip(&addr_from, ip, 16);
         BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
         NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
-        uint16 frameNum = packet_contents.readUInt16();
+        uint32 frameNum = packet_contents.readUInt32();
+        NetworkUtils::ConnectedClient* client = getClientFromAddress(addr_from);
+        client->frameNumber = frameNum;
 
         /* Respond to a handsake request */
         if (type == NetworkUtils::MessageType::HANDSHAKE) {
@@ -114,8 +118,27 @@ void FPSciServerApp::onNetwork() {
             //update locally entity displayed on the server: 
             int num_packet_members = packet_contents.readUInt8(); // get # of frames in this packet
             for (int i = 0; i < num_packet_members; i++) { // get new frames and update objects
-                NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents); // Read the data from the packet and update on the local entity
+                shared_ptr<NetworkedEntity> updated_entity = NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents); // Read the data from the packet and update on the local entity
+                if (updated_entity != nullptr) {
+                    netSess.get()->logNetworkedEntity(updated_entity, frameNum, Move);
+                }
             }
+        }
+        else if (type == NetworkUtils::MessageType::PLAYER_INTERACT) {
+            NetworkUtils::RemotePlayerAction remoteAction = NetworkUtils::handlePlayerInteractServer(m_unreliableSocket, m_connectedClients, packet_contents, m_networkFrameNum);
+            debugPrintf("The client %s has shot and missed\n", remoteAction.guid.toString16());
+            const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(remoteAction.guid.toString16());
+            RemotePlayerAction rpa = RemotePlayerAction();
+            rpa.time = sess->logger->getFileTime();
+            rpa.viewDirection = clientEntity->getLookAzEl();
+            rpa.position = clientEntity->frame().translation;
+            rpa.state = sess->currentState;
+            rpa.action = (PlayerActionType)remoteAction.actionType;
+            rpa.actorID = remoteAction.guid.toString16();
+            sess->logger->logRemotePlayerAction(rpa);
+        }
+        if (frameNum - m_networkFrameNum > 50 || frameNum - m_networkFrameNum < -50) {
+            //debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\tClient Frame: %d\n\tServer Frame: %d\n", frameNum, m_networkFrameNum);
         }
     }
     free(data);
@@ -137,9 +160,9 @@ void FPSciServerApp::onNetwork() {
             logPrintf("%s disconnected.\n", ip);
             /* Removes the clinet from the list of connected clients and orders all other clients to delete that entity */
             for (int i = 0; i < m_connectedClients.size(); i++) {
-                if (m_connectedClients[i].peer->address.host == event.peer->address.host &&
-                    m_connectedClients[i].peer->address.port == event.peer->address.port) {
-                    GUniqueID id = m_connectedClients[i].guid;
+                if (m_connectedClients[i]->peer->address.host == event.peer->address.host &&
+                    m_connectedClients[i]->peer->address.port == event.peer->address.port) {
+                    GUniqueID id = m_connectedClients[i]->guid;
                     shared_ptr<NetworkedEntity> entity = scene()->typedEntity<NetworkedEntity>(id.toString16());
                     if (entity != nullptr) {
                         scene()->remove(entity);
@@ -153,15 +176,15 @@ void FPSciServerApp::onNetwork() {
 
             BinaryInput packet_contents(event.packet->data, event.packet->dataLength, G3D_BIG_ENDIAN);
             NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
-            uint16 frameNum = packet_contents.readUInt16();
+            uint32 frameNum = packet_contents.readUInt32();
 
             /* Now parse the type of message we received */
 
             if (type == NetworkUtils::MessageType::REGISTER_CLIENT) {
                 debugPrintf("Registering client...\n");
-                NetworkUtils::ConnectedClient newClient = NetworkUtils::registerClient(event, packet_contents);
+                NetworkUtils::ConnectedClient* newClient = NetworkUtils::registerClient(event, packet_contents, m_networkFrameNum);
                 m_connectedClients.append(newClient);
-                debugPrintf("\tRegistered client: %s\n", newClient.guid.toString16());
+                debugPrintf("\tRegistered client: %s\n", newClient->guid.toString16());
 
                 Any modelSpec = PARSE_ANY(ArticulatedModel::Specification{			///< Basic model spec for target
                     filename = "model/target/mid_poly_sphere_no_outline.obj";
@@ -177,7 +200,7 @@ void FPSciServerApp::onNetwork() {
                     });
                 shared_ptr<Model> model = ArticulatedModel::create(modelSpec);
                 /* Create a new entity for the client */
-                const shared_ptr<NetworkedEntity>& target = NetworkedEntity::create(newClient.guid.toString16(), &(*scene()), model, CFrame());
+                const shared_ptr<NetworkedEntity>& target = NetworkedEntity::create(newClient->guid.toString16(), &(*scene()), model, CFrame());
 
                 target->setWorldSpace(true);
                 target->setColor(G3D::Color3(20.0, 20.0, 200.0));
@@ -187,14 +210,14 @@ void FPSciServerApp::onNetwork() {
 
                 /* ADD NEW CLIENT TO OTHER CLIENTS, ADD OTHER CLIENTS TO NEW CLIENT */
 
-                NetworkUtils::broadcastCreateEntity(newClient.guid, m_localHost, m_networkFrameNum);
+                NetworkUtils::broadcastCreateEntity(newClient->guid, m_localHost, m_networkFrameNum);
                 debugPrintf("Sent a broadcast packet to all connected peers\n");
 
                 for (int i = 0; i < m_connectedClients.length(); i++) {
                     // Create entitys on the new client for all other clients
-                    if (newClient.guid != m_connectedClients[i].guid) {
-                        NetworkUtils::sendCreateEntity(m_connectedClients[i].guid, newClient.peer, m_networkFrameNum);
-                        debugPrintf("Sent add to %s to add %s\n", newClient.guid.toString16(), m_connectedClients[i].guid.toString16());
+                    if (newClient->guid != m_connectedClients[i]->guid) {
+                        NetworkUtils::sendCreateEntity(m_connectedClients[i]->guid, newClient->peer, m_networkFrameNum);
+                        debugPrintf("Sent add to %s to add %s\n", newClient->guid.toString16(), m_connectedClients[i]->guid.toString16());
                     }
                 }
                 // move the client to a different location
@@ -209,15 +232,52 @@ void FPSciServerApp::onNetwork() {
                 }
             }
             else if (type == NetworkUtils::MessageType::REPORT_HIT) {
-                NetworkUtils::handleHitReport(m_localHost, packet_contents, m_networkFrameNum);
-                playersReady = 0;
+                // This just causes everyone to respawn
+                GUniqueID hitID = NetworkUtils::handleHitReport(m_localHost, packet_contents, m_networkFrameNum);
+                shared_ptr<NetworkedEntity> hitEntity = scene()->typedEntity<NetworkedEntity>(hitID.toString16());
+                //NetworkUtils::ConnectedClient* hitClient = getClientFromGUID(hitID);
+                GUniqueID shooter_id = getClientFromAddress(event.peer->address)->guid;
+
+                // Log the hit on the server
+                const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(getClientFromAddress(event.peer->address)->guid.toString16());
+                debugPrintf("%s", getClientFromAddress(event.peer->address)->guid.toString16());
+                RemotePlayerAction rpa = RemotePlayerAction();
+                rpa.time = sess->logger->getFileTime();
+                rpa.viewDirection = clientEntity->getLookAzEl();
+                rpa.position = clientEntity->frame().translation;
+                rpa.state = sess->currentState;
+                rpa.action = PlayerActionType::Hit;
+                rpa.actorID = getClientFromAddress(event.peer->address)->guid.toString16();
+                rpa.affectedID = hitID.toString16();
+                sess->logger->logRemotePlayerAction(rpa);
+                
+                float damage = 1.001 / sessConfig->hitsToKill;
+
+                if (hitEntity->doDamage(damage)) { //TODO PARAMETERIZE THIS DAMAGE VALUE SOME HOW! DO IT! DON'T FORGET!  DON'T DO IT!
+                    debugPrintf("A player died! Resetting game...\n");
+                    playersReady = 0;
+                    static_cast<NetworkedSession*>(sess.get())->resetSession();
+                    scene()->typedEntity<PlayerEntity>("player")->setPlayerMovement(true); //Allow the server to move freely
+
+                    Array<shared_ptr<NetworkedEntity>> entities;
+                    scene()->getTypedEntityArray<NetworkedEntity>(entities);
+                    for (shared_ptr<NetworkedEntity> entity : entities) {
+                        entity->respawn();
+                    }
+                    NetworkUtils::broadcastRespawn(m_localHost, m_networkFrameNum);
+                }
+                // Notify every player of the hit
+                for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
+                    NetworkUtils::sendPlayerInteract(NetworkUtils::RemotePlayerAction(getClientFromAddress(event.peer->address)->guid, PlayerActionType::Hit), m_unreliableSocket, client->unreliableAddress, m_networkFrameNum);
+                }
             }
             else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {
                 playersReady++;
                 debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), playersReady);
                 if (playersReady >= experimentConfig.numPlayers)
                 {
-                    NetworkUtils::broadcastStartSession(m_localHost);
+                    netSess.get()->startSession();
+                    NetworkUtils::broadcastStartSession(m_localHost, m_networkFrameNum);
                     debugPrintf("All PLAYERS ARE READY!\n");
                 }
             }
@@ -250,6 +310,8 @@ void FPSciServerApp::onNetwork() {
 }
 
 void FPSciServerApp::onInit() {
+    this->setLowerFrameRateInBackground(startupConfig.lowerFrameRateInBackground);
+
     if (enet_initialize()) {
         throw std::runtime_error("Failed to initalize enet!");
     }
@@ -486,4 +548,28 @@ void FPSciServerApp::oneFrame() {
     if (m_endProgram && window()->requiresMainLoop()) {
         window()->popLoopBody();
     }
+}
+
+NetworkUtils::ConnectedClient* FPSciServerApp::getClientFromAddress(ENetAddress e)
+{
+    for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
+        if (client->unreliableAddress.host == e.host && (client->unreliableAddress.port == e.port || client->peer->address.port == e.port)) {
+            return client;
+        }
+    }
+    return new NetworkUtils::ConnectedClient();
+}
+
+NetworkUtils::ConnectedClient* FPSciServerApp::getClientFromGUID(GUniqueID ID)
+{
+    for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
+        if (client->guid == ID) {
+            return client;
+        }
+    }
+}
+
+uint32 FPSciServerApp::frameNumFromID(GUniqueID id) 
+{
+    return getClientFromGUID(id)->frameNumber;
 }

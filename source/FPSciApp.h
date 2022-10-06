@@ -25,6 +25,7 @@
 #include "PythonLogger.h"
 #include "Weapon.h"
 #include "CombatText.h"
+#include "Logger.h"
 
 class Session;
 class DialogBase;
@@ -42,12 +43,6 @@ enum PresentationState
 	trialFeedback,
 	sessionFeedback,
 	complete
-};
-enum NetworkedPresentationState
-{
-	initialNetworkedState,
-	networkedSessionStart,
-	networkedSessionComplete
 };
 static String presentationStateToString(const PresentationState& state) {
 	String stateStr = "N/A";
@@ -86,6 +81,8 @@ public:
 		MOUSE_FPM = 2,		/// First-person manipulator-based interaction
 	};
 
+	virtual uint32 frameNumFromID(GUniqueID id);
+
 protected:
 	static const int MAX_HISTORY_TIMING_FRAMES = 360; ///< Length of the history queue for m_frameDurationQueue
 	shared_ptr<Sound> m_sceneHitSound;				  ///< Sound for scene collision
@@ -115,6 +112,8 @@ public:
 	RealTime m_lastOnSimulationRealTime = 0.0f;	   ///< Wall clock time last onSimulation finished
 	SimTime m_lastOnSimulationSimTime = 0.0f;	   ///< Simulation time last onSimulation finished
 	SimTime m_lastOnSimulationIdealSimTime = 0.0f; ///< Ideal simulation time last onSimulation finished
+	uint32 m_networkFrameNum = 0;							///< The current frame (used to sync remote actions)
+	GUniqueID m_playerGUID = GUniqueID::create();	///< GUID for the player (used to identify the player in the network)
 protected:
 	float m_currentWeaponDamage = 0.0f; ///< A hack to avoid passing damage through callbacks
 
@@ -153,19 +152,20 @@ protected:
 	shared_ptr<Framebuffer> m_ldrShaderCompositeOutput; ///< Buffer to use for composite shader output (if provided)
 
 	// Shader parameters
-	int m_frameNumber = 0;									  ///< Frame number (since the start of the session)
+	int m_frameNumber = 0;                                    ///< Frame number (since the start of the session) for shaders
 	RealTime m_startTime;									  ///< Start time (for the session)
 	RealTime m_last2DTime, m_last3DTime, m_lastCompositeTime; ///< Times used for iTimeDelta
 
 	ENetSocket m_unreliableSocket = NULL;				///< Socket for unreliable comunication with the server
 	ENetPeer* m_serverPeer = nullptr;					///< Peer used for server-side communication
-	ENetHost* m_localHost = nullptr;								///< Host used to allow inbound relibale connections
+	ENetHost* m_localHost = nullptr;					///< Host used to allow inbound relibale connections
 	ENetAddress m_reliableServerAddress;				///< Address of server for reliable traffic
 	ENetAddress m_unreliableServerAddress;				///< Address of server for unreliable traffic
-	GUniqueID m_playerGUID;								///< GUID for the player (used to identify the player in the network)
-	uint16 m_networkFrameNum;							///< The current frame (used to sync remote actions)
+	
 	bool m_enetConnected;
 	bool m_socketConnected;
+
+	uint32 m_serverFrame;
 
 	/** Called from onInit */
 	void makeGUI();
@@ -243,6 +243,7 @@ public:
 	Color4 lerpColor(Array<Color4> colors, float a);
 
 	shared_ptr<Session> sess;		 ///< Pointer to the experiment
+	shared_ptr<NetworkedSession> netSess;		 ///< Pointer to the experiment, as a NetworkedSession so we can avoid doing static_casts.  Watch out, because this only exists when a networked experiment is defined!
 	shared_ptr<Camera> playerCamera; ///< Pointer to the player camera
 	shared_ptr<Weapon> weapon;		 ///< Current weapon
 

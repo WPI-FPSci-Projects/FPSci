@@ -56,12 +56,25 @@ public:
 	FILETIME time;
 	//float idt = 0.0f;
 	float sdt = 0.0f;
+	uint32 network_RTT = 0;
+	uint32 local_frame = 0;
+	uint32 remote_frame = 0;
+	String guid = "";
 
 	FrameInfo() {};
 
 	FrameInfo(FILETIME t, float simDeltaTime) {
 		time = t;
 		sdt = simDeltaTime;
+	}
+
+	FrameInfo(FILETIME t, float simDeltaTime, uint32 rtt, uint32 localFrameNum, uint32 remoteFrameNum, GUniqueID clientGUID) {
+		time = t;
+		sdt = simDeltaTime;
+		network_RTT = rtt;
+		local_frame = localFrameNum;
+		remote_frame = remoteFrameNum;
+		guid = clientGUID.toString16();
 	}
 };
 
@@ -91,7 +104,8 @@ enum PlayerActionType{
 	FireCooldown,
 	Miss,
 	Hit,
-	Destroy
+	Destroy,
+	Move
 };
 
 struct PlayerAction {
@@ -140,7 +154,7 @@ public:
 	int					blockCount = 1;					///< Default to just 1 block per session
 	Array<TrialCount>	trials;							///< Array of trials (and their counts) to be performed
 	bool				closeOnComplete = false;		///< Close application on session completed?
-	bool				isNetworked = false;			///< Checks if its a networked session or not
+	int					hitsToKill = 1;
 
 	SessionConfig() : FpsConfig(defaultConfig()) {}
 	SessionConfig(const Any& any);
@@ -419,7 +433,7 @@ public:
 	void processResponse();
 	void recordTrialResponse(int destroyedTargets, int totalTargets);
 	void accumulateTrajectories();
-	void accumulateFrameInfo(RealTime rdt, float sdt, float idt);
+	virtual void accumulateFrameInfo(RealTime rdt, float sdt, float idt);
 
 	void countDestroy() {
 		m_destroyedTargets++;
