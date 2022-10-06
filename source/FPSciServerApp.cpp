@@ -196,7 +196,7 @@ void FPSciServerApp::onNetwork() {
             uint16 cappedMaxRTT = packet_contents.readUInt16();
             Array<uint16> rttStatsArray = { cappedRTT, cappedSMARTT, cappedMinRTT, cappedMaxRTT };
 
-            m_clientLatestRTTs.set(addr_from.host, rttStatsArray);
+            m_clientRTTStatistics.set(addr_from.host, rttStatsArray);
         }
         if (frameNum - m_networkFrameNum > 50 || frameNum - m_networkFrameNum < -50) {
             debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\t Client Frame: %d\n\tServer Frame: %d\n", frameNum, m_networkFrameNum);
