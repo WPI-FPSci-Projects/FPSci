@@ -322,56 +322,60 @@ void NetworkUtils::broadcastStartSession(ENetHost* serverHost, uint32 frameNum) 
 
 shared_ptr<GenericPacket> NetworkUtils::createTypedPacket(PacketType type, ENetAddress srcAddr, BinaryInput& inBuffer, ENetEvent* event) {
 	switch (type) {
-	case BATCH_ENTITY_UPDATE:
+	case PacketType::BATCH_ENTITY_UPDATE:
 		return GenericPacket::createReceive<BatchEntityUpdatePacket>(srcAddr, inBuffer);
 		break;
-	case CREATE_ENTITY:
+	case PacketType::CREATE_ENTITY:
 		return GenericPacket::createReceive<CreateEntityPacket>(srcAddr, inBuffer);
 		break;
-	case DESTROY_ENTITY:
+	case PacketType::DESTROY_ENTITY:
 		return GenericPacket::createReceive<DestroyEntityPacket>(srcAddr, inBuffer);
 		break;
-	case MOVE_CLIENT:
+	case PacketType::MOVE_CLIENT:
 		return GenericPacket::createReceive<MoveClientPacket>(srcAddr, inBuffer);
 		break;
-	case REGISTER_CLIENT: {
+	case PacketType::REGISTER_CLIENT: {
 		if (event == nullptr) {
 			debugPrintf("WARNING: received a RegisterClientPacket on the unreliable channel\n");
 			break;
 		}
 		shared_ptr<RegisterClientPacket> packet = GenericPacket::createReceive<RegisterClientPacket>(srcAddr, inBuffer);
 		packet->m_peer = event->peer;
+		return packet;
 		break;
 	}
-	case CLIENT_REGISTRATION_REPLY:
+	case PacketType::CLIENT_REGISTRATION_REPLY:
 		return GenericPacket::createReceive<RegistrationReplyPacket>(srcAddr, inBuffer);
 		break;
-	case HANDSHAKE:
+	case PacketType::HANDSHAKE:
 		return GenericPacket::createReceive<HandshakePacket>(srcAddr, inBuffer);
 		break;
-	case HANDSHAKE_REPLY:
+	case PacketType::HANDSHAKE_REPLY:
 		return GenericPacket::createReceive<HandshakeReplyPacket>(srcAddr, inBuffer);
 		break;
-	case REPORT_HIT:
+	case PacketType::REPORT_HIT:
 		return GenericPacket::createReceive<ReportHitPacket>(srcAddr, inBuffer);
 		break;
-	case SET_SPAWN_LOCATION:
+	case PacketType::SET_SPAWN_LOCATION:
 		return GenericPacket::createReceive<SetSpawnPacket>(srcAddr, inBuffer);
 		break;
-	case RESPAWN_CLIENT:
+	case PacketType::RESPAWN_CLIENT:
 		return GenericPacket::createReceive<RespawnClientPacket>(srcAddr, inBuffer);
 		break;
-	case READY_UP_CLIENT:
+	case PacketType::READY_UP_CLIENT:
 		return GenericPacket::createReceive<ReadyUpClientPacket>(srcAddr, inBuffer);
 		break;
-	case START_NETWORKED_SESSION:
+	case PacketType::START_NETWORKED_SESSION:
 		return GenericPacket::createReceive<StartSessionPacket>(srcAddr, inBuffer);
 		break;
-	case PLAYER_INTERACT:
+	case PacketType::PLAYER_INTERACT:
 		return GenericPacket::createReceive<PlayerInteractPacket>(srcAddr, inBuffer);
 		break;
+	default:
+		debugPrintf("WARNING: Could not create a typed packet of for type %d. Returning GenericPacket instead\n", type);
+		return GenericPacket::createReceive<GenericPacket>(srcAddr, inBuffer);
+		break;
 	}
-	debugPrintf("WARNING: Received a packet of unknown type, returning nullptr\n");
 }
 
 shared_ptr<GenericPacket> NetworkUtils::receivePacket(ENetHost* host, ENetSocket* socket) {
@@ -380,29 +384,38 @@ shared_ptr<GenericPacket> NetworkUtils::receivePacket(ENetHost* host, ENetSocket
 	void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
 	buff.data = data;
 	buff.dataLength = ENET_HOST_DEFAULT_MTU;
+	shared_ptr<GenericPacket> packet = nullptr;
 	if (enet_socket_receive(*socket, &srcAddr, &buff, 1)) {
 		BinaryInput inBuffer((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
-		shared_ptr<GenericPacket> genPacket =  GenericPacket::createReceive<GenericPacket>(srcAddr, inBuffer);
+		packet =  GenericPacket::createReceive<GenericPacket>(srcAddr, inBuffer); // Create a generic packet that reads just the type
 		inBuffer.setPosition(0);
-		return NetworkUtils::createTypedPacket(genPacket->type(), srcAddr, inBuffer);
+		packet = NetworkUtils::createTypedPacket(packet->type(), srcAddr, inBuffer); // Create a typed packet that reads all data based on type
+		packet->m_reliable = false;
+		return packet; // Return here so we only read from the socket and dont drop packets
 	}
 	ENetEvent event;
 	if (enet_host_service(host, &event, 0)) {
 		 switch( event.type){
-			 case ENET_EVENT_TYPE_CONNECT:
-				return ReliableConnectPacket::createReceive(srcAddr);
-				break;
-			 case ENET_EVENT_TYPE_DISCONNECT:
-				 return ReliableDisconnectPacket::createReceive(srcAddr);
-				 break;
-			 case ENET_EVENT_TYPE_RECEIVE: {
-				 BinaryInput inBuffer((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
-				 shared_ptr<GenericPacket> genPacket = GenericPacket::createReceive<GenericPacket>(srcAddr, inBuffer);
-				 inBuffer.setPosition(0);
-				 return NetworkUtils::createTypedPacket(genPacket->type(), srcAddr, inBuffer, &event);
-				 break;
-			 }
-		}
+		 case ENET_EVENT_TYPE_CONNECT: {
+			 packet = ReliableConnectPacket::createReceive(event.peer->address);
+			 packet->m_reliable = true;
+			 break;
+		 }
+		 case ENET_EVENT_TYPE_DISCONNECT: {
+			 packet = ReliableDisconnectPacket::createReceive(event.peer->address);
+			 packet->m_reliable = true;
+			 break;
+		 }
+		 case ENET_EVENT_TYPE_RECEIVE: {
+			 BinaryInput inBuffer(event.packet->data, event.packet->dataLength, G3D_BIG_ENDIAN);
+			 shared_ptr<GenericPacket> genPacket = GenericPacket::createReceive<GenericPacket>(event.peer->address, inBuffer);
+			 inBuffer.setPosition(0);
+			 packet = NetworkUtils::createTypedPacket(genPacket->type(), event.peer->address, inBuffer, &event);
+			 packet->m_reliable = true;
+			 break;
+		 }
+		 }
+		 return packet;
 		 enet_packet_destroy(event.packet);
 	}
 	free(data);

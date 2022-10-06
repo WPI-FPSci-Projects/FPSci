@@ -4,6 +4,8 @@
 #include "TargetEntity.h"
 
 enum PacketType {
+	UNINTALIZED_TYPE,
+
 	BATCH_ENTITY_UPDATE,
 	CREATE_ENTITY,
 	DESTROY_ENTITY,
@@ -34,6 +36,8 @@ class GenericPacket : public ReferenceCountedObject {
 
 protected:
 	GenericPacket();
+	/* Constructor for creating a packet wtithout reading its type */
+	GenericPacket(ENetAddress srcAddr);
 	/* Constructor for receiving a packet */
 	GenericPacket(ENetAddress srcAddr, BinaryInput &inBuffer);
 	/* Constructor for seinding over the reliable channel to the peer */
@@ -63,17 +67,19 @@ protected:
 	virtual void serialize(BinaryOutput &outBuffer);		///> serialize the data in this packet
 	virtual void deserialize(BinaryInput &inBuffer);		///> deserialize the data in this packet
 	
-	bool m_reliable;						// which channel to send; also determines which ENet fields are defined
 	ENetPeer* m_destPeer;					// reliable
 	ENetSocket* m_srcSocket;				// unreliable
 	ENetAddress* m_destAddr;				// unreliable
 
-	PacketType m_type;
-
 	ENetAddress m_srcAddr;					// Only used on inbound packets for the address of the sender
 	bool m_inbound = false;					// indicates if the packet is inbound or outbound
 
+private:
+	PacketType m_type = UNINTALIZED_TYPE;
+
 public:
+	bool m_reliable;						// which channel to send/was received on; also determines which ENet fields are defined
+
 	int send();					///> sends the packet over the network
 
 	void setReliableDest(ENetPeer* peer) { 
@@ -86,9 +92,9 @@ public:
 		m_reliable = false;
 	}
 
-	bool reliable() { return m_reliable; }
+	bool isReliable() { return m_reliable; }
 	ENetAddress srcAddr() { return m_srcAddr; }
-	bool inbound() { return m_inbound; }
+	bool isInbound() { return m_inbound; }
 
 	virtual PacketType type() { return m_type; };				///> tells the type of packet this is
 	virtual GenericPacket* getTypedPacket() { return this; }	///> Returns *this* as the most narrow type possble
@@ -98,7 +104,7 @@ public:
 class BatchEntityUpdatePacket : public GenericPacket {
 protected:
 	BatchEntityUpdatePacket() : GenericPacket() {}
-	BatchEntityUpdatePacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	BatchEntityUpdatePacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	BatchEntityUpdatePacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	BatchEntityUpdatePacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 public:
@@ -119,8 +125,7 @@ public:
 	PacketType type() override { return BATCH_ENTITY_UPDATE; }
 	BatchEntityUpdatePacket* getTypedPacket() override { return this; }
 
-	void populate(uint32 frameNumber, Array<shared_ptr<Entity>> entities, NetworkUpdateType updateType);
-	void populate(uint32 frameNumber, Array<shared_ptr<NetworkedEntity>> entities, NetworkUpdateType updateType);
+	void populate(uint32 frameNumber, Array<EntityUpdate> updates, NetworkUpdateType updateType);
 
 protected:
 	void serialize(BinaryOutput &outBuffer) override;
@@ -137,7 +142,7 @@ public:
 class CreateEntityPacket : public GenericPacket {
 protected:
 	CreateEntityPacket() : GenericPacket() {}
-	CreateEntityPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	CreateEntityPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	CreateEntityPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	CreateEntityPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 	
@@ -159,12 +164,12 @@ protected:
 class DestroyEntityPacket : public GenericPacket {
 protected:
 	DestroyEntityPacket() : GenericPacket() {}
-	DestroyEntityPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	DestroyEntityPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	DestroyEntityPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	DestroyEntityPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 
 public:
-	PacketType type() override { return CREATE_ENTITY; }
+	PacketType type() override { return DESTROY_ENTITY; }
 	DestroyEntityPacket* getTypedPacket() override { return this; }
 
 	void populate(uint32 frameNumber, GUniqueID guid);
@@ -181,7 +186,7 @@ protected:
 class RegisterClientPacket : public GenericPacket {
 protected:
 	RegisterClientPacket() : GenericPacket() {}
-	RegisterClientPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	RegisterClientPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	RegisterClientPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	RegisterClientPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 	
@@ -204,7 +209,7 @@ protected:
 class RegistrationReplyPacket : public GenericPacket {
 protected:
 	RegistrationReplyPacket() : GenericPacket() {}
-	RegistrationReplyPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	RegistrationReplyPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	RegistrationReplyPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	RegistrationReplyPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 
@@ -226,7 +231,7 @@ protected:
 class HandshakePacket : public GenericPacket {
 protected:
 	HandshakePacket() : GenericPacket() {}
-	HandshakePacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	HandshakePacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	HandshakePacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	HandshakePacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 
@@ -243,7 +248,7 @@ protected:
 class HandshakeReplyPacket : public GenericPacket {
 protected:
 	HandshakeReplyPacket() : GenericPacket() {}
-	HandshakeReplyPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	HandshakeReplyPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	HandshakeReplyPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	HandshakeReplyPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 
@@ -260,7 +265,7 @@ protected:
 class MoveClientPacket : public GenericPacket {
 protected:
 	MoveClientPacket() : GenericPacket() {}
-	MoveClientPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	MoveClientPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	MoveClientPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	MoveClientPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 
@@ -282,7 +287,7 @@ protected:
 class ReportHitPacket : public GenericPacket {
 protected:
 	ReportHitPacket() : GenericPacket() {}
-	ReportHitPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	ReportHitPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	ReportHitPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	ReportHitPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 
@@ -305,7 +310,7 @@ protected:
 class SetSpawnPacket : public GenericPacket {
 protected:
 	SetSpawnPacket() : GenericPacket() {}
-	SetSpawnPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	SetSpawnPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	SetSpawnPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	SetSpawnPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 
@@ -327,7 +332,7 @@ protected:
 class RespawnClientPacket : public GenericPacket {
 protected:
 	RespawnClientPacket() : GenericPacket() {}
-	RespawnClientPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	RespawnClientPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	RespawnClientPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	RespawnClientPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 
@@ -348,7 +353,7 @@ protected:
 class ReadyUpClientPacket : public GenericPacket {
 protected:
 	ReadyUpClientPacket() : GenericPacket() {}
-	ReadyUpClientPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	ReadyUpClientPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	ReadyUpClientPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	ReadyUpClientPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 
@@ -365,7 +370,7 @@ protected:
 class StartSessionPacket : public GenericPacket {
 protected:
 	StartSessionPacket() : GenericPacket() {}
-	StartSessionPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	StartSessionPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	StartSessionPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	StartSessionPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 
@@ -386,7 +391,7 @@ protected:
 class PlayerInteractPacket : public GenericPacket {
 protected:
 	PlayerInteractPacket() : GenericPacket() {}
-	PlayerInteractPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr, inBuffer) {}
+	PlayerInteractPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	PlayerInteractPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	PlayerInteractPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 
@@ -412,7 +417,6 @@ protected:
 class ReliableConnectPacket : public GenericPacket {
 protected:
 	ReliableConnectPacket(ENetAddress srcAddr) : GenericPacket() {
-		m_type = RELIABLE_CONNECT;
 		m_srcAddr = srcAddr;
 		m_inbound = true;
 		m_reliable = true;
@@ -434,8 +438,7 @@ protected:
 
 class ReliableDisconnectPacket : public GenericPacket {
 protected:
-	ReliableDisconnectPacket(ENetAddress srcAddr) : GenericPacket() { 
-		m_type = RELIABLE_DISCONNECT; 
+	ReliableDisconnectPacket(ENetAddress srcAddr) : GenericPacket() {
 		m_srcAddr = srcAddr;
 		m_inbound = true;
 		m_reliable = true;

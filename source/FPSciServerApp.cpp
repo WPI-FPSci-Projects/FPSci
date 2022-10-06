@@ -92,212 +92,227 @@ void FPSciServerApp::onNetwork() {
     /* First we receive on the unreliable connection */
 
     shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
-    char ip[16];
-    ENetAddress srcAddr = inPacket->srcAddr();
-    enet_address_get_host_ip(&srcAddr, ip, 16);
-    NetworkUtils::ConnectedClient* client = getClientFromAddress(inPacket->srcAddr());
-    if (!inPacket->reliable()){
-        switch (inPacket->type()) {
-        case HANDSHAKE: {
-            shared_ptr<HandshakeReplyPacket> outPacket = GenericPacket::createUnreliable<HandshakeReplyPacket>(&m_unreliableSocket, &client->unreliableAddress);
-            if (outPacket->send() <= 0) {
-                debugPrintf("Failed to send the handshke reply\n");
-            }
-            break;
-        }
-        case BATCH_ENTITY_UPDATE: {
-            BatchEntityUpdatePacket* typedPacket = static_cast<BatchEntityUpdatePacket*> (inPacket.get());
-            for (BatchEntityUpdatePacket::EntityUpdate e: typedPacket->m_updates) {
-                shared_ptr<NetworkedEntity> entity = (*scene()).typedEntity<NetworkedEntity>(e.name);
-                if (entity == nullptr) {
-                    debugPrintf("Recieved update for entity %s, but it doesn't exist\n", e.name.c_str());
+    while (inPacket != nullptr) {
+        char ip[16];
+        ENetAddress srcAddr = inPacket->srcAddr();
+        enet_address_get_host_ip(&srcAddr, ip, 16);
+        NetworkUtils::ConnectedClient* client = getClientFromAddress(inPacket->srcAddr());
+        if (!inPacket->isReliable()) {
+            switch (inPacket->type()) {
+            case HANDSHAKE: {
+                shared_ptr<HandshakeReplyPacket> outPacket = GenericPacket::createUnreliable<HandshakeReplyPacket>(&m_unreliableSocket, &srcAddr);
+                if (outPacket->send() <= 0) {
+                    debugPrintf("Failed to send the handshke reply\n");
                 }
-                else {
-                    switch (typedPacket->m_updateType) {
-                    case BatchEntityUpdatePacket::NetworkUpdateType::NOOP:
-                         // Do nothing (No-Op)
-                        break;
-                    case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
-                        entity->setFrame(e.frame);
-                        break;
+                break;
+            }
+            case BATCH_ENTITY_UPDATE: {
+                BatchEntityUpdatePacket* typedPacket = static_cast<BatchEntityUpdatePacket*> (inPacket.get());
+                for (BatchEntityUpdatePacket::EntityUpdate e : typedPacket->m_updates) {
+                    shared_ptr<NetworkedEntity> entity = (*scene()).typedEntity<NetworkedEntity>(e.name);
+                    if (entity == nullptr) {
+                        debugPrintf("Recieved update for entity %s, but it doesn't exist\n", e.name.c_str());
+                    }
+                    else {
+                        switch (typedPacket->m_updateType) {
+                        case BatchEntityUpdatePacket::NetworkUpdateType::NOOP:
+                            // Do nothing (No-Op)
+                            break;
+                        case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
+                            entity->setFrame(e.frame);
+                            break;
+                        }
                     }
                 }
+                break;
             }
-            break;
-        }
-        case PLAYER_INTERACT:{
-            PlayerInteractPacket* typedPacket = static_cast<PlayerInteractPacket*> (inPacket.get());
-            shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_actorID.toString16());
-            RemotePlayerAction rpa = RemotePlayerAction();
-            rpa.time = sess->logger->getFileTime();
-            rpa.viewDirection = clientEntity->getLookAzEl();
-            rpa.position = clientEntity->frame().translation;
-            rpa.state = sess->currentState;
-            rpa.action = (PlayerActionType)typedPacket->m_remoteAction;
-            rpa.actorID = typedPacket->m_actorID.toString16();
-            sess->logger->logRemotePlayerAction(rpa);
-            break;
-        }
-        default:
-            debugPrintf("WARNING: received a packet of type %d on the unreliable channel that was not handled\n", inPacket->type());
-        }
-    }
-    // This is a reliable packet and should be handled as such
-    else {
-        switch (inPacket->type()) {
-        case RELIABLE_CONNECT: {
-            debugPrintf("connection recieved...\n");
-            logPrintf("made connection to %s in response to input\n", ip);
-            break;
-        }
-        case RELIABLE_DISCONNECT: {
-            debugPrintf("disconnection recieved...\n");
-            logPrintf("%s disconnected.\n", ip);
-            /* Removes the clinet from the list of connected clients and orders all other clients to delete that entity */
-            shared_ptr<NetworkedEntity> entity = scene()->typedEntity<NetworkedEntity>(client->guid.toString16());
-            if (entity != nullptr) {
-                scene()->remove(entity);
+            case PLAYER_INTERACT: {
+                PlayerInteractPacket* typedPacket = static_cast<PlayerInteractPacket*> (inPacket.get());
+                shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_actorID.toString16());
+                RemotePlayerAction rpa = RemotePlayerAction();
+                rpa.time = sess->logger->getFileTime();
+                rpa.viewDirection = clientEntity->getLookAzEl();
+                rpa.position = clientEntity->frame().translation;
+                rpa.state = sess->currentState;
+                rpa.action = (PlayerActionType)typedPacket->m_remoteAction;
+                rpa.actorID = typedPacket->m_actorID.toString16();
+                sess->logger->logRemotePlayerAction(rpa);
+                break;
             }
-            shared_ptr<DestroyEntityPacket> outPacket = GenericPacket::createReliable<DestroyEntityPacket>(client->peer);
-            outPacket->populate(m_networkFrameNum, client->guid);
-            outPacket->send();
-            for (int i = 0; i < m_connectedClients.length(); i++) {
-                if (m_connectedClients[i]->guid == client->guid) {
-                    m_connectedClients.remove(i, 1);
+            default:
+                debugPrintf("WARNING: unhandled packet receved on the unreliable channel of type: %d\n", inPacket->type());
+                break;
+            }
+        }
+        // This is a reliable packet and should be handled as such
+        else {
+            switch (inPacket->type()) {
+            case RELIABLE_CONNECT: {
+                debugPrintf("connection recieved...\n");
+                logPrintf("made connection to %s in response to input\n", ip);
+                break;
+            }
+            case RELIABLE_DISCONNECT: {
+                debugPrintf("disconnection recieved...\n");
+                logPrintf("%s disconnected.\n", ip);
+                /* Removes the clinet from the list of connected clients and orders all other clients to delete that entity */
+                shared_ptr<NetworkedEntity> entity = scene()->typedEntity<NetworkedEntity>(client->guid.toString16());
+                if (entity != nullptr) {
+                    scene()->remove(entity);
                 }
-            }
-            break;
-        }
-        case REGISTER_CLIENT: {
-            RegisterClientPacket* typedPacket = static_cast<RegisterClientPacket*> (inPacket.get());
-            debugPrintf("Registering client...\n");
-            NetworkUtils::ConnectedClient* newClient = NetworkUtils::registerClient(typedPacket);   // TODO: Decide if this should be in NetworkUtils or not
-            m_connectedClients.append(newClient);
-            /* Reply to the registration */
-            shared_ptr<RegistrationReplyPacket> registrationReply = GenericPacket::createReliable<RegistrationReplyPacket>(newClient->peer);
-            registrationReply->populate(newClient->guid, 0);
-            registrationReply->send();
-            debugPrintf("\tRegistered client: %s\n", newClient->guid.toString16());
-
-            Any modelSpec = PARSE_ANY(ArticulatedModel::Specification{			///< Basic model spec for target
-                filename = "model/target/mid_poly_sphere_no_outline.obj";
-                cleanGeometrySettings = ArticulatedModel::CleanGeometrySettings{
-                allowVertexMerging = true;
-                forceComputeNormals = false;
-                forceComputeTangents = false;
-                forceVertexMerging = true;
-                maxEdgeLength = inf;
-                maxNormalWeldAngleDegrees = 0;
-                maxSmoothAngleDegrees = 0;
-                };
-                });
-            shared_ptr<Model> model = ArticulatedModel::create(modelSpec);
-            /* Create a new entity for the client */
-            const shared_ptr<NetworkedEntity>& target = NetworkedEntity::create(newClient->guid.toString16(), &(*scene()), model, CFrame());
-
-            target->setWorldSpace(true);
-            target->setColor(G3D::Color3(20.0, 20.0, 200.0));
-
-            /* Add the new target to the scene */
-            (*scene()).insert(target);
-
-            /* ADD NEW CLIENT TO OTHER CLIENTS, ADD OTHER CLIENTS TO NEW CLIENT */
-            shared_ptr<CreateEntityPacket> createEntityPacket = GenericPacket::createForBroadcast<CreateEntityPacket>();
-            createEntityPacket->populate(m_networkFrameNum, newClient->guid);
-            NetworkUtils::broadcastReliable(createEntityPacket, m_localHost);
-            debugPrintf("Sent a broadcast packet to all connected peers\n");
-
-            for (int i = 0; i < m_connectedClients.length(); i++) {
-                // Create entitys on the new client for all other clients
-                if (newClient->guid != m_connectedClients[i]->guid) {
-                    createEntityPacket = GenericPacket::createReliable<CreateEntityPacket>(client->peer);
-                    createEntityPacket->populate(m_networkFrameNum, m_connectedClients[i]->guid);
-                    createEntityPacket->send();
-                    debugPrintf("Sent add to %s to add %s\n", newClient->guid.toString16(), m_connectedClients[i]->guid.toString16());
+                for (int i = 0; i < m_connectedClients.length(); i++) {
+                    if (m_connectedClients[i]->guid == client->guid) {
+                        m_connectedClients.remove(i, 1);
+                    }
+                    else {
+                        shared_ptr<DestroyEntityPacket> outPacket = GenericPacket::createReliable<DestroyEntityPacket>(m_connectedClients[i]->peer);
+                        outPacket->populate(m_networkFrameNum, client->guid);
+                        outPacket->send();
+                    }
                 }
+                break;
             }
-            // move the client to a different location
-            // TODO: Make this smart not just some test code
-            if (m_connectedClients.length() % 2 == 0) {
-                Point3 position = Point3(-46, -2.3, 0);
-                float heading = 90;
-                shared_ptr<SetSpawnPacket> setSpawnPacket = GenericPacket::createReliable<SetSpawnPacket>(newClient->peer);
-                setSpawnPacket->populate(position, heading);
-                setSpawnPacket->send();
-                shared_ptr<RespawnClientPacket> respawnPacket = GenericPacket::createReliable<RespawnClientPacket>(newClient->peer);
-                respawnPacket->populate();
-                respawnPacket->send();
-            }
-        }
-        case REPORT_HIT: {
-            // This just causes everyone to respawn
-            ReportHitPacket* typedPacket = static_cast<ReportHitPacket*> (inPacket.get());
-            shared_ptr<NetworkedEntity> hitEntity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_shotID.toString16());
-            //NetworkUtils::ConnectedClient* hitClient = getClientFromGUID(hitID);
+            case REGISTER_CLIENT: {
+                RegisterClientPacket* typedPacket = static_cast<RegisterClientPacket*> (inPacket.get());
+                debugPrintf("Registering client...\n");
+                NetworkUtils::ConnectedClient* newClient = NetworkUtils::registerClient(typedPacket);   // TODO: Decide if this should be in NetworkUtils or not
+                m_connectedClients.append(newClient);
+                /* Reply to the registration */
+                shared_ptr<RegistrationReplyPacket> registrationReply = GenericPacket::createReliable<RegistrationReplyPacket>(newClient->peer);
+                registrationReply->populate(newClient->guid, 0);
+                registrationReply->send();
+                debugPrintf("\tRegistered client: %s\n", newClient->guid.toString16());
 
-            // Log the hit on the server
-            const shared_ptr<NetworkedEntity> shooterEntity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_shooterID.toString16());
-            RemotePlayerAction rpa = RemotePlayerAction();
-            rpa.time = sess->logger->getFileTime();
-            rpa.viewDirection = shooterEntity->getLookAzEl();
-            rpa.position = shooterEntity->frame().translation;
-            rpa.state = sess->currentState;
-            rpa.action = PlayerActionType::Hit;
-            rpa.actorID = typedPacket->m_shooterID.toString16();
-            rpa.affectedID = typedPacket->m_shooterID.toString16();
-            sess->logger->logRemotePlayerAction(rpa);
+                Any modelSpec = PARSE_ANY(ArticulatedModel::Specification{			///< Basic model spec for target
+                    filename = "model/target/mid_poly_sphere_no_outline.obj";
+                    cleanGeometrySettings = ArticulatedModel::CleanGeometrySettings{
+                    allowVertexMerging = true;
+                    forceComputeNormals = false;
+                    forceComputeTangents = false;
+                    forceVertexMerging = true;
+                    maxEdgeLength = inf;
+                    maxNormalWeldAngleDegrees = 0;
+                    maxSmoothAngleDegrees = 0;
+                    };
+                    });
+                shared_ptr<Model> model = ArticulatedModel::create(modelSpec);
+                /* Create a new entity for the client */
+                const shared_ptr<NetworkedEntity>& target = NetworkedEntity::create(newClient->guid.toString16(), &(*scene()), model, CFrame());
 
-            float damage = 1.001 / sessConfig->hitsToKill;
+                target->setWorldSpace(true);
+                target->setColor(G3D::Color3(20.0, 20.0, 200.0));
 
-            if (hitEntity->doDamage(damage)) { //TODO PARAMETERIZE THIS DAMAGE VALUE SOME HOW! DO IT! DON'T FORGET!  DON'T DO IT!
-                debugPrintf("A player died! Resetting game...\n");
-                playersReady = 0;
-                //static_cast<NetworkedSession*>(sess.get())->resetSession();
-                netSess->resetSession();
-                scene()->typedEntity<PlayerEntity>("player")->setPlayerMovement(true); //Allow the server to move freely
+                /* Add the new target to the scene */
+                (*scene()).insert(target);
 
-                Array<shared_ptr<NetworkedEntity>> entities;
-                scene()->getTypedEntityArray<NetworkedEntity>(entities);
-                for (shared_ptr<NetworkedEntity> entity : entities) {
-                    entity->respawn();
+                /* ADD NEW CLIENT TO OTHER CLIENTS, ADD OTHER CLIENTS TO NEW CLIENT */
+                shared_ptr<CreateEntityPacket> createEntityPacket = GenericPacket::createForBroadcast<CreateEntityPacket>();
+                createEntityPacket->populate(m_networkFrameNum, newClient->guid);
+                NetworkUtils::broadcastReliable(createEntityPacket, m_localHost);
+                debugPrintf("Sent a broadcast packet to all connected peers\n");
+
+                for (int i = 0; i < m_connectedClients.length(); i++) {
+                    // Create entitys on the new client for all other clients
+                    if (newClient->guid != m_connectedClients[i]->guid) {
+                        createEntityPacket = GenericPacket::createReliable<CreateEntityPacket>(newClient->peer);
+                        createEntityPacket->populate(m_networkFrameNum, m_connectedClients[i]->guid);
+                        createEntityPacket->send();
+                        debugPrintf("Sent add to %s to add %s\n", newClient->guid.toString16(), m_connectedClients[i]->guid.toString16());
+                    }
                 }
+                // move the client to a different location
+                // TODO: Make this smart not just some test code
+                if (m_connectedClients.length() % 2 == 0) {
+                    Point3 position = Point3(-46, -2.3, 0);
+                    float heading = 90;
+                    shared_ptr<SetSpawnPacket> setSpawnPacket = GenericPacket::createReliable<SetSpawnPacket>(newClient->peer);
+                    setSpawnPacket->populate(position, heading);
+                    setSpawnPacket->send();
+                    shared_ptr<RespawnClientPacket> respawnPacket = GenericPacket::createReliable<RespawnClientPacket>(newClient->peer);
+                    respawnPacket->populate();
+                    respawnPacket->send();
+                }
+                break;
+            }
+            case PacketType::REPORT_HIT: {
+                // This just causes everyone to respawn
+                ReportHitPacket* typedPacket = static_cast<ReportHitPacket*> (inPacket.get());
+                shared_ptr<NetworkedEntity> hitEntity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_shotID.toString16());
+                //NetworkUtils::ConnectedClient* hitClient = getClientFromGUID(hitID);
 
-                /* Send a respawn packet to everyone */
-                shared_ptr<RespawnClientPacket> respawnPacket = GenericPacket::createForBroadcast<RespawnClientPacket>();
-                respawnPacket->populate(m_networkFrameNum);
-                NetworkUtils::broadcastReliable(respawnPacket, m_localHost);
+                // Log the hit on the server
+                const shared_ptr<NetworkedEntity> shooterEntity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_shooterID.toString16());
+                RemotePlayerAction rpa = RemotePlayerAction();
+                rpa.time = sess->logger->getFileTime();
+                rpa.viewDirection = shooterEntity->getLookAzEl();
+                rpa.position = shooterEntity->frame().translation;
+                rpa.state = sess->currentState;
+                rpa.action = PlayerActionType::Hit;
+                rpa.actorID = typedPacket->m_shooterID.toString16();
+                rpa.affectedID = typedPacket->m_shooterID.toString16();
+                sess->logger->logRemotePlayerAction(rpa);
+
+                float damage = 1.001 / sessConfig->hitsToKill;
+
+                if (hitEntity->doDamage(damage)) { //TODO: PARAMETERIZE THIS DAMAGE VALUE SOME HOW! DO IT! DON'T FORGET!  DON'T DO IT!
+                    debugPrintf("A player died! Resetting game...\n");
+                    playersReady = 0;
+                    //static_cast<NetworkedSession*>(sess.get())->resetSession();
+                    netSess->resetSession();
+                    scene()->typedEntity<PlayerEntity>("player")->setPlayerMovement(true); //Allow the server to move freely
+
+                    Array<shared_ptr<NetworkedEntity>> entities;
+                    scene()->getTypedEntityArray<NetworkedEntity>(entities);
+                    for (shared_ptr<NetworkedEntity> entity : entities) {
+                        entity->respawn();
+                    }
+
+                    /* Send a respawn packet to everyone */
+                    shared_ptr<RespawnClientPacket> respawnPacket = GenericPacket::createForBroadcast<RespawnClientPacket>();
+                    respawnPacket->populate(m_networkFrameNum);
+                    NetworkUtils::broadcastReliable(respawnPacket, m_localHost);
+                }
+                // Notify every player of the hit
+                shared_ptr<PlayerInteractPacket> interactPacket = GenericPacket::createForBroadcast<PlayerInteractPacket>();
+                interactPacket->populate(m_networkFrameNum, PlayerActionType::Hit, typedPacket->m_shooterID);
+                Array<ENetAddress*> clientAddresses;
+                for (NetworkUtils::ConnectedClient* c : m_connectedClients) {
+                    clientAddresses.append(&c->unreliableAddress);
+                }
+                /* Send this as a player interact packet so that clients log it */
+                NetworkUtils::broadcastUnreliable(interactPacket, &m_unreliableSocket, clientAddresses);
+                break;
             }
-            // Notify every player of the hit
-            shared_ptr<PlayerInteractPacket> interactPacket = GenericPacket::createForBroadcast<PlayerInteractPacket>();
-            interactPacket->populate(m_networkFrameNum, PlayerActionType::Hit, typedPacket->m_shooterID);
-            Array<ENetAddress*> clientAddresses;
-            for (NetworkUtils::ConnectedClient* c : m_connectedClients) {
-                clientAddresses.append(&c->unreliableAddress);
+            case READY_UP_CLIENT: {
+                playersReady++;
+                debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), playersReady);
+                if (playersReady >= experimentConfig.numPlayers)
+                {
+                    netSess->startSession();
+                    shared_ptr<StartSessionPacket> sessionStartPacket = GenericPacket::createForBroadcast<StartSessionPacket>();
+                    sessionStartPacket->populate(m_networkFrameNum);
+                    NetworkUtils::broadcastReliable(sessionStartPacket, m_localHost);
+                    debugPrintf("All PLAYERS ARE READY!\n");
+                }
+                break;
             }
-            /* Send this as a player interact packet so that clients log it */
-            NetworkUtils::broadcastUnreliable(interactPacket, &m_unreliableSocket, clientAddresses);
-            break;
-        }
-        case READY_UP_CLIENT: {
-            playersReady++;
-            debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), playersReady);
-            if (playersReady >= experimentConfig.numPlayers)
-            {
-                netSess->startSession();
-                shared_ptr<StartSessionPacket> sessionStartPacket = GenericPacket::createForBroadcast<StartSessionPacket>();
-                sessionStartPacket->populate(m_networkFrameNum);
-                NetworkUtils::broadcastReliable(sessionStartPacket, m_localHost);
-                debugPrintf("All PLAYERS ARE READY!\n");
+            default:
+                debugPrintf("WARNING: unhandled packet receved on the reliable channel of type: %d\n", inPacket->type());
+                break;
             }
         }
-        }
+        inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
     }
 
     /* Now we send the position of all entities to all connected clients */
     Array<shared_ptr<NetworkedEntity>> entityArray;
     scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
+    Array<BatchEntityUpdatePacket::EntityUpdate> updates;
+    for (shared_ptr<NetworkedEntity> e : entityArray) {
+        updates.append(BatchEntityUpdatePacket::EntityUpdate(e->frame(), e->name()));
+    }
     shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
-    updatePacket->populate(m_networkFrameNum, entityArray, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
+    updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
     
     Array<ENetAddress*> clientAddresses;
     for (NetworkUtils::ConnectedClient* c : m_connectedClients) {

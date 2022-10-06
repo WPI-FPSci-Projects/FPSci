@@ -3,16 +3,23 @@
 GenericPacket::GenericPacket() {
 	m_inbound = false;
 }
+GenericPacket::GenericPacket(ENetAddress srcAddr) {
+	m_srcAddr = srcAddr;
+	m_inbound = true;
+}
+
 GenericPacket::GenericPacket(ENetAddress srcAddr, BinaryInput& inBuffer) {
 	m_srcAddr = srcAddr;
 	m_inbound = true;
 	this->deserialize(inBuffer);
 }
 GenericPacket::GenericPacket(ENetPeer* destPeer) {
+	m_inbound = false;
 	m_destPeer = destPeer;
 	m_reliable = true;
 }
 GenericPacket::GenericPacket(ENetSocket* srcSocket, ENetAddress* destAddr) {
+	m_inbound = false;
 	m_srcSocket = srcSocket;
 	m_destAddr = destAddr;
 	m_reliable = false;
@@ -35,28 +42,17 @@ int GenericPacket::send() {
 }
 
 void GenericPacket::serialize(BinaryOutput &outBuffer) {
-	outBuffer.writeUInt8(m_type);
+	outBuffer.writeUInt8(this->type());
 }
 
 void GenericPacket::deserialize(BinaryInput &inBuffer) {
 	m_type = (PacketType) inBuffer.readUInt8();
 }
 
-void BatchEntityUpdatePacket::populate(uint32 frameNumber, Array<shared_ptr<NetworkedEntity>> entities, NetworkUpdateType updateType) {
-	Array<shared_ptr<Entity>> convertedEntites;
-	for (shared_ptr<NetworkedEntity> e : entities) {
-		convertedEntites.append(static_cast<shared_ptr<Entity>>(e));
-	}
-	this->populate(frameNumber, convertedEntites, updateType);
-}
-
 
 /* The following packet contains an array of updates for entities */
-void BatchEntityUpdatePacket::populate(uint32 frameNumber, Array<shared_ptr<Entity>> entities, NetworkUpdateType updateType) {
-	m_updates = Array<EntityUpdate>();
-	for (shared_ptr<Entity> e : entities) {
-		m_updates.append(EntityUpdate(e->frame(), e->name()));
-	}
+void BatchEntityUpdatePacket::populate(uint32 frameNumber, Array<EntityUpdate> updates, NetworkUpdateType updateType) {
+	m_updates = updates;
 	m_frameNumber = frameNumber;
 	m_updateType = updateType;
 }
