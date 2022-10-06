@@ -89,7 +89,7 @@
 
 			Type: PING_DATA:
 			UInt8: type (PING_DATA)
-			UInt16: Frame Number
+			UInt32: Frame Number
 			UInt16: capped latest RTT
 			UInt16: capped SMA of RTT
 			UInt16: capped minimum recorded RTT

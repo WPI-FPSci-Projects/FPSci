@@ -54,8 +54,8 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 	if (serverApp != nullptr) {
 		for (NetworkUtils::ConnectedClient* client : serverApp->getConnectedClients()) {
 			//TODO should be accumulate? not sure, but doing this for now to prevent crash:
-			if (notNull(logger) && serverApp->getClientLatestRTTs().size() > 0) {
-				logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, serverApp->getClientLatestRTTs().get(client->unreliableAddress.host), serverApp->m_networkFrameNum, client->frameNumber, client->guid));
+			if (notNull(logger) && serverApp->getClientRTTStatistics().size() > 0) {
+				logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, serverApp->getClientRTTStatistics().get(client->unreliableAddress.host), serverApp->m_networkFrameNum, client->frameNumber, client->guid));
 			}
 		}
 	}
