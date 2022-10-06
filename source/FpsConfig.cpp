@@ -200,6 +200,67 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("movementRestrictionZ", movementRestrictionZ);
 		reader.getIfPresent("restrictedMovementEnabled", restrictedMovementEnabled);
 		reader.getIfPresent("counterStrafing", counterStrafing);
+		reader.getIfPresent("propagatePlayerConfigs", propagatePlayerConfigsToAll);
+
+		clientPlayerConfigs.push_back(PlayerConfig());
+		clientPlayerConfigs.push_back(PlayerConfig());
+
+		// For Client 1
+		reader.getIfPresent("Client1moveRate", clientPlayerConfigs[0].moveRate);
+		reader.getIfPresent("Client1moveScale", clientPlayerConfigs[0].moveScale);
+		reader.getIfPresent("Client1sprintMultiplier", clientPlayerConfigs[0].sprintMultiplier);
+		reader.getIfPresent("Client1headBobEnabled", clientPlayerConfigs[0].headBobEnabled);
+		reader.getIfPresent("Client1headBobAmplitude", clientPlayerConfigs[0].headBobAmplitude);
+		reader.getIfPresent("Client1headBobFrequency", clientPlayerConfigs[0].headBobFrequency);
+		reader.getIfPresent("Client1respawnPos", clientPlayerConfigs[0].respawnPos);
+		reader.getIfPresent("Client1accelerationEnabled", clientPlayerConfigs[0].accelerationEnabled);
+		reader.getIfPresent("Client1movementAcceleration", clientPlayerConfigs[0].movementAcceleration);
+		reader.getIfPresent("Client1movementDeceleration", clientPlayerConfigs[0].movementDeceleration);
+		reader.getIfPresent("Client1turnScale", clientPlayerConfigs[0].turnScale);
+		reader.getIfPresent("Client1playerHeight", clientPlayerConfigs[0].height);
+		reader.getIfPresent("Client1crouchHeight", clientPlayerConfigs[0].crouchHeight);
+		reader.getIfPresent("Client1jumpVelocity", clientPlayerConfigs[0].jumpVelocity);
+		reader.getIfPresent("Client1jumpInterval", clientPlayerConfigs[0].jumpInterval);
+		reader.getIfPresent("Client1jumpTouch", clientPlayerConfigs[0].jumpTouch);
+		reader.getIfPresent("Client1playerGravity", clientPlayerConfigs[0].gravity);
+		reader.getIfPresent("Client1playerAxisLock", clientPlayerConfigs[0].axisLock);
+		reader.getIfPresent("Client1disablePlayerMotionBetweenTrials", clientPlayerConfigs[0].stillBetweenTrials);
+		reader.getIfPresent("Client1resetPlayerPositionBetweenTrials", clientPlayerConfigs[0].resetPositionPerTrial);
+		reader.getIfPresent("Client1movementRestrictionX", clientPlayerConfigs[0].movementRestrictionX);
+		reader.getIfPresent("Client1movementRestrictionZ", clientPlayerConfigs[0].movementRestrictionZ);
+		reader.getIfPresent("Client1restrictedMovementEnabled", clientPlayerConfigs[0].restrictedMovementEnabled);
+		reader.getIfPresent("Client1counterStrafing", clientPlayerConfigs[0].counterStrafing);
+		reader.getIfPresent("Client1propagatePlayerConfigs", clientPlayerConfigs[0].propagatePlayerConfigsToAll);
+
+		// For Client 2
+		reader.getIfPresent("Client2moveRate", clientPlayerConfigs[1].moveRate);
+		reader.getIfPresent("Client2moveScale", clientPlayerConfigs[1].moveScale);
+		reader.getIfPresent("Client2sprintMultiplier", clientPlayerConfigs[1].sprintMultiplier);
+		reader.getIfPresent("Client2headBobEnabled", clientPlayerConfigs[1].headBobEnabled);
+		reader.getIfPresent("Client2headBobAmplitude", clientPlayerConfigs[1].headBobAmplitude);
+		reader.getIfPresent("Client2headBobFrequency", clientPlayerConfigs[1].headBobFrequency);
+		reader.getIfPresent("Client2respawnPos", clientPlayerConfigs[1].respawnPos);
+		reader.getIfPresent("Client2accelerationEnabled", clientPlayerConfigs[1].accelerationEnabled);
+		reader.getIfPresent("Client2movementAcceleration", clientPlayerConfigs[1].movementAcceleration);
+		reader.getIfPresent("Client2movementDeceleration", clientPlayerConfigs[1].movementDeceleration);
+		reader.getIfPresent("Client2turnScale", clientPlayerConfigs[1].turnScale);
+		reader.getIfPresent("Client2playerHeight", clientPlayerConfigs[1].height);
+		reader.getIfPresent("Client2crouchHeight", clientPlayerConfigs[1].crouchHeight);
+		reader.getIfPresent("Client2jumpVelocity", clientPlayerConfigs[1].jumpVelocity);
+		reader.getIfPresent("Client2jumpInterval", clientPlayerConfigs[1].jumpInterval);
+		reader.getIfPresent("Client2jumpTouch", clientPlayerConfigs[1].jumpTouch);
+		reader.getIfPresent("Client2playerGravity", clientPlayerConfigs[1].gravity);
+		reader.getIfPresent("Client2playerAxisLock", clientPlayerConfigs[1].axisLock);
+		reader.getIfPresent("Client2disablePlayerMotionBetweenTrials", clientPlayerConfigs[1].stillBetweenTrials);
+		reader.getIfPresent("Client2resetPlayerPositionBetweenTrials", clientPlayerConfigs[1].resetPositionPerTrial);
+		reader.getIfPresent("Client2movementRestrictionX", clientPlayerConfigs[1].movementRestrictionX);
+		reader.getIfPresent("Client2movementRestrictionZ", clientPlayerConfigs[1].movementRestrictionZ);
+		reader.getIfPresent("Client2restrictedMovementEnabled", clientPlayerConfigs[1].restrictedMovementEnabled);
+		reader.getIfPresent("Client2counterStrafing", clientPlayerConfigs[1].counterStrafing);
+		reader.getIfPresent("Client2propagatePlayerConfigs", clientPlayerConfigs[1].propagatePlayerConfigsToAll);
+
+		//TODO: CHECK FOR TYPOS
+
 		break;
 	default:
 		throw format("Did not recognize settings version: %d", settingsVersion);

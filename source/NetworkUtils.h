@@ -119,7 +119,8 @@ public:
 		RESPAWN_CLIENT,
 
 		READY_UP_CLIENT,
-		START_NETWORKED_SESSION
+		START_NETWORKED_SESSION,
+		SEND_PLAYER_CONFIG_TO_CLIENTS
 	};
 
 	enum NetworkUpdateType {
@@ -160,4 +161,5 @@ public:
 	
 	static int sendReadyUpMessage(ENetPeer* serverPeer);
 	static void broadcastStartSession(ENetHost* serverHost);
+	static int sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* peer, PlayerConfig* playerConfig, bool broadcast);
 };

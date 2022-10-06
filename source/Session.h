@@ -156,6 +156,16 @@ public:
 	Any toAny(const bool forceAll = false) const;
 	float getTrialsPerBlock(void) const;			// Get the total number of trials in this session
 	Array<String> getUniqueTargetIds() const;
+
+	void respawnPlayer() { player.respawnToPos = true; }
+	void propagatePlayerControlsToAllFromGUI() { propagatePlayerControlsToClient(true, false); }
+	void propagatePlayerControlsToSelectedClientFromFile() { propagatePlayerControlsToClient(false, true); }
+	void propagatePlayerControlsToSelectedClientFromGUI() { propagatePlayerControlsToClient(false, false); }
+	void propagatePlayerControlsToClient(bool sendToAll, bool sendFromFile){ 
+		player.propagatePlayerConfigsToSelectedClient = !sendToAll; 
+		player.readFromFile = sendFromFile; 
+		player.propagatePlayerConfigsToAll = sendToAll;
+	}
 };
 
 class Session : public ReferenceCountedObject {
