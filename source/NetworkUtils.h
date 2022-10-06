@@ -120,7 +120,9 @@ public:
 
 		READY_UP_CLIENT,
 		START_NETWORKED_SESSION,
-		SEND_PLAYER_CONFIG_TO_CLIENTS
+		SEND_PLAYER_CONFIG_TO_CLIENTS,
+
+		ADD_POINTS
 	};
 
 	enum NetworkUpdateType {
@@ -143,7 +145,7 @@ public:
 	static void broadcastDestroyEntity(GUniqueID id, ENetHost* serverHost, uint16 frameNum);
 
 	static int sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer, uint16 frameNum);
-	static void handleHitReport(ENetHost* serverHost, BinaryInput& inBuffer, uint16 frameNum);
+	static void handleHitReport(ENetHost* serverHost, ENetPeer* clientPeer, uint16 frameNum);
 
 	static int sendMoveClient(CFrame frame, ENetPeer* peer, uint16 frameNum);
 	static int sendHandshakeReply(ENetSocket socket, ENetAddress address);

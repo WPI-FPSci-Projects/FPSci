@@ -514,7 +514,7 @@ void FPSciApp::drawHUD(RenderDevice *rd, Vector2 resolution) {
 		float prog = sess->getProgress();
 		String prog_string = "";
 		if (!isnan(prog)) {
-			prog_string = format("%d", (int)G3D::round(100.0f*prog)) + "%";
+			prog_string = format("%d", (int)G3D::round(100.0f * prog)) + "%";
 		}
 
 		const double score = sess->getScore();
@@ -532,7 +532,7 @@ void FPSciApp::drawHUD(RenderDevice *rd, Vector2 resolution) {
 			score_string = format("%dB", (int)G3D::round(score / 1e9));
 		}
 
-		if (sessConfig->hud.bannerTimerMode != "none" && sess->inTask()) {
+		if (sessConfig->hud.bannerTimerMode != "none" && (sess->inTask() || sessConfig->isNetworked)) {
 			hudFont->draw2D(rd, time_string, hudCenter - Vector2(80, 0) * scale.x, scale.x * sessConfig->hud.bannerSmallFontSize, 
 				Color3::white(), Color4::clear(), GFont::XALIGN_RIGHT, GFont::YALIGN_CENTER);
 		}

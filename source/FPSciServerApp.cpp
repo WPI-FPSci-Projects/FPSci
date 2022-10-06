@@ -9,7 +9,7 @@ FPSciServerApp::FPSciServerApp(const GApp::Settings& settings) : FPSciApp(settin
 
 
 void FPSciServerApp::initExperiment() {
-    playersReady = 0;
+    m_playersReady = 0;
     // Load config from files
     loadConfigs(startupConfig.experimentList[experimentIdx]);
     m_lastSavedUser = *currentUser();			// Copy over the startup user for saves
@@ -209,13 +209,13 @@ void FPSciServerApp::onNetwork() {
                 }
             }
             else if (type == NetworkUtils::MessageType::REPORT_HIT) {
-                NetworkUtils::handleHitReport(m_localHost, packet_contents, m_networkFrameNum);
-                playersReady = 0;
+                NetworkUtils::handleHitReport(m_localHost, event.peer, m_networkFrameNum);
+                //playersReady = 0;
             }
             else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {
-                playersReady++;
-                debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), playersReady);
-                if (playersReady >= experimentConfig.numPlayers)
+                m_playersReady++;
+                debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), m_playersReady);
+                if (m_playersReady >= experimentConfig.numPlayers)
                 {
                     NetworkUtils::broadcastStartSession(m_localHost);
                     debugPrintf("All PLAYERS ARE READY!\n");

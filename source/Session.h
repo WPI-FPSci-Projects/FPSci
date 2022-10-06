@@ -141,6 +141,7 @@ public:
 	Array<TrialCount>	trials;							///< Array of trials (and their counts) to be performed
 	bool				closeOnComplete = false;		///< Close application on session completed?
 	bool				isNetworked = false;			///< Checks if its a networked session or not
+	int					clientScore = 0;				///< Keeps track of clients score
 
 	SessionConfig() : FpsConfig(defaultConfig()) {}
 	SessionConfig(const Any& any);

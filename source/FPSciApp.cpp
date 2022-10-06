@@ -119,6 +119,7 @@ void FPSciApp::initExperiment() {
 		m_enetConnected = false;
 		m_socketConnected = false;
 	}
+	sessConfig->isNetworked = experimentConfig.isNetworked;
 }
 
 void FPSciApp::toggleUserSettingsMenu() {
@@ -1156,11 +1157,13 @@ void FPSciApp::onNetwork() {
 			else if (type == NetworkUtils::MessageType::RESPAWN_CLIENT) {
 				debugPrintf("Recieved a request to respawn\n");
 				scene()->typedEntity<PlayerEntity>("player")->respawn();
-				static_cast<NetworkedSession*>(sess.get())->resetSession();
-
+				//static_cast<NetworkedSession*>(sess.get())->resetSession();
 			}
 			else if (type == NetworkUtils::MessageType::START_NETWORKED_SESSION) {
 				static_cast<NetworkedSession*>(sess.get())->startSession();
+				sessConfig->hud.enable = true;
+				sessConfig->hud.showBanner = true;
+				sessConfig->hud.bannerTimerMode = "remaining";
 				m_networkFrameNum = frameNum; // Set the frame number to sync with the server
 				debugPrintf("Recieved a request to start session.\n");
 			}
@@ -1201,6 +1204,11 @@ void FPSciApp::onNetwork() {
 
 				sessConfig->player.counterStrafing = packet_contents.readBool8();
 				debugPrintf("Recieved a request to set player config.\n");
+			}
+			else if (type == NetworkUtils::MessageType::ADD_POINTS) {
+			sessConfig->clientScore++;
+			debugPrintf("Enemy Hit! Points Added!\n");
+			scene()->typedEntity<PlayerEntity>("player")->respawn();
 			}
 			
 			enet_packet_destroy(event.packet);
