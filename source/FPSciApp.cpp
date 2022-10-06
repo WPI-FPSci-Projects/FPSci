@@ -429,7 +429,7 @@ void FPSciApp::updateControls(bool firstSession) {
 		rect = m_playerControls->rect();
 		removeWidget(m_playerControls);
 	}
-	m_playerControls = PlayerControls::create(*sessConfig, std::bind(&FPSciApp::exportScene, this), theme);
+	m_playerControls = PlayerControls::create(*sessConfig, std::bind(&FPSciApp::exportScene, this), theme   );
 	m_playerControls->setVisible(visible);
 	if (!rect.isEmpty())
 		m_playerControls->setRect(rect);
@@ -736,7 +736,11 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->movementRestrictionZ = &sessConfig->player.movementRestrictionZ;
 	player->restrictedMovementEnabled = &sessConfig->player.restrictedMovementEnabled;
 	player->counterStrafing = &sessConfig->player.counterStrafing;
-
+	player->propagatePlayerConfigsToAll = &sessConfig->player.propagatePlayerConfigsToAll;
+	player->propagatePlayerConfigsToSelectedClient = &sessConfig->player.propagatePlayerConfigsToSelectedClient;
+	player->readFromFile = &sessConfig->player.readFromFile;
+	player->selectedClientIdx = &sessConfig->player.selectedClientIdx;
+	player->clientPlayerConfigs = &sessConfig->player.clientPlayerConfigs;
 	// Respawn player
 	player->respawn();
 	updateMouseSensitivity();
@@ -1178,6 +1182,43 @@ void FPSciApp::onNetwork() {
 				m_networkFrameNum = frameNum; // Set the frame number to sync with the server
 				debugPrintf("Recieved a request to start session.\n");
 			}
+			else if (type == NetworkUtils::MessageType::SEND_PLAYER_CONFIG_TO_CLIENTS) {
+				shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
+				//initPlayer(true);
+				sessConfig->player.moveRate = packet_contents.readFloat32();
+				sessConfig->player.moveScale = packet_contents.readVector2();
+
+				(sessConfig->player.axisLock)[0] = packet_contents.readBool8();
+				(sessConfig->player.axisLock)[1] = packet_contents.readBool8();
+				(sessConfig->player.axisLock)[2] = packet_contents.readBool8();
+
+				sessConfig->player.accelerationEnabled = packet_contents.readBool8();
+				sessConfig->player.movementAcceleration = packet_contents.readFloat32();
+				sessConfig->player.movementDeceleration = packet_contents.readFloat32();
+
+				sessConfig->player.sprintMultiplier = packet_contents.readFloat32();
+
+				sessConfig->player.jumpVelocity = packet_contents.readFloat32();
+				sessConfig->player.jumpInterval = packet_contents.readFloat32();
+				sessConfig->player.jumpTouch = packet_contents.readBool8();
+
+				sessConfig->player.height = packet_contents.readFloat32();
+				sessConfig->player.crouchHeight = packet_contents.readFloat32();
+
+				sessConfig->player.headBobEnabled = packet_contents.readBool8();
+				sessConfig->player.headBobAmplitude = packet_contents.readFloat32();
+				sessConfig->player.headBobFrequency = packet_contents.readFloat32();
+
+				sessConfig->player.respawnPos = packet_contents.readVector3();
+				sessConfig->player.respawnToPos = packet_contents.readBool8();
+
+				sessConfig->player.movementRestrictionX = packet_contents.readFloat32();
+				sessConfig->player.movementRestrictionZ = packet_contents.readFloat32();
+				sessConfig->player.restrictedMovementEnabled = packet_contents.readBool8();
+
+				sessConfig->player.counterStrafing = packet_contents.readBool8();
+				debugPrintf("Recieved a request to set player config.\n");
+			}
 			
 			enet_packet_destroy(event.packet);
 		}
@@ -1355,7 +1396,6 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 		// Get the next session for the current user
 		updateSession(userStatusTable.getNextSession());
 	}
-
 	// Update time at which this simulation finished
 	m_lastOnSimulationRealTime = m_lastOnSimulationRealTime + rdt;
 	m_lastOnSimulationSimTime = m_lastOnSimulationSimTime + sdt;

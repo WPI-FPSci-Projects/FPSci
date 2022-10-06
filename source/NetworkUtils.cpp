@@ -1,6 +1,6 @@
 #include "NetworkUtils.h"
 #include "TargetEntity.h"
-
+#include "FpsConfig.h"
 #include <enet/enet.h>
 /*
 static void updateEntity(Entity entity, BinaryInput inBuffer) {
@@ -307,4 +307,57 @@ void NetworkUtils::broadcastStartSession(ENetHost* serverHost, uint32 frameNum) 
 	outBuffer.writeUInt32(frameNum);	// this is where we sync and reset the client frame numbers
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	enet_host_broadcast(serverHost, 0, packet);
+}
+
+int NetworkUtils::sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* clientPeer, PlayerConfig *playerConfig, bool broadcast) {
+	BinaryOutput outBuffer;
+	outBuffer.setEndian(G3D_BIG_ENDIAN);
+	outBuffer.writeUInt8(NetworkUtils::MessageType::SEND_PLAYER_CONFIG_TO_CLIENTS);
+	outBuffer.writeUInt16(0);	// Dummy frame num (haven't started a trial yet)
+	PlayerConfig selectedConfig = *playerConfig;
+
+	if ((*playerConfig).readFromFile == true) {
+		int index = (*playerConfig).selectedClientIdx ? index = 0 : index = 1;
+		selectedConfig = (*playerConfig).clientPlayerConfigs[index];
+		(*playerConfig).readFromFile = false;
+	}
+
+	outBuffer.writeFloat32(selectedConfig.moveRate);
+	outBuffer.writeVector2(selectedConfig.moveScale);
+
+	outBuffer.writeBool8((selectedConfig.axisLock)[0]);
+	outBuffer.writeBool8((selectedConfig.axisLock)[1]);
+	outBuffer.writeBool8((selectedConfig.axisLock)[2]);
+
+	outBuffer.writeBool8(selectedConfig.accelerationEnabled);
+	outBuffer.writeFloat32(selectedConfig.movementAcceleration);
+	outBuffer.writeFloat32(selectedConfig.movementDeceleration);
+
+	outBuffer.writeFloat32(selectedConfig.sprintMultiplier);
+
+	outBuffer.writeFloat32(selectedConfig.jumpVelocity);
+	outBuffer.writeFloat32(selectedConfig.jumpInterval);
+	outBuffer.writeBool8(selectedConfig.jumpTouch);
+
+	outBuffer.writeFloat32(selectedConfig.height);
+	outBuffer.writeFloat32(selectedConfig.crouchHeight);
+
+	outBuffer.writeBool8(selectedConfig.headBobEnabled);
+	outBuffer.writeFloat32(selectedConfig.headBobAmplitude);
+	outBuffer.writeFloat32(selectedConfig.headBobFrequency);
+
+	outBuffer.writeVector3(selectedConfig.respawnPos);
+	outBuffer.writeBool8(true);
+
+	outBuffer.writeFloat32(selectedConfig.movementRestrictionX);
+	outBuffer.writeFloat32(selectedConfig.movementRestrictionZ);
+	outBuffer.writeBool8(selectedConfig.restrictedMovementEnabled);
+
+	outBuffer.writeBool8(selectedConfig.counterStrafing);
+
+	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
+	if(!broadcast)
+		return enet_peer_send(clientPeer, 0, packet);
+	enet_host_broadcast(serverHost, 0, packet);
+	return 0;
 }

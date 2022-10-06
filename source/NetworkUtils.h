@@ -127,7 +127,9 @@ public:
 		READY_UP_CLIENT,
 		START_NETWORKED_SESSION,
 
-		PLAYER_INTERACT
+		PLAYER_INTERACT,
+
+		SEND_PLAYER_CONFIG_TO_CLIENTS
 	};
 
 	enum NetworkUpdateType {
@@ -192,4 +194,5 @@ public:
 	
 	static int sendReadyUpMessage(ENetPeer* serverPeer);
 	static void broadcastStartSession(ENetHost* serverHost, uint32 frameNum);
+	static int sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* peer, PlayerConfig* playerConfig, bool broadcast);
 };
