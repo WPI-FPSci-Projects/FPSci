@@ -57,7 +57,7 @@ void G3D::InputHandler::NewNetworkInput(uint8 playerID, float32 XMovement, float
 {
 	//To-do fix client frameNum getting ahead of server
 	NetworkInput* newInput = new NetworkInput(playerID, XMovement, YMovement, XMouseDelta, YMouseDelta, pressCode, releaseCode);
-	m_networkInputs[0][m_leadingFrame - frameNum + 2]->append(*newInput);
+	m_DataInputs[0][m_leadingFrame - frameNum + 2]->append(*newInput);
 	m_unreadFrameBuffer->append(*newInput);
 }
 
@@ -65,27 +65,27 @@ void G3D::InputHandler::NewNetworkInput(uint8 playerID, float32 XMovement, float
 G3D::InputHandler::InputHandler()
 {
 	for (int i = 0; i < m_pastFrames + 2; i++) {
-		m_networkInputs->append(new Array<NetworkInput>);
+		m_DataInputs->append(new Array<NetworkInput>);
 	}
 }
 
 bool G3D::InputHandler::AllClientsFrame(int frameNum, int clientsConnected)
 {
-	return m_networkInputs[0][m_leadingFrame - frameNum + 2]->length() == clientsConnected;
+	return m_DataInputs[0][m_leadingFrame - frameNum + 2]->length() == clientsConnected;
 }
 
 Array<G3D::InputHandler::NetworkInput>* G3D::InputHandler::GetFrameInputs(int frameNum)
 {
-	//if (m_networkInputs->empty) return NULL;
-	return m_networkInputs[0][m_leadingFrame - frameNum + 2];
+	//if (m_DataInputs->empty) return NULL;
+	return m_DataInputs[0][m_leadingFrame - frameNum + 2];
 }
 
 void G3D::InputHandler::NewLeadingFrame(int frameNum)
 {
 	//debugPrintf("%d\t%d\n", m_leadingFrame, frameNum);
 	m_leadingFrame = frameNum;
-	m_networkInputs->pop();
-	m_networkInputs->append(new Array<NetworkInput>);
+	m_DataInputs->pop();
+	m_DataInputs->append(new Array<NetworkInput>);
 }
 
 void G3D::InputHandler::FlushBuffer()
@@ -154,33 +154,33 @@ void G3D::DataHandler::NetworkInput::SetFired(bool fired)
 void G3D::DataHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum)
 {
 	NetworkInput* input = new NetworkInput(playerID, cframe, false);
-	m_networkInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].SetCFrame(cframe);
+	m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].SetCFrame(cframe);
 	m_unreadFrameBuffer->append(*input);
 }
 
 void G3D::DataHandler::UpdateFired(uint8 playerID, bool fired, int frameNum)
 {
 	NetworkInput* input = new NetworkInput(playerID, *new CoordinateFrame(), fired);
-	m_networkInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].SetFired(fired);
+	m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].SetFired(fired);
 	m_unreadFrameBuffer->append(*input);
 }
 
 G3D::DataHandler::DataHandler()
 {
 	for (int i = 0; i < m_pastFrames + 2; i++) {
-		m_networkInputs->append(new Array<NetworkInput>);
+		m_DataInputs->append(new Array<NetworkInput>);
 	}
 }
 
 bool G3D::DataHandler::AllClientsFrame(int frameNum, int clientsConnected)
 {
-	return m_networkInputs[0][m_currentFrame - frameNum + 2]->length() == clientsConnected;
+	return m_DataInputs[0][m_currentFrame - frameNum + 2]->length() == clientsConnected;
 }
 
 Array<G3D::DataHandler::NetworkInput>* G3D::DataHandler::GetFrameInputs(int frameNum)
 {
-	//if (m_networkInputs->empty) return NULL;
-	return m_networkInputs[0][m_currentFrame - frameNum + 2];
+	//if (m_DataInputs->empty) return NULL;
+	return m_DataInputs[0][m_currentFrame - frameNum + 2];
 }
 
 void G3D::DataHandler::NewLeadingFrame(int frameNum, int clientsConnected)
@@ -188,12 +188,12 @@ void G3D::DataHandler::NewLeadingFrame(int frameNum, int clientsConnected)
 	//Call per frame
 	//debugPrintf("%d\t%d\n", m_leadingFrame, frameNum);
 	m_currentFrame = frameNum;
-	m_networkInputs->pop();
+	m_DataInputs->pop();
 	Array<NetworkInput>* arr = new Array<NetworkInput>();
 	//TODO: Does this actually make clientsConnected worth of network inputs or just the size of them
 	arr->resize(clientsConnected, false);
 	//convert to on function call
-	m_networkInputs->append(arr);
+	m_DataInputs->append(arr);
 }
 
 void G3D::DataHandler::FlushBuffer()
@@ -212,10 +212,10 @@ Array<G3D::DataHandler::NetworkInput>* G3D::DataHandler::GetFrameBuffer() {
 
 G3D::DataHandler::NetworkInput* G3D::DataHandler::PredictFrame(int frameNum, uint8 playerID) {
 	//dont worry about it
-	Point3 translation_d = m_networkInputs[0][frameNum - m_currentFrame + m_futureFrames + 1][0][playerID].GetCFrame().translation - m_networkInputs[0][frameNum - m_currentFrame + m_futureFrames + 2][0][playerID].GetCFrame().translation;
-	Matrix3 matrix_d = m_networkInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID].GetCFrame().rotation - m_networkInputs[0][frameNum - m_currentFrame + m_futureFrames + 1][0][playerID].GetCFrame().rotation;
+	Point3 translation_d = m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames + 1][0][playerID].GetCFrame().translation - m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames + 2][0][playerID].GetCFrame().translation;
+	Matrix3 matrix_d = m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID].GetCFrame().rotation - m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames + 1][0][playerID].GetCFrame().rotation;
 	CoordinateFrame* cframe = new CoordinateFrame(matrix_d, translation_d);
-	NetworkInput* prediction = new NetworkInput(playerID, *cframe, m_networkInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID].GetFired());
-	m_networkInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID] = *prediction;
+	NetworkInput* prediction = new NetworkInput(playerID, *cframe, m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID].GetFired());
+	m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID] = *prediction;
 	return prediction;
 }
