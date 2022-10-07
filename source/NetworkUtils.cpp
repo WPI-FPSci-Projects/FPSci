@@ -319,6 +319,7 @@ int NetworkUtils::sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* clien
 	outBuffer.writeFloat32(selectedConfig.movementRestrictionX);
 	outBuffer.writeFloat32(selectedConfig.movementRestrictionZ);
 	outBuffer.writeBool8(selectedConfig.restrictedMovementEnabled);
+	outBuffer.writeFloat32(selectedConfig.restrictionBoxAngle);
 
 	outBuffer.writeBool8(selectedConfig.counterStrafing);
 

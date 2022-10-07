@@ -11,6 +11,7 @@ FPSciServerApp::FPSciServerApp(const GApp::Settings& settings) : FPSciApp(settin
 void FPSciServerApp::initExperiment() {
     m_clientsReady = 0;
     m_clientsTimedOut = 0;
+    m_numberOfRoundsPlayed = 0;
     // Load config from files
     loadConfigs(startupConfig.experimentList[experimentIdx]);
     m_lastSavedUser = *currentUser();			// Copy over the startup user for saves
@@ -226,10 +227,23 @@ void FPSciServerApp::onNetwork() {
                 m_clientsTimedOut++;
                 if (m_clientsTimedOut >= experimentConfig.numPlayers)
                 {
-                    //TODO check for number of rounds (trials)
+                    //TODO READ PLAYER CONFIG AS PLAYER CONFIG CLASS FROM .any
+                    //TODO SEND PLAYER CONFIG AFTER EACH ROUND
+                    m_numberOfRoundsPlayed++;
                     m_clientsReady = 0;
                     m_clientsTimedOut = 0;
                     debugPrintf("Round Over!\n");
+
+                    if (m_numberOfRoundsPlayed >= sessConfig->trials[0].count)
+                    {
+                        debugPrintf("SESSION OVER");
+
+                        // TODO end of session things
+
+                        NetworkUtils::broadcastDestroyEntity(m_connectedClients[0].guid, m_localHost, m_networkFrameNum); // TODO Replace with something suitable
+                        NetworkUtils::broadcastDestroyEntity(m_connectedClients[1].guid, m_localHost, m_networkFrameNum);
+                    }
+
                     NetworkUtils::broadcastResetRound(m_localHost, m_frameNumber);
                 }
             }
