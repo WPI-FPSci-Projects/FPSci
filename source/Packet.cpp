@@ -1,5 +1,9 @@
 #include "Packet.h"
 
+/******************
+ * Generic Packet *
+ ******************/
+
 GenericPacket::GenericPacket() {
 	m_inbound = false;
 }
@@ -50,7 +54,10 @@ void GenericPacket::deserialize(BinaryInput &inBuffer) {
 }
 
 
-/* The following packet contains an array of updates for entities */
+/******************************
+ * Batch Entity Udpate Packet *
+ ******************************/
+
 void BatchEntityUpdatePacket::populate(uint32 frameNumber, Array<EntityUpdate> updates, NetworkUpdateType updateType) {
 	m_updates = updates;
 	m_frameNumber = frameNumber;
@@ -90,6 +97,9 @@ void BatchEntityUpdatePacket::deserialize(BinaryInput& inBuffer) {
 	}
 }
 
+/************************
+ * Create Entity Packet *
+ ************************/
 
 void CreateEntityPacket::populate(uint32 frameNumber, GUniqueID guid) {
 	m_frameNumber = frameNumber;
@@ -108,6 +118,9 @@ void CreateEntityPacket::deserialize(BinaryInput& inBuffer) {
 	m_guid.deserialize(inBuffer);
 }
 
+/*************************
+ * Destroy Entity Packet *
+ *************************/
 
 void DestroyEntityPacket::populate(uint32 frameNumber, GUniqueID guid) {
 	m_frameNumber = frameNumber;
@@ -126,6 +139,9 @@ void DestroyEntityPacket::deserialize(BinaryInput& inBuffer) {
 	m_guid.deserialize(inBuffer);
 }
 
+/**************************
+ * Regisger Client Packet *
+ **************************/
 
 void RegisterClientPacket::populate(ENetPeer* peer, GUniqueID guid, uint16 portNum) {
 	m_peer = peer;
@@ -145,6 +161,9 @@ void RegisterClientPacket::deserialize(BinaryInput& inBuffer) {
 	m_portNum = inBuffer.readUInt16();
 }
 
+/*****************************
+ * Registration Reply Packet *
+ *****************************/
 
 void RegistrationReplyPacket::populate(GUniqueID guid, uint8 status) {
 	m_guid = guid;
@@ -163,26 +182,37 @@ void RegistrationReplyPacket::deserialize(BinaryInput& inBuffer) {
 	m_status = inBuffer.readUInt8();
 }
 
-/* This packet has no data so serialize and deserialze do nothing */
+/********************
+ * Handshake Packet *
+ ********************/
+
+/** This packet has no data so serialize does nothing */
 void HandshakePacket::serialize(BinaryOutput& outBuffer) {
 	GenericPacket::serialize(outBuffer);	// Call the super serialize
 }
 
+/** This packet has no data so deserialize does nothing */
 void HandshakePacket::deserialize(BinaryInput& inBuffer) {
-	return;
+	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
 }
 
+/**************************
+ * Handshake Reply Packet *
+ **************************/
 
-/* This packet has no data so serialize and deserialze do nothing */
+ /** This packet has no data so serialize does nothing */
 void HandshakeReplyPacket::serialize(BinaryOutput& outBuffer) {
 	GenericPacket::serialize(outBuffer);	// Call the super serialize
 }
 
+/** This packet has no data so deserialize does nothing */
 void HandshakeReplyPacket::deserialize(BinaryInput& inBuffer) {
 	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
-	return;
 }
 
+/**********************
+ * Move Client Packet *
+ **********************/
 
 void MoveClientPacket::populate(uint32 frameNumber, CFrame newPosition) {
 	m_frameNumber = frameNumber;
@@ -201,6 +231,9 @@ void MoveClientPacket::deserialize(BinaryInput& inBuffer) {
 	m_newPosition.deserialize(inBuffer);
 }
 
+/*********************
+ * Report Hit Packet *
+ *********************/
 
 void ReportHitPacket::populate(uint32 frameNumber, GUniqueID shotID, GUniqueID shooterID) {
 	m_frameNumber = frameNumber;
@@ -222,6 +255,9 @@ void ReportHitPacket::deserialize(BinaryInput& inBuffer) {
 	m_shooterID.deserialize(inBuffer);
 }
 
+/********************
+ * Set Spawn Packet *
+ ********************/
 
 void SetSpawnPacket::populate(Point3 spawnPositionTranslation, float spawnHeading) {
 	m_spawnPositionTranslation = spawnPositionTranslation;
@@ -240,6 +276,9 @@ void SetSpawnPacket::deserialize(BinaryInput& inBuffer) {
 	m_spawnHeading = inBuffer.readFloat32();
 }
 
+/*************************
+ * Respawn Client Packet *
+ *************************/
 
 void RespawnClientPacket::populate(uint32 frameNumber) {
 	m_frameNumber = frameNumber;
@@ -255,16 +294,23 @@ void RespawnClientPacket::deserialize(BinaryInput& inBuffer) {
 	m_frameNumber = inBuffer.readUInt32();
 }
 
-/* This packet has no data so serialize and deserialze do nothing */
+/**************************
+ * Ready Up Client Packet *
+ **************************/
+
+ /** This packet has no data so serialize does nothing */
 void ReadyUpClientPacket::serialize(BinaryOutput& outBuffer) {
 	GenericPacket::serialize(outBuffer);	// Call the super serialize
 }
 
+/** This packet has no data so serialize does nothing */
 void ReadyUpClientPacket::deserialize(BinaryInput& inBuffer) {
 	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
-	return;
 }
 
+/************************
+ * Start Session Packet *
+ ************************/
 
 void StartSessionPacket::populate(uint32 frameNumber) {
 	m_frameNumber = frameNumber;
@@ -280,6 +326,9 @@ void StartSessionPacket::deserialize(BinaryInput& inBuffer) {
 	m_frameNumber = inBuffer.readUInt32();
 }
 
+/*************************
+ *Player Interact Packet *
+ *************************/
 
 void PlayerInteractPacket::populate(uint32 frameNumber, uint8 remoteAction, GUniqueID actorID) {
 	m_frameNumber = frameNumber;
@@ -299,22 +348,4 @@ void PlayerInteractPacket::deserialize(BinaryInput& inBuffer) {
 	m_frameNumber = inBuffer.readUInt32();
 	m_remoteAction = inBuffer.readUInt8();
 	m_actorID.deserialize(inBuffer);
-}
-
-
-void ReliableConnectPacket::serialize(BinaryOutput& outBuffer) {
-	GenericPacket::serialize(outBuffer);	// Call the super serialize
-}
-
-void ReliableConnectPacket::deserialize(BinaryInput& inBuffer) {
-	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
-}
-
-
-void ReliableDisconnectPacket::serialize(BinaryOutput& outBuffer) {
-	GenericPacket::serialize(outBuffer);	// Call the super serialize
-}
-
-void ReliableDisconnectPacket::deserialize(BinaryInput& inBuffer) {
-	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
 }

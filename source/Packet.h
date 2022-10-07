@@ -28,79 +28,135 @@ enum PacketType {
 
 	PLAYER_INTERACT,
 
-	RELIABLE_CONNECT,
-	RELIABLE_DISCONNECT
+	RELIABLE_CONNECT,			///< Packet type to represent an enet event type connect
+	RELIABLE_DISCONNECT			///< Packet type to represent an enet event type disconnect
 };
+
+/** A Generic Packet type that contains only the type of packet and basic information for sending/receiving a packet
+*
+* This class serves as the base class for all more specific typed packets and 
+* provides basic functionality such as the packet type, source/desitnation 
+* information, sending a packet over the network, and creating more 
+* specifically typed packets.
+* 
+* In order to add a new packet you will need to add the 4 constructors (no 
+* args, srcAddr and inBuffer, destPeer, and srcSocket and destAddr), a type 
+* method a getTypedPacket method, a populate method (and memeber variables),
+* and a serialize/deserialize method. Existing packets can be used as an 
+* example for how to implement these functions and what they need for 
+* implementation.
+*/
 
 class GenericPacket : public ReferenceCountedObject {
 
+
 protected:
+	/** Contructor for creating a packet without any sending information (used for broadcasting) */
 	GenericPacket();
-	/* Constructor for creating a packet wtithout reading its type */
+	/** Constructor for creating a packet wtithout reading its type */
 	GenericPacket(ENetAddress srcAddr);
-	/* Constructor for receiving a packet */
+	/** Constructor for receiving a packet */
 	GenericPacket(ENetAddress srcAddr, BinaryInput &inBuffer);
-	/* Constructor for seinding over the reliable channel to the peer */
+	/** Constructor for seinding over the reliable channel to the peer */
 	GenericPacket(ENetPeer* destPeer);
-	/* Constructor for sending over the unreliable channel to the destAddr */
+	/** Constructor for sending over the unreliable channel to the destAddr */
 	GenericPacket(ENetSocket* srcSocket, ENetAddress* destAddr);
 
 public:
+	/** Create a packet without any destination information so it can be broadcast 
+	* 
+	* This function will also create more typed packets which can be done by 
+	* calling createForBroadcast<SpecificPacketClass>
+	*/
 	template <class packetType>
 	static shared_ptr<packetType> createForBroadcast() {
 		return createShared<packetType>();
 	}
+	/** Create a packet who's data is parsed from the BinaryInput 
+	*
+	* This function will also create more typed packets which can be done by 
+	* calling createReceive<SpecificPacketClass>
+	*/
 	template <class packetType>
 	static shared_ptr<packetType> createReceive(ENetAddress srcAddr, BinaryInput& inBuffer) {
 		return createShared<packetType>(srcAddr, inBuffer);
 	}
+	/** Create an empty packet to be sent over the unreliable channel 
+	*
+	* This will NOT inialize member varibales for the specificly typed packet
+	* you must call populate on the returned object before sending
+	* 
+	* This function will also create more typed packets which can be done by 
+	* calling createUnreliable<SpecificPacketClass>()
+	*/
 	template <class packetType>
 	static shared_ptr<packetType> createUnreliable(ENetSocket* srcSocket, ENetAddress* destAddr) {
 		return createShared<packetType>(srcSocket, destAddr);
 	}
+	/** Create a packet to be sent over the reliable channel 
+	*
+	* This will NOT inialize member varibales for specificly typed packets
+	* you must call populate on the returned object before sending
+	* 
+	* This function will also create more typed packets which can be done by 
+	* calling createForBroadcast<SpecificPacketClass>()
+	*/
 	template <class packetType>
 	static shared_ptr<packetType> createReliable(ENetPeer* destPeer) {
 		return createShared<packetType>(destPeer);
 	}
 
-protected:
-	virtual void serialize(BinaryOutput &outBuffer);		///> serialize the data in this packet
-	virtual void deserialize(BinaryInput &inBuffer);		///> deserialize the data in this packet
-	
-	ENetPeer* m_destPeer;					// reliable
-	ENetSocket* m_srcSocket;				// unreliable
-	ENetAddress* m_destAddr;				// unreliable
-
-	ENetAddress m_srcAddr;					// Only used on inbound packets for the address of the sender
-	bool m_inbound = false;					// indicates if the packet is inbound or outbound
-
-private:
-	PacketType m_type = UNINTALIZED_TYPE;
-
-public:
-	bool m_reliable;						// which channel to send/was received on; also determines which ENet fields are defined
-
-	int send();					///> sends the packet over the network
-
-	void setReliableDest(ENetPeer* peer) { 
+	/** Sets the reliable destination to the peer and marks packet as reliable */
+	void setReliableDest(ENetPeer* peer) {
 		m_destPeer = peer;
 		m_reliable = true;
 	}
+	/** Sets the unreliable destination to the destAddr and marks packet as unreliable */
 	void setUnreliableDest(ENetSocket* srcSocket, ENetAddress* destAddr) {
 		m_srcSocket = srcSocket;
 		m_destAddr = destAddr;
 		m_reliable = false;
 	}
 
+	/** Returns whether the packet was sent/received on the reliable channel */
 	bool isReliable() { return m_reliable; }
+	/** Returns the source address (only used on inbound packets */
 	ENetAddress srcAddr() { return m_srcAddr; }
+	/** Returns whether the packet is inbound */
 	bool isInbound() { return m_inbound; }
 
-	virtual PacketType type() { return m_type; };				///> tells the type of packet this is
-	virtual GenericPacket* getTypedPacket() { return this; }	///> Returns *this* as the most narrow type possble
+	/** Returns the type of packet that this is (used to know how to handle a packet) */
+	virtual PacketType type() { return m_type; };
+	/** Returns the *this* (used to clone a packet when broadcasting) */
+	virtual GenericPacket* getTypedPacket() { return this; }
+
+	/** Sends the packet over the network on the correct channel */
+	int send();
+
+	bool m_reliable;									///< which channel to send/was received on; also determines which ENet fields are defined
+
+protected:
+	virtual void serialize(BinaryOutput &outBuffer);	///< serialize the data in this packet
+	virtual void deserialize(BinaryInput &inBuffer);	///< deserialize the data in this packet
+	
+	ENetPeer* m_destPeer;								///< reliable destination
+	ENetSocket* m_srcSocket;							///< unreliable socket to send on
+	ENetAddress* m_destAddr;							///< unreliable destination for the packet
+
+	ENetAddress m_srcAddr;								///< Only used on inbound packets for the address of the sender
+	bool m_inbound = false;								///< indicates if the packet is inbound or outbound (also determines if m_srcAddr is initalized)
+
+private:
+	PacketType m_type = UNINTALIZED_TYPE;				///< Type of packet
 };
 
-
+/** A Packet contining updates for multiple entities at once
+*
+* This packet allows the server or client to send a group of updates across the 
+* network. It also supports multiple different update types which are recorded 
+* in m_updateType. Implementation of these updates lies in the FPSciApp or 
+* FPSciServerApp
+*/
 class BatchEntityUpdatePacket : public GenericPacket {
 protected:
 	BatchEntityUpdatePacket() : GenericPacket() {}
@@ -108,23 +164,27 @@ protected:
 	BatchEntityUpdatePacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	BatchEntityUpdatePacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 public:
+	/** Struct containing all information needed to update a single entity */
 	struct EntityUpdate {
-		CFrame frame;
-		String name;
+		CFrame frame;								///< CFrame to use in the update
+		String name;								///< Name of the entity this update applies to
+		/** Constructor to create and populate an update */
 		EntityUpdate(CFrame entityFrame, String entityName) {
 			frame = entityFrame;
 			name = entityName;
 		}
 		EntityUpdate() {}
 	};
+	/** Indicates what type of update this is (changes how updates are applied) */
 	enum NetworkUpdateType {
-		NOOP,
-		REPLACE_FRAME,
+		NOOP,										///< Do Nothing (No-Op)
+		REPLACE_FRAME,								///< Replace the frame with the one in the update (absolute position)
 	};
 
 	PacketType type() override { return BATCH_ENTITY_UPDATE; }
 	BatchEntityUpdatePacket* getTypedPacket() override { return this; }
 
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber, Array<EntityUpdate> updates, NetworkUpdateType updateType);
 
 protected:
@@ -133,12 +193,16 @@ protected:
 	
 
 public:
-	Array<EntityUpdate> m_updates;
-	uint32 m_frameNumber;
-	NetworkUpdateType m_updateType;
+	Array<EntityUpdate> m_updates;					///< Array of updates to be applied
+	uint32 m_frameNumber;							///< Frame number that these updates apply to
+	NetworkUpdateType m_updateType;					///< type of update (how to apply updates)
 };
 
-
+/** A Packet signaling the receiver to create a new entity
+* 
+* This packet creates a new entity on the receiver on the frame number 
+* indicated and names it based on the GUID included in the packet
+*/
 class CreateEntityPacket : public GenericPacket {
 protected:
 	CreateEntityPacket() : GenericPacket() {}
@@ -150,17 +214,22 @@ public:
 	PacketType type() override { return CREATE_ENTITY; }
 	CreateEntityPacket* getTypedPacket() override { return this; }
 
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber, GUniqueID guid);
 
-	uint32 m_frameNumber;
-	GUniqueID m_guid;
+	uint32 m_frameNumber;							///< Frame number that the entity was created on
+	GUniqueID m_guid;								///< GUID of the new entity (used as Entity->name)
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
 };
 
-
+/** A Packet signaling the receiver to remove an entity
+*
+* This packet removes the entity with the name of the GUID included in the 
+* packet
+*/
 class DestroyEntityPacket : public GenericPacket {
 protected:
 	DestroyEntityPacket() : GenericPacket() {}
@@ -172,17 +241,23 @@ public:
 	PacketType type() override { return DESTROY_ENTITY; }
 	DestroyEntityPacket* getTypedPacket() override { return this; }
 
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber, GUniqueID guid);
 
-	uint32 m_frameNumber;
-	GUniqueID m_guid;
+	uint32 m_frameNumber;							///< Frame number that the entity was destroyed on
+	GUniqueID m_guid;								///< GUID of the destroyed entity
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
 };
 
-
+/** A Packet to register a new client with the server
+*
+* This packet includes all the information needed for the server to create a
+* new ConnectedClient so the server knows how to contact the client over both
+* the reliable and unreliable channel
+*/
 class RegisterClientPacket : public GenericPacket {
 protected:
 	RegisterClientPacket() : GenericPacket() {}
@@ -194,18 +269,24 @@ public:
 	PacketType type() override { return REGISTER_CLIENT; }
 	RegisterClientPacket* getTypedPacket() override { return this; }
 
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(ENetPeer* peer, GUniqueID guid, uint16 portNum);
 
-	ENetPeer* m_peer;
-	uint16 m_portNum;
-	GUniqueID m_guid;
+	ENetPeer* m_peer;								///< Peer for the connecting client
+	uint16 m_portNum;								///< Port number the client is listening on for the unreliable channel
+	GUniqueID m_guid;								///< GUID of the client (Same as the name of the NetworkedTarget entity that represents them)
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
 };
 
-
+/** A Packet telling the client if their registration was a success
+*
+* This packet indicates to the client if their registration request was
+* successful or not. It also includes the GUID to ensure the server has the
+* correct GUID recorded for this client
+*/
 class RegistrationReplyPacket : public GenericPacket {
 protected:
 	RegistrationReplyPacket() : GenericPacket() {}
@@ -217,17 +298,23 @@ public:
 	PacketType type() override { return CLIENT_REGISTRATION_REPLY; }
 	RegistrationReplyPacket* getTypedPacket() override { return this; }
 
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(GUniqueID guid, uint8 status);
 
-	GUniqueID m_guid;
-	uint8 m_status;
+	GUniqueID m_guid;								///< GUID of the newly connected client
+	uint8 m_status;									///< Status code of the connection (0 is success)
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
 };
 
-
+/** A Packet used to ensure that the unreliable channel is working
+*
+* This packet contains no information but is sent over the unreliable channel
+* to enusre that the server is listening and can respond on the unreliable
+* channel. Becuase this has no data it has no populate method.
+*/
 class HandshakePacket : public GenericPacket {
 protected:
 	HandshakePacket() : GenericPacket() {}
@@ -245,6 +332,10 @@ protected:
 };
 
 /* TODO: Combine this with just a handshake packet or Registration reply*/
+/** The same thing as a Handshake packet but sent back to the client
+*
+* This packet is identical to the Handshake packet but is sent from the server
+*/
 class HandshakeReplyPacket : public GenericPacket {
 protected:
 	HandshakeReplyPacket() : GenericPacket() {}
@@ -261,7 +352,11 @@ protected:
 	void deserialize(BinaryInput& inBuffer) override;
 };
 
-
+/** A Packet that forces the receiveing client to go to a specific location
+*
+* This packet forces the receiving client to overwrite the frame of thier
+* PlayerEntity with the frame included in this packet
+*/
 class MoveClientPacket : public GenericPacket {
 protected:
 	MoveClientPacket() : GenericPacket() {}
@@ -273,17 +368,22 @@ public:
 	PacketType type() override { return MOVE_CLIENT; }
 	MoveClientPacket* getTypedPacket() override { return this; }
 
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber, CFrame newPosition);
 
-	uint32 m_frameNumber;
-	CFrame m_newPosition;
+	uint32 m_frameNumber;							///< Frame Number that this client was moved
+	CFrame m_newPosition;							///< New position for the client (absolute position)
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
 };
 
-
+/** A Packet used to signal that a client has shot another entity
+*
+* This packet tells the server that a client (m_shooterID) has shot at and hit
+* another client (m_shotID) on the frame number indicated
+*/
 class ReportHitPacket : public GenericPacket {
 protected:
 	ReportHitPacket() : GenericPacket() {}
@@ -295,18 +395,23 @@ public:
 	PacketType type() override { return REPORT_HIT; }
 	ReportHitPacket* getTypedPacket() override { return this; }
 
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber, GUniqueID shotID, GUniqueID shooterID);
 
-	uint32 m_frameNumber;
-	GUniqueID m_shotID;
-	GUniqueID m_shooterID;
+	uint32 m_frameNumber;							///< Frame Number that the hit occured
+	GUniqueID m_shotID;								///< GUID of the client that was hit
+	GUniqueID m_shooterID;							///< GUID of the client that fired the shot
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
 };
 
-
+/** A Packet used to set the spawn positon of the receiving client
+*
+* This packet updates the spawn location and heading of the receiving client
+* but does not cause them to respawn to that position
+*/
 class SetSpawnPacket : public GenericPacket {
 protected:
 	SetSpawnPacket() : GenericPacket() {}
@@ -318,17 +423,22 @@ public:
 	PacketType type() override { return SET_SPAWN_LOCATION; }
 	SetSpawnPacket* getTypedPacket() override { return this; }
 
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(Point3 spawnPositionTranslation, float spawnHeading);
 
-	Point3 m_spawnPositionTranslation;
-	float m_spawnHeading;
+	Point3 m_spawnPositionTranslation;				///< Translation component of new spawn location
+	float m_spawnHeading;							///< Rotation component of new spawn location (radians)
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
 };
 
-
+/** A Packet telling the receiving client to respawn
+*
+* This packet causes the receiving client to respawn by calling the respawn
+* method in their PlayerEntity
+*/
 class RespawnClientPacket : public GenericPacket {
 protected:
 	RespawnClientPacket() : GenericPacket() {}
@@ -340,16 +450,21 @@ public:
 	PacketType type() override { return RESPAWN_CLIENT; }
 	RespawnClientPacket* getTypedPacket() override { return this; }
 
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber = 0);
 
-	uint32 m_frameNumber;
+	uint32 m_frameNumber;							///< Frame number that the client was respawned
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
 };
 
-
+/** A Packet telling the server that a client is ready
+*
+* This packet has no data but tells the server that the client is ready for the
+* trial to begin. Because this has no data there is no populate method
+*/
 class ReadyUpClientPacket : public GenericPacket {
 protected:
 	ReadyUpClientPacket() : GenericPacket() {}
@@ -366,7 +481,12 @@ protected:
 	void deserialize(BinaryInput& inBuffer) override;
 };
 
-
+/** A Packet telling the clients to start the trial and syncs frame numbers
+*
+* This packet indicates that there are enough players ready for the trial to
+* begin and sets the client frame number to the frane number incuded in this
+* packet so that frame numbers are roughly syncronized
+*/
 class StartSessionPacket : public GenericPacket {
 protected:
 	StartSessionPacket() : GenericPacket() {}
@@ -378,16 +498,21 @@ public:
 	PacketType type() override { return START_NETWORKED_SESSION; }
 	StartSessionPacket* getTypedPacket() override { return this; }
 
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber);
 
-	uint32 m_frameNumber;
+	uint32 m_frameNumber;							///< Frame number of the server (used to sync frame numbers)
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
 };
 
-
+/** A Packet telling the receiver about remote actions that happened
+*
+* This packet is used to tell the receiver about an action that has happened
+* on a remote client. This is mostly used for logging these types of actions
+*/
 class PlayerInteractPacket : public GenericPacket {
 protected:
 	PlayerInteractPacket() : GenericPacket() {}
@@ -399,21 +524,24 @@ public:
 	PacketType type() override { return START_NETWORKED_SESSION; }
 	PlayerInteractPacket* getTypedPacket() override { return this; }
 
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber, uint8 remoteAction, GUniqueID actorID);
 
-	uint32 m_frameNumber;
-	uint8 m_remoteAction;
-	GUniqueID m_actorID;
+	uint32 m_frameNumber;							///< Frame number that this action took place
+	uint8 m_remoteAction;							///< Type of action (PlayerActionType)
+	GUniqueID m_actorID;							///< GUID of the client who did this action
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
 };
 
-/*	
- *	The following 2 packets cannot be sent over the network but exist to 
- *	comunicate different events reported by the reliable enet peer
- */
+/** A Packet representing an incoming connection on the reliable channel
+*
+* This packet cannot be sent over the network but insted represents an
+* ENetEvent that is generated when a client connects so that it can be handled
+* like a normal packet
+*/
 class ReliableConnectPacket : public GenericPacket {
 protected:
 	ReliableConnectPacket(ENetAddress srcAddr) : GenericPacket() {
@@ -423,19 +551,21 @@ protected:
 	}
 
 public:
+	/** Creates a typed packet given just source address becasuse there isn't a binary input */
 	static shared_ptr<ReliableConnectPacket> createReceive(ENetAddress srcAddr) {
 		return createShared<ReliableConnectPacket>(srcAddr);
 	}
 
 	PacketType type() override { return RELIABLE_CONNECT; }
 	ReliableConnectPacket* getTypedPacket() override { return this; }
-
-protected:
-	void serialize(BinaryOutput& outBuffer) override;
-	void deserialize(BinaryInput& inBuffer) override;
 };
 
-
+/** A Packet indicating that a client has disconnected from the reliable connection
+*
+* This packet cannot be sent over the network but instead represents an
+* ENetEvent that is generated when a client disconnects so that it can be
+* handled like a normal packet
+*/
 class ReliableDisconnectPacket : public GenericPacket {
 protected:
 	ReliableDisconnectPacket(ENetAddress srcAddr) : GenericPacket() {
@@ -445,14 +575,11 @@ protected:
 	}
 
 public:
+	/** Creates a typed packet given just source address becasuse there isn't a binary input */
 	static shared_ptr<ReliableDisconnectPacket> createReceive(ENetAddress srcAddr) {
 		return createShared<ReliableDisconnectPacket>(srcAddr);
 	}
 
 	PacketType type() override { return RELIABLE_DISCONNECT; }
 	ReliableDisconnectPacket* getTypedPacket() override { return this; }
-
-protected:
-	void serialize(BinaryOutput& outBuffer) override;
-	void deserialize(BinaryInput& inBuffer) override;
 };
