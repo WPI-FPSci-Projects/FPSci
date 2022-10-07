@@ -57,4 +57,5 @@ public:
 	void updateNetworkedPresentationState();
 	void startSession();
 	void resetSession();
+	void sessionTimeout();
 };

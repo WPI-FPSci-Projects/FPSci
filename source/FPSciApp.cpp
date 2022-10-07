@@ -988,7 +988,7 @@ void FPSciApp::onAI() {
 void FPSciApp::onNetwork() {
 	GApp::onNetwork();
 
-	if (experimentConfig.isNetworked && sess->currentState == NetworkedPresentationState::networkedSessionStart) {
+	if (experimentConfig.isNetworked && sess->currentState == NetworkedPresentationState::networkedSessionRoundStart) {
 		m_networkFrameNum++;
 	}
 
@@ -1161,9 +1161,6 @@ void FPSciApp::onNetwork() {
 			}
 			else if (type == NetworkUtils::MessageType::START_NETWORKED_SESSION) {
 				static_cast<NetworkedSession*>(sess.get())->startSession();
-				sessConfig->hud.enable = true;
-				sessConfig->hud.showBanner = true;
-				sessConfig->hud.bannerTimerMode = "remaining";
 				m_networkFrameNum = frameNum; // Set the frame number to sync with the server
 				debugPrintf("Recieved a request to start session.\n");
 			}
@@ -1206,9 +1203,13 @@ void FPSciApp::onNetwork() {
 				debugPrintf("Recieved a request to set player config.\n");
 			}
 			else if (type == NetworkUtils::MessageType::ADD_POINTS) {
-			sessConfig->clientScore++;
-			debugPrintf("Enemy Hit! Points Added!\n");
-			scene()->typedEntity<PlayerEntity>("player")->respawn();
+				sessConfig->clientScore++;
+				debugPrintf("Enemy Hit! Points Added!\n");
+				scene()->typedEntity<PlayerEntity>("player")->respawn();
+			}
+			else if (type == NetworkUtils::MessageType::RESET_CLIENT_ROUND) {
+				static_cast<NetworkedSession*>(sess.get())->resetSession();
+				scene()->typedEntity<PlayerEntity>("player")->respawn();
 			}
 			
 			enet_packet_destroy(event.packet);

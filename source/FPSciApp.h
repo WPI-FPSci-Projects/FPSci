@@ -46,7 +46,8 @@ enum PresentationState
 enum NetworkedPresentationState
 {
 	initialNetworkedState,
-	networkedSessionStart,
+	networkedSessionRoundStart,
+	networkedSessionRoundTimeout,
 	networkedSessionComplete
 };
 static String presentationStateToString(const PresentationState& state) {
@@ -261,6 +262,7 @@ public:
 	bool reinitExperiment = false; ///< Semaphore to indicate experiment needs to be reinitialized
 
 	int experimentIdx = 0; ///< Index of the current experiment
+	bool isServer = false; ///< Indicates if its running from server or not
 
 	/** Call to change the reticle. */
 	void setReticle(int r);
@@ -349,6 +351,9 @@ public:
 	void pushRdStateWithDelay(RenderDevice* rd, Array<shared_ptr<Framebuffer>>& delayBufferQueue, int& delayIndex, int lagFrames = 0);
 	/** calls rd->popState and advances the delayIndex. Copies the latest delay buffer into the current framebuffer */
 	void popRdStateWithDelay(RenderDevice* rd, const Array<shared_ptr<Framebuffer>>& delayBufferQueue, int& delayIndex, int lagFrames = 0);
+
+	ENetPeer* getServerPeer() { return m_serverPeer; }
+	int getFrameNumber() { return m_frameNumber; }
 };
 
 // The "old" way of animation

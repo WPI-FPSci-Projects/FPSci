@@ -122,7 +122,9 @@ public:
 		START_NETWORKED_SESSION,
 		SEND_PLAYER_CONFIG_TO_CLIENTS,
 
-		ADD_POINTS
+		ADD_POINTS,
+		CLIENT_SESSION_TIMEOUT,
+		RESET_CLIENT_ROUND
 	};
 
 	enum NetworkUpdateType {
@@ -164,4 +166,6 @@ public:
 	static int sendReadyUpMessage(ENetPeer* serverPeer);
 	static void broadcastStartSession(ENetHost* serverHost);
 	static int sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* peer, PlayerConfig* playerConfig, bool broadcast);
+	static int sendSessionTimeoutMessage(ENetPeer* serverPeer, uint16 frameNum);
+	static void broadcastResetRound(ENetHost* serverHost, uint16 frameNum);
 };

@@ -9,7 +9,8 @@ FPSciServerApp::FPSciServerApp(const GApp::Settings& settings) : FPSciApp(settin
 
 
 void FPSciServerApp::initExperiment() {
-    m_playersReady = 0;
+    m_clientsReady = 0;
+    m_clientsTimedOut = 0;
     // Load config from files
     loadConfigs(startupConfig.experimentList[experimentIdx]);
     m_lastSavedUser = *currentUser();			// Copy over the startup user for saves
@@ -77,13 +78,14 @@ void FPSciServerApp::initExperiment() {
 
     debugPrintf("Began listening\n");
 
+    isServer = true;
     static_cast<NetworkedSession*>(sess.get())->startSession(); // Set player as ready for the server player.
 }
 
 void FPSciServerApp::onNetwork() {
     /* None of this is from the upsteam project */
 
-    if (!sess->currentState == NetworkedPresentationState::networkedSessionStart) {
+    if (!sess->currentState == NetworkedPresentationState::networkedSessionRoundStart) {
         m_networkFrameNum++;
     }
     
@@ -210,15 +212,25 @@ void FPSciServerApp::onNetwork() {
             }
             else if (type == NetworkUtils::MessageType::REPORT_HIT) {
                 NetworkUtils::handleHitReport(m_localHost, event.peer, m_networkFrameNum);
-                //playersReady = 0;
             }
             else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {
-                m_playersReady++;
-                debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), m_playersReady);
-                if (m_playersReady >= experimentConfig.numPlayers)
+                m_clientsReady++;
+                debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), m_clientsReady);
+                if (m_clientsReady >= experimentConfig.numPlayers)
                 {
                     NetworkUtils::broadcastStartSession(m_localHost);
                     debugPrintf("All PLAYERS ARE READY!\n");
+                }
+            }
+            else if (type == NetworkUtils::MessageType::CLIENT_SESSION_TIMEOUT) {
+                m_clientsTimedOut++;
+                if (m_clientsTimedOut >= experimentConfig.numPlayers)
+                {
+                    //TODO check for number of rounds (trials)
+                    m_clientsReady = 0;
+                    m_clientsTimedOut = 0;
+                    debugPrintf("Round Over!\n");
+                    NetworkUtils::broadcastResetRound(m_localHost, m_frameNumber);
                 }
             }
             enet_packet_destroy(event.packet);

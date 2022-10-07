@@ -59,17 +59,22 @@ void NetworkedSession::updateNetworkedPresentationState()
 		else
 			m_feedbackMessage = formatFeedback(m_config->feedback.networkedSesstionWaitForOthers);
 	}
-	else if (currentState == NetworkedPresentationState::networkedSessionStart) {
-		// TODO: Experiment Session Ticks
+	else if (currentState == NetworkedPresentationState::networkedSessionRoundStart) {
+		if (getRemainingTrialTime() <= 0.0f && !m_app->isServer)
+			sessionTimeout();
 	}
 }
 
 void NetworkedSession::startSession()
 {
-	sessionStarted = true;
-	currentState = NetworkedPresentationState::networkedSessionStart;
+	m_config->hud.enable = true;
+	m_config->hud.showBanner = true;
+	m_config->hud.bannerTimerMode = "remaining";
+	m_timer.startTimer();
 	m_player->setPlayerMovement(true);
 	m_feedbackMessage.clear();
+	sessionStarted = true;
+	currentState = NetworkedPresentationState::networkedSessionRoundStart;
 }
 
 void NetworkedSession::resetSession()
@@ -77,4 +82,10 @@ void NetworkedSession::resetSession()
 	currentState = NetworkedPresentationState::initialNetworkedState;
 	m_player->setPlayerReady(false);
 	m_player->setPlayerMovement(false);
+}
+
+void NetworkedSession::sessionTimeout()
+{
+	currentState = NetworkedPresentationState::networkedSessionRoundTimeout;
+	NetworkUtils::sendSessionTimeoutMessage(m_app->getServerPeer(), m_app->getFrameNumber());
 }

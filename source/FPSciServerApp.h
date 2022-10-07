@@ -15,8 +15,8 @@ public:
 protected:
 
     Array <NetworkUtils::ConnectedClient> m_connectedClients;          //> List of all connected clients and all atributes needed to comunicate with them
-    int   m_playersReady;                                               ///> Numbers of player(s) that are ready.
-
+    int   m_clientsReady;                                              ///> Numbers of clients(s) that are ready.
+    int   m_clientsTimedOut;                                           ///> Numbers of clients(s) that have timed out. 
 
 
 public:
