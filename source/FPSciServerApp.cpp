@@ -179,14 +179,14 @@ void FPSciServerApp::onNetwork() {
             NetworkUtils::RemotePlayerAction remoteAction = NetworkUtils::handlePlayerInteractServer(m_unreliableSocket, m_connectedClients, packet_contents, m_networkFrameNum);
             debugPrintf("The client %s has shot and missed\n", remoteAction.guid.toString16());
             const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(remoteAction.guid.toString16());
-            PlayerAction pa = PlayerAction();
-            pa.time = sess->logger->getFileTime();
-            pa.viewDirection = clientEntity->getLookAzEl();
-            pa.position = clientEntity->frame().translation;
-            pa.state = sess->currentState;
-            pa.action = (PlayerActionType)remoteAction.actionType;
-            pa.targetName = remoteAction.guid.toString16();
-            sess->logger->logPlayerAction(pa);
+            RemotePlayerAction rpa = RemotePlayerAction();
+            rpa.time = sess->logger->getFileTime();
+            rpa.viewDirection = clientEntity->getLookAzEl();
+            rpa.position = clientEntity->frame().translation;
+            rpa.state = sess->currentState;
+            rpa.action = (PlayerActionType)remoteAction.actionType;
+            rpa.actorID = remoteAction.guid.toString16();
+            sess->logger->logRemotePlayerAction(rpa);
         }
         /* Update server-side data on clients' ping */
         else if (type == NetworkUtils::MessageType::PING_DATA) {
@@ -199,8 +199,8 @@ void FPSciServerApp::onNetwork() {
             m_clientRTTStatistics.set(addr_from.host, rttStatsArray);
         }
         if (frameNum - m_networkFrameNum > 50 || frameNum - m_networkFrameNum < -50) {
-            debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\t Client Frame: %d\n\tServer Frame: %d\n", frameNum, m_networkFrameNum);
-        }       
+            //debugPrintf("WARNING: Client and server frame numbers differ by more than 50:\n\tClient Frame: %d\n\tServer Frame: %d\n", frameNum, m_networkFrameNum);
+        }
     }
     free(data);
 
@@ -293,10 +293,44 @@ void FPSciServerApp::onNetwork() {
                 }
             }
             else if (type == NetworkUtils::MessageType::REPORT_HIT) {
-                NetworkUtils::handleHitReport(m_localHost, packet_contents, m_networkFrameNum);
-                playersReady = 0;
-                static_cast<NetworkedSession*>(sess.get())->resetSession();
-                scene()->typedEntity<PlayerEntity>("player")->setPlayerMovement(true); //Allow the server to move freely
+                // This just causes everyone to respawn
+                GUniqueID hitID = NetworkUtils::handleHitReport(m_localHost, packet_contents, m_networkFrameNum);
+                shared_ptr<NetworkedEntity> hitEntity = scene()->typedEntity<NetworkedEntity>(hitID.toString16());
+                //NetworkUtils::ConnectedClient* hitClient = getClientFromGUID(hitID);
+                GUniqueID shooter_id = getClientFromAddress(event.peer->address)->guid;
+
+                // Log the hit on the server
+                const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(getClientFromAddress(event.peer->address)->guid.toString16());
+                debugPrintf("%s", getClientFromAddress(event.peer->address)->guid.toString16());
+                RemotePlayerAction rpa = RemotePlayerAction();
+                rpa.time = sess->logger->getFileTime();
+                rpa.viewDirection = clientEntity->getLookAzEl();
+                rpa.position = clientEntity->frame().translation;
+                rpa.state = sess->currentState;
+                rpa.action = PlayerActionType::Hit;
+                rpa.actorID = getClientFromAddress(event.peer->address)->guid.toString16();
+                rpa.affectedID = hitID.toString16();
+                sess->logger->logRemotePlayerAction(rpa);
+                
+                float damage = 1.001 / sessConfig->hitsToKill;
+
+                if (hitEntity->doDamage(damage)) { //TODO PARAMETERIZE THIS DAMAGE VALUE SOME HOW! DO IT! DON'T FORGET!  DON'T DO IT!
+                    debugPrintf("A player died! Resetting game...\n");
+                    playersReady = 0;
+                    static_cast<NetworkedSession*>(sess.get())->resetSession();
+                    scene()->typedEntity<PlayerEntity>("player")->setPlayerMovement(true); //Allow the server to move freely
+
+                    Array<shared_ptr<NetworkedEntity>> entities;
+                    scene()->getTypedEntityArray<NetworkedEntity>(entities);
+                    for (shared_ptr<NetworkedEntity> entity : entities) {
+                        entity->respawn();
+                    }
+                    NetworkUtils::broadcastRespawn(m_localHost, m_networkFrameNum);
+                }
+                // Notify every player of the hit
+                for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
+                    NetworkUtils::sendPlayerInteract(NetworkUtils::RemotePlayerAction(getClientFromAddress(event.peer->address)->guid, PlayerActionType::Hit), m_unreliableSocket, client->unreliableAddress, m_networkFrameNum);
+                }
             }
             else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {
                 playersReady++;
@@ -316,6 +350,24 @@ void FPSciServerApp::onNetwork() {
     Array<shared_ptr<NetworkedEntity>> entityArray;
     scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
     NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
+
+    if (sessConfig->player.propagatePlayerConfigsToAll) {
+        sessConfig->player.propagatePlayerConfigsToAll = false;
+        NetworkUtils::sendPlayerConfigToClient(m_localHost, nullptr, &sessConfig->player, true);
+    }
+
+    if (sessConfig->player.propagatePlayerConfigsToSelectedClient) {
+        sessConfig->player.propagatePlayerConfigsToSelectedClient = false;
+        if (sessConfig->player.selectedClientIdx == 0) {
+            NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[0]->peer, &sessConfig->player, false);
+        }
+        else {
+            NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[1]->peer, &sessConfig->player, false);
+        }
+
+    }
+    
+
 }
 
 void FPSciServerApp::onInit() {
@@ -562,7 +614,7 @@ void FPSciServerApp::oneFrame() {
 NetworkUtils::ConnectedClient* FPSciServerApp::getClientFromAddress(ENetAddress e)
 {
     for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
-        if (client->unreliableAddress.port == e.port && client->unreliableAddress.host == e.host) {
+        if (client->unreliableAddress.host == e.host && (client->unreliableAddress.port == e.port || client->peer->address.port == e.port)) {
             return client;
         }
     }

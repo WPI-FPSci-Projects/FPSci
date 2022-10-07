@@ -85,7 +85,11 @@ public:
 	float			movementRestrictionZ = 5.0f;				///< Player's restricted movement span along Z
 	bool			restrictedMovementEnabled = false;			///< If true, player's movement will be restricted along X and Z
 	bool			counterStrafing = false;					///< If true, counter strafing will be enabled. (defaults to false.)
-
+	bool			propagatePlayerConfigsToAll = false;		///< If true, all players config from the server will be broadcast to clients
+	bool			propagatePlayerConfigsToSelectedClient = false; ///< If true, all players config from the server will be sent to selected client
+	bool			readFromFile = false;						///< Read client configs from file or not
+	int				selectedClientIdx = 0;						///< Indicates the index of the client that player configs will be propagated to
+	Array <PlayerConfig>  clientPlayerConfigs;					///< Player config for all the clients
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;
 };
@@ -192,7 +196,7 @@ public:
 	String sessComplete = "Session complete! You scored %totalTimeLeftS!";							///< Session complete feedback message
 	String allSessComplete = "All Sessions Complete!";												///< All sessions complete feedback message
 	String networkedSesstionInitial = "Press Tab to Ready Up!";										///< Initial Message for Networked Session to Prompt Players to "Ready Up"
-	String networkedSesstionWaitForOthers = "Wait for others to be ready!";							///< Message to display when not all players are ready	
+	String networkedSesstionWaitForOthers = "Wait for others to be ready and connected!";			///< Message to display when not all players are ready	
 
 	float fontSize = 20.0f;											///< Default font scale/size
 
