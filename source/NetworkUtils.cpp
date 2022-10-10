@@ -436,3 +436,10 @@ void NetworkUtils::broadcastUnreliable(shared_ptr<GenericPacket> packet, ENetSoc
 		packet->send();
 	}
 }
+
+void NetworkUtils::sendPacketDelayed(shared_ptr<GenericPacket> packet, int delay) {
+	std::chrono::time_point<std::chrono::high_resolution_clock> timestamp = std::chrono::high_resolution_clock::now();
+	timestamp = timestamp + std::chrono::milliseconds(delay);
+	shared_ptr<LatentPacket> latentPacket = LatentPacket::create(packet, timestamp);
+	NetworkUtils::latentNetworkThread->enqueuePacket(latentPacket);
+}

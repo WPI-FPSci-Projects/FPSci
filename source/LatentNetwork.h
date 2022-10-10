@@ -4,12 +4,17 @@
 #include <G3D/G3D.h>
 #include "Packet.h"
 
-struct LatentPacket {
+struct LatentPacket : public ReferenceCountedObject {
 	std::chrono::time_point<std::chrono::high_resolution_clock> timeToSend;
-	GenericPacket encapsulatedPacket;
-	LatentPacket(std::chrono::time_point<std::chrono::high_resolution_clock> time, GenericPacket packet) {
+	shared_ptr<GenericPacket> encapsulatedPacket;
+
+	LatentPacket(shared_ptr<GenericPacket> packet, std::chrono::time_point<std::chrono::high_resolution_clock> time) {
 		timeToSend = time;
 		encapsulatedPacket = packet;
+	}
+
+	static shared_ptr<LatentPacket> create(shared_ptr<GenericPacket> packet, std::chrono::time_point<std::chrono::high_resolution_clock> time) {
+		return createShared<LatentPacket>(packet, time);
 	}
 };
 
@@ -35,6 +40,12 @@ protected:
 
 public:
 	LatentNetwork();
+
+	static shared_ptr<LatentNetwork> create()
+	{
+		return createShared<LatentNetwork>();
+	}
+
 	void enqueuePacket(shared_ptr<LatentPacket> packet) {
 		{
 			std::lock_guard<std::mutex> lk(m_queueMutex);
