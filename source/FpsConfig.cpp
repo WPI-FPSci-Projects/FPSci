@@ -262,7 +262,13 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client2counterStrafing", clientPlayerConfigs[1].counterStrafing);
 		reader.getIfPresent("Client2propagatePlayerConfigs", clientPlayerConfigs[1].propagatePlayerConfigsToAll);
 
-		//TODO: CHECK FOR TYPOS
+		reader.getIfPresent("respawnPosArray", respawnPosArray);
+		reader.getIfPresent("movementRestrictionXArray", movementRestrictionXArray);
+		reader.getIfPresent("movementRestrictionZArray", movementRestrictionZArray);
+		reader.getIfPresent("restrictedMovementEnabledArray", restrictedMovementEnabledArray);
+		reader.getIfPresent("restrictionBoxAngleArray", restrictionBoxAngleArray);
+
+		reader.getIfPresent("clientLatencyArray", clientLatencyArray);
 
 		break;
 	default:

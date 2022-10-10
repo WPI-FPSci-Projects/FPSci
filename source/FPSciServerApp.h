@@ -18,7 +18,9 @@ protected:
     int   m_clientsReady;                                              ///< Numbers of clients(s) that are ready
     int   m_clientsTimedOut;                                           ///< Numbers of clients(s) that have timed out
     int   m_numberOfRoundsPlayed;                                      ///< Tracks the number of rounds played by the clients
-
+    Array <PlayerConfig> m_peekersRoundConfigs;                        ///< Keeps the round configs for the peekers
+    Array <PlayerConfig> m_defendersRoundConfigs;                      ///< Keeps the round configs for the defenders
+    Array <std::pair<int, int>> peekerDefenderConfigCombinationsIdx;   ///< Holds index of all possible combinations of matches between peekers and defenders
 
 public:
     FPSciServerApp(const GApp::Settings& settings);
@@ -27,5 +29,5 @@ public:
     void initExperiment() override;
     void onNetwork() override;
     void oneFrame() override;
-
+    void preparePerRoundConfigs();
 };

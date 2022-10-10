@@ -91,6 +91,16 @@ public:
 	bool			readFromFile = false;						///< Read client configs from file or not
 	int				selectedClientIdx = 0;						///< Indicates the index of the client that player configs will be propagated to
 	Array <PlayerConfig>  clientPlayerConfigs;					///< Player config for all the clients
+
+	// For peekers and defenders per round config settings
+	Array<Point3> respawnPosArray = { Point3(-46.0f, -2.3f, 0.0f), Point3(-36.0f, -2.3f, 0.0f) }; ///< Holds Peeker's/Defender's spawn position
+	Array<float> movementRestrictionXArray = { 3.0f, 2.0f };									  ///< Holds Peeker's/Defender's restricted movement span along X 
+	Array<float> movementRestrictionZArray = { 3.0f, 2.0f };								      ///< Holds Peeker's/Defender's restricted movement span along Z 
+	Array<bool>	 restrictedMovementEnabledArray = {true, true};									  ///< If true, Peeker's/Defender's movement will be restricted along X and Z
+	Array<float> restrictionBoxAngleArray = { 10.0f, 0.0f };									  ///< Rotates Peeker's/Defender's the restriction box (degrees)
+
+	Array<float> clientLatencyArray = { 0, 10, 20 };											  ///< Holds Peeker's/Defender's latency settings
+
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;
 };

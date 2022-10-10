@@ -177,6 +177,7 @@ public:
         m_inAir = true;                                 // Set in air to let player "fall" if needed
 		setDesiredOSVelocity(Vector3::zero());
 		setDesiredAngularVelocity(0.0f, 0.0f);
+        m_PlayersRestrictedMovementCenterPos = m_respawnPosition;
 	}
 
 	float health(void) { return m_health; }

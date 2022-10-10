@@ -219,6 +219,25 @@ void FPSciServerApp::onNetwork() {
                 debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), m_clientsReady);
                 if (m_clientsReady >= experimentConfig.numPlayers)
                 {
+                    if (m_numberOfRoundsPlayed % 2 == 0) {
+
+                        // Make them instantly spawn to the new location
+                        m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first].respawnToPos = true;
+                        m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second].respawnToPos = true;
+
+                        NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[0].peer, &m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first], false);
+                        NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[1].peer, &m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second], false);
+                    }
+                    else {
+
+                        // Make them instantly spawn to the new location
+                        m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first].respawnToPos = true;
+                        m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second].respawnToPos = true;
+
+                        NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[1].peer, &m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first], false);
+                        NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[0].peer, &m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second], false);
+                    }
+
                     NetworkUtils::broadcastStartSession(m_localHost);
                     debugPrintf("All PLAYERS ARE READY!\n");
                 }
@@ -271,8 +290,6 @@ void FPSciServerApp::onNetwork() {
         }
 
     }
-    
-
 }
 
 void FPSciServerApp::onInit() {
@@ -284,6 +301,7 @@ void FPSciServerApp::onInit() {
 
     GApp::onInit(); // Initialize the G3D application (one time)
     FPSciServerApp::initExperiment();
+    preparePerRoundConfigs();
 }
 
 void FPSciServerApp::oneFrame() {
@@ -512,4 +530,73 @@ void FPSciServerApp::oneFrame() {
     if (m_endProgram && window()->requiresMainLoop()) {
         window()->popLoopBody();
     }
+}
+
+void FPSciServerApp::preparePerRoundConfigs() {
+
+    int peekersConfigIdx = 0;
+    int defendersConfigIdx = 0;
+
+    for (int i = 0; i < sessConfig->player.respawnPosArray.size(); i++) {
+        if (i % 2 == 0) {
+            // Peekers
+            for (int j = peekersConfigIdx; j < sessConfig->player.clientLatencyArray.size() + peekersConfigIdx; j++) {
+                m_peekersRoundConfigs.push_back(sessConfig->player); // load with default values first
+
+                // Create different peekers with different configs
+                m_peekersRoundConfigs[j].respawnPos = sessConfig->player.respawnPosArray[i];
+                m_peekersRoundConfigs[j].movementRestrictionX = sessConfig->player.movementRestrictionXArray[i];
+                m_peekersRoundConfigs[j].movementRestrictionZ = sessConfig->player.movementRestrictionZArray[i];
+                m_peekersRoundConfigs[j].restrictedMovementEnabled = sessConfig->player.restrictedMovementEnabledArray[i];
+                m_peekersRoundConfigs[j].restrictionBoxAngle = sessConfig->player.restrictionBoxAngleArray[i];
+
+                m_peekersRoundConfigs[j].moveRate = sessConfig->player.clientLatencyArray[j - peekersConfigIdx];   //TODO CHANGE MOVERATE WITH LATENCY
+            }
+            peekersConfigIdx += sessConfig->player.clientLatencyArray.size();
+            
+        }
+        else {
+            // Defenders
+            for (int j = defendersConfigIdx; j < sessConfig->player.clientLatencyArray.size() + defendersConfigIdx; j++) {
+                m_defendersRoundConfigs.push_back(sessConfig->player); // load with default values first
+
+                // Create different defenders with different configs
+                m_defendersRoundConfigs[j].respawnPos = sessConfig->player.respawnPosArray[i];
+                m_defendersRoundConfigs[j].movementRestrictionX = sessConfig->player.movementRestrictionXArray[i];
+                m_defendersRoundConfigs[j].movementRestrictionZ = sessConfig->player.movementRestrictionZArray[i];
+                m_defendersRoundConfigs[j].restrictedMovementEnabled = sessConfig->player.restrictedMovementEnabledArray[i];
+                m_defendersRoundConfigs[j].restrictionBoxAngle = sessConfig->player.restrictionBoxAngleArray[i];
+
+                m_defendersRoundConfigs[j].moveRate = sessConfig->player.clientLatencyArray[j - defendersConfigIdx];   //TODO CHANGE MOVERATE WITH LATENCY
+            }
+            defendersConfigIdx += sessConfig->player.clientLatencyArray.size();
+        }
+    }
+
+    /// Create all possible pairs of peeker vs defender matchups
+    
+    for (int batch = 0; batch < m_defendersRoundConfigs.size() / sessConfig->player.clientLatencyArray.size(); batch++) {
+        for (int pIdx = batch * sessConfig->player.clientLatencyArray.size(); pIdx < (batch + 1) * sessConfig->player.clientLatencyArray.size(); pIdx++) {
+            for (int dIdx = batch * sessConfig->player.clientLatencyArray.size(); dIdx < (batch + 1) * sessConfig->player.clientLatencyArray.size(); dIdx++) {
+                peekerDefenderConfigCombinationsIdx.push_back(std::make_pair(pIdx, dIdx));
+            }
+        }
+    }
+
+    /// Set number of rounds
+    sessConfig->trials[0].count = peekerDefenderConfigCombinationsIdx.size() * 2;
+
+    /// Shuffle combinations
+    for (int i = 0; i < peekerDefenderConfigCombinationsIdx.size(); i++)
+        debugPrintf("COMBINATION BEFORE SHUFFLE p%d d%d\n", peekerDefenderConfigCombinationsIdx[i].first, peekerDefenderConfigCombinationsIdx[i].second);
+    
+    std::random_shuffle(peekerDefenderConfigCombinationsIdx.begin(), peekerDefenderConfigCombinationsIdx.end());
+
+    for (int i = 0; i < peekerDefenderConfigCombinationsIdx.size(); i++)
+        debugPrintf("COMBINATION AFTER SHUFFLE p%d d%d\n", peekerDefenderConfigCombinationsIdx[i].first, peekerDefenderConfigCombinationsIdx[i].second);
+
+    
+
+    debugPrintf("PEEKER SIZE: %d", m_peekersRoundConfigs.size());
+    debugPrintf("    DEFENDER SIZE: %d    COMBINATION SIZE %d\n", m_defendersRoundConfigs.size(), peekerDefenderConfigCombinationsIdx.size());
 }
