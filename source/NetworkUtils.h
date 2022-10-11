@@ -4,7 +4,6 @@
 #include "TargetEntity.h"
 #include "PlayerEntity.h"
 #include "Packet.h"
-#include "LatentNetwork.h"
 /*
 			PACKET STRUCTURE:
 			UInt8: type
@@ -202,11 +201,4 @@ public:
 	static void broadcastUnreliable(shared_ptr<GenericPacket> packet, ENetSocket* srcSocket, Array<ENetAddress*> addresses);
 
 	static void sendPacketDelayed(shared_ptr<GenericPacket> packet, int delay);
-	
-	static void initLatentNetworkThread() {
-		latentNetworkThread = LatentNetwork::create();
-	}
-
-	protected:
-		static shared_ptr<LatentNetwork> latentNetworkThread;
 };

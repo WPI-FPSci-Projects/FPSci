@@ -149,6 +149,7 @@
     <ClInclude Include="..\source\FPSciServerApp.h" />
     <ClInclude Include="..\source\FpsConfig.h" />
     <ClInclude Include="..\source\KeyMapping.h" />
+    <ClInclude Include="..\source\LatentNetwork.h" />
     <ClInclude Include="..\source\NetworkedSession.h" />
     <ClInclude Include="..\source\NetworkUtils.h" />
     <ClInclude Include="..\source\NoWindow.h" />
@@ -178,6 +179,7 @@
     <ClCompile Include="..\source\FPSciServerApp.cpp" />
     <ClCompile Include="..\source\FpsConfig.cpp" />
     <ClCompile Include="..\source\KeyMapping.cpp" />
+    <ClCompile Include="..\source\LatentNetwork.cpp" />
     <ClCompile Include="..\source\NetworkedSession.cpp" />
     <ClCompile Include="..\source\NetworkUtils.cpp" />
     <ClCompile Include="..\source\NoWindow.cpp" />
