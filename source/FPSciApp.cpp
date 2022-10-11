@@ -982,7 +982,7 @@ void FPSciApp::onAI() {
 void FPSciApp::onNetwork() {
 	GApp::onNetwork();
 
-	if (experimentConfig.isNetworked && sess->currentState == NetworkedPresentationState::networkedSessionStart) {
+	if (experimentConfig.isNetworked ){//&& sess->currentState == NetworkedPresentationState::networkedSessionStart) {
 		m_networkFrameNum++;
 	}
 

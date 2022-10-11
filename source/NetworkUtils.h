@@ -4,6 +4,7 @@
 #include "TargetEntity.h"
 #include "PlayerEntity.h"
 #include "InputHandler.h"
+#include "Weapon.h"
 
 
 /*
@@ -138,6 +139,8 @@ public:
 		GUniqueID guid;
 		ENetAddress unreliableAddress;
 		uint8 playerID;
+		shared_ptr<Weapon> weapon;
+		shared_ptr<Camera> camera;
 	};
 
 	static void updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer, DataHandler* networkHandler);

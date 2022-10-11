@@ -80,7 +80,7 @@ namespace G3D {
 		int m_pastFrames = 10;
 		int m_futureFrames = 2;
 		int m_currentFrame = 0; 
-		Array<Array<NetworkInput>*>* m_DataInputs = new Array<Array<NetworkInput>*>; //hold some future frames //this will be full hopfully
+		Array<Array<NetworkInput*>*>* m_DataInputs = new Array<Array<NetworkInput*>*>; //hold some future frames //this will be full hopfully
 		//TODO: keep track of how many clients are present during a single frame
 		Array<NetworkInput>* m_unreadFrameBuffer = new Array<NetworkInput>;//these will be half empty
 	public:

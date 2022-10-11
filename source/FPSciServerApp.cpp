@@ -203,6 +203,11 @@ void FPSciServerApp::onNetwork() {
                 /* Add the new target to the scene */
                 (*scene()).insert(target);
 
+                //add camera and weapon
+                const String* name = new String("camera" + m_connectedClients.size());
+                m_connectedClients.last().camera = Camera::create(*name);
+                m_connectedClients.last().weapon = Weapon::create(&experimentConfig.weapon, scene(), m_connectedClients.last().camera);
+
                 /* ADD NEW CLIENT TO OTHER CLIENTS, ADD OTHER CLIENTS TO NEW CLIENT */
 
                 NetworkUtils::broadcastCreateEntity(newClient.guid, m_localHost, m_networkFrameNum);
@@ -271,6 +276,8 @@ void FPSciServerApp::onInit() {
 void FPSciServerApp::oneFrame() {
     // Count this frame (for shaders)
     m_frameNumber++;
+
+    m_dataHandler->NewCurrentFrame(m_frameNumber, m_connectedClients.size());
 
     // Target frame time (only call this method once per one frame!)
     RealTime targetFrameTime = sess->targetFrameTime();
