@@ -81,6 +81,7 @@ void FPSciServerApp::initExperiment() {
 
     isServer = true;
     static_cast<NetworkedSession*>(sess.get())->startSession(); // Set player as ready for the server player.
+    m_clientFirstRoundPeeker = true;
 }
 
 void FPSciServerApp::onNetwork() {
@@ -217,16 +218,18 @@ void FPSciServerApp::onNetwork() {
             else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {
                 m_clientsReady++;
                 debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), m_clientsReady);
+                
                 if (m_clientsReady >= experimentConfig.numPlayers)
                 {
                     if (m_numberOfRoundsPlayed % 2 == 0) {
 
+                        m_clientFirstRoundPeeker = rand()%2;
                         // Make them instantly spawn to the new location
                         m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first].respawnToPos = true;
                         m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second].respawnToPos = true;
-
-                        NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[0].peer, &m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first], false);
-                        NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[1].peer, &m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second], false);
+                        
+                        NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[m_clientFirstRoundPeeker].peer, &m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first], false);
+                        NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[!m_clientFirstRoundPeeker].peer, &m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second], false);
                     }
                     else {
 
@@ -234,8 +237,8 @@ void FPSciServerApp::onNetwork() {
                         m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first].respawnToPos = true;
                         m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second].respawnToPos = true;
 
-                        NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[1].peer, &m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first], false);
-                        NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[0].peer, &m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second], false);
+                        NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[!m_clientFirstRoundPeeker].peer, &m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first], false);
+                        NetworkUtils::sendPlayerConfigToClient(m_localHost, m_connectedClients[m_clientFirstRoundPeeker].peer, &m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second], false);
                     }
 
                     NetworkUtils::broadcastStartSession(m_localHost);
