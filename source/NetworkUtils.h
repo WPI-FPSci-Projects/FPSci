@@ -1,6 +1,7 @@
 #pragma once
 #include <G3D/G3D.h>
 #include <enet/enet.h>
+#include <map>
 #include "TargetEntity.h"
 #include "PlayerEntity.h"
 #include "Packet.h"
@@ -98,6 +99,14 @@
 			GUID: Player
 
 */
+
+
+struct ENetAddressCompare {
+	bool operator()(const ENetAddress& a, const ENetAddress& b) const {
+		return ((((long)a.host) << 16) + a.port) < ((((long)b.host) << 16) + b.port);
+	}
+};
+
 
 class NetworkUtils
 {
@@ -201,4 +210,12 @@ public:
 	static void broadcastUnreliable(shared_ptr<GenericPacket> packet, ENetSocket* srcSocket, Array<ENetAddress*> addresses);
 
 	static void sendPacketDelayed(shared_ptr<GenericPacket> packet, int delay);
+	static void setAddressLatency(ENetAddress addr, int latency);
+	static void removeAddressLatency(ENetAddress addr);
+	static void setDefaultLatency(int latency);
+	static void send(shared_ptr<GenericPacket> packet);
+
+	protected:
+		static int defaultLatency;
+		static std::map<ENetAddress, int, ENetAddressCompare> latencyMap;
 };
