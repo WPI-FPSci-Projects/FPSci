@@ -155,7 +155,7 @@ void G3D::DataHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, int 
 {
 	if (CheckFrameAcceptable(frameNum)) {
 		NetworkInput* input = new NetworkInput(playerID, cframe, false);
-		m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID]->SetCFrame(cframe);
+		m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].SetCFrame(cframe);
 		m_unreadFrameBuffer->append(*input);
 	}
 }
@@ -164,7 +164,7 @@ void G3D::DataHandler::UpdateFired(uint8 playerID, bool fired, int frameNum)
 {
 	if (CheckFrameAcceptable(frameNum)) {
 		NetworkInput* input = new NetworkInput(playerID, *new CoordinateFrame(), fired);
-		//m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].SetFired(fired);
+		m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].SetFired(fired);
 		m_unreadFrameBuffer->append(*input);
 	}
 }
@@ -172,7 +172,7 @@ void G3D::DataHandler::UpdateFired(uint8 playerID, bool fired, int frameNum)
 G3D::DataHandler::DataHandler()
 {
 	for (int i = 0; i < m_pastFrames + m_futureFrames + 1; i++) {
-		m_DataInputs->append(new Array<NetworkInput*>);
+		m_DataInputs->append(new Array<NetworkInput>);
 	}
 }
 
@@ -184,7 +184,7 @@ bool G3D::DataHandler::AllClientsFrame(int frameNum, int clientsConnected)
 Array<G3D::DataHandler::NetworkInput>* G3D::DataHandler::GetFrameInputs(int frameNum)
 {
 	//if (m_DataInputs->empty) return NULL;
-	//return m_DataInputs[0][m_currentFrame - frameNum + 2];
+	return m_DataInputs[0][m_currentFrame - frameNum + 2];
 	return nullptr;
 }
 
@@ -194,10 +194,10 @@ void G3D::DataHandler::NewCurrentFrame(int frameNum, int clientsConnected)
 	//debugPrintf("%d\t%d\n", m_leadingFrame, frameNum);
 	m_currentFrame = frameNum;
 	m_DataInputs->pop();
-	Array<NetworkInput*>* arr = new Array<NetworkInput*>();
+	Array<NetworkInput>* arr = new Array<NetworkInput>();
 	//TODO: Does this actually make clientsConnected worth of network inputs or just the size of them
 	for (int i = 0; i < 8; i++) {
-		arr->append(new NetworkInput());
+		arr->append(*new NetworkInput());
 	}
 	//convert to on function call
 	m_DataInputs->insert(0, arr);
@@ -223,14 +223,14 @@ G3D::DataHandler::NetworkInput* G3D::DataHandler::PredictFrame(int frameNum, uin
 	//frame number is the frame you wish to predict
 	
 	//form delta around frameNum + 1 frame in past and frameNum + 2 frames in past
-	//Point3 translation_d = m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames + 1][0][playerID].GetCFrame().translation - m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames + 2][0][playerID].GetCFrame().translation;
-	//Matrix3 matrix_d = m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID].GetCFrame().rotation - m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames + 1][0][playerID].GetCFrame().rotation;
+	Point3 translation_d = m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames + 1][0][playerID].GetCFrame().translation - m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames + 2][0][playerID].GetCFrame().translation;
+	Matrix3 matrix_d = m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID].GetCFrame().rotation - m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames + 1][0][playerID].GetCFrame().rotation;
 	//new cframe from calculated deltas
-	//CoordinateFrame* cframe = new CoordinateFrame(matrix_d, translation_d);
+	CoordinateFrame* cframe = new CoordinateFrame(matrix_d, translation_d);
 	//new network input based on cframe, previous frames get fired (keep or change to false by default)
-	//NetworkInput* prediction = new NetworkInput(playerID, *cframe, m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID].GetFired());
+	NetworkInput* prediction = new NetworkInput(playerID, *cframe, m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID].GetFired());
 	//add predicted frame to dataInputs
-	//m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID] = *prediction;
+	m_DataInputs[0][frameNum - m_currentFrame + m_futureFrames][0][playerID] = *prediction;
 	//return the created networkInput
 	return nullptr;//prediction;
 }

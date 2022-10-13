@@ -4,6 +4,7 @@
 #include "WaypointManager.h"
 #include "NetworkedSession.h"
 #include <Windows.h>
+#include <string>
 
 FPSciServerApp::FPSciServerApp(const GApp::Settings& settings) : FPSciApp(settings) {}
 
@@ -204,9 +205,11 @@ void FPSciServerApp::onNetwork() {
                 (*scene()).insert(target);
 
                 //add camera and weapon
-                const String* name = new String("camera" + m_connectedClients.size());
+                const String* name = new String("camera" + std::to_string(m_connectedClients.size()));
                 m_connectedClients.last().camera = Camera::create(*name);
                 m_connectedClients.last().weapon = Weapon::create(&experimentConfig.weapon, scene(), m_connectedClients.last().camera);
+
+                (*scene()).insert(m_connectedClients.last().camera);
 
                 /* ADD NEW CLIENT TO OTHER CLIENTS, ADD OTHER CLIENTS TO NEW CLIENT */
 
