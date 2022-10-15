@@ -14,7 +14,7 @@ void LatentNetwork::networkThreadTick()
 		auto dT = std::chrono::high_resolution_clock::now() - start_timer;
 		std::this_thread::sleep_until(std::chrono::system_clock::now() + (tickDuration - dT));
 		start_timer = std::chrono::high_resolution_clock::now();
-		
+
 		// lock packet queue mutex
 		lk.lock();
 		// copy packet queue into local space
@@ -25,16 +25,18 @@ void LatentNetwork::networkThreadTick()
 		// heapify the read packets
 		for (shared_ptr<LatentPacket> packet : sharedPacketQueue) {
 			m_packetHeap.push_back(packet);
-			std::push_heap(m_sharedPacketQueue.begin(), m_sharedPacketQueue.end(), PacketSendtimeCompare());
+			std::push_heap(m_packetHeap.begin(), m_packetHeap.end(), PacketSendtimeCompare());
 		}
 
 		// send the packets that need to be sent
 		std::chrono::time_point<std::chrono::high_resolution_clock> now = std::chrono::high_resolution_clock::now();
+
 		while (m_packetHeap.length() > 0 && m_packetHeap[0]->timeToSend <= now) {
 			std::pop_heap(m_packetHeap.begin(), m_packetHeap.end(), PacketSendtimeCompare());
 			m_packetHeap.back()->encapsulatedPacket->send();
 			m_packetHeap.pop_back();
 		}
+		//debugPrintf("Packet heap length: %d\n", m_packetHeap.length());
 	}
 }
 /*

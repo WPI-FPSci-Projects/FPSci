@@ -20,7 +20,7 @@ struct LatentPacket : public ReferenceCountedObject {
 
 struct PacketSendtimeCompare {
 	bool operator()(const shared_ptr<LatentPacket>& a, const shared_ptr<LatentPacket>& b) const {
-		return b->timeToSend > a->timeToSend;
+		return b->timeToSend < a->timeToSend;
 	}
 };
 

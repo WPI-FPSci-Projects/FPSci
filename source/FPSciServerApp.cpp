@@ -183,6 +183,10 @@ void FPSciServerApp::onNetwork() {
                 shared_ptr<RegistrationReplyPacket> registrationReply = GenericPacket::createReliable<RegistrationReplyPacket>(newClient->peer);
                 registrationReply->populate(newClient->guid, 0);
                 NetworkUtils::send(registrationReply);
+                NetworkUtils::setAddressLatency(typedPacket->srcAddr(), 1000);
+                ENetAddress addr = typedPacket->srcAddr();
+                addr.port = typedPacket->m_portNum;
+                NetworkUtils::setAddressLatency(addr, 1000);
                 //registrationReply->send();
                 debugPrintf("\tRegistered client: %s\n", newClient->guid.toString16());
 
@@ -291,7 +295,7 @@ void FPSciServerApp::onNetwork() {
             }
             case READY_UP_CLIENT: {
                 playersReady++;
-                debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), playersReady);
+                debugPrintf("Connected Number of Clients: %d\nReady Clients: %d\n", m_connectedClients.length(), playersReady);
                 if (playersReady >= experimentConfig.numPlayers)
                 {
                     netSess->startSession();

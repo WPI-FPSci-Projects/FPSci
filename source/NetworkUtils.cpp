@@ -426,15 +426,16 @@ shared_ptr<GenericPacket> NetworkUtils::receivePacket(ENetHost* host, ENetSocket
 
 void NetworkUtils::broadcastReliable(shared_ptr<GenericPacket> packet, ENetHost* localHost) {
 	for (int i = 0; i < localHost->peerCount; i ++) {
+		//shared_ptr<GenericPacket> pack = packet->getTypedPacket();
 		packet->setReliableDest(&localHost->peers[i]);
-		packet->send();
+		NetworkUtils::send(packet);
 	}
 }
 
 void NetworkUtils::broadcastUnreliable(shared_ptr<GenericPacket> packet, ENetSocket* srcSocket, Array<ENetAddress*> addresses) {
 	for (ENetAddress* destAddr : addresses) {
 		packet->setUnreliableDest(srcSocket, destAddr);
-		packet->send();
+		NetworkUtils::send(packet);
 	}
 }
 
@@ -464,10 +465,14 @@ void NetworkUtils::setDefaultLatency(int latency)
 void NetworkUtils::send(shared_ptr<GenericPacket> packet)
 {
 	int latency = NetworkUtils::defaultLatency;
+
 	ENetAddress addr = *(packet->getDestinationAddress());
 	auto searchResult = NetworkUtils::latencyMap.find(addr);
 	if (searchResult != NetworkUtils::latencyMap.end()) {
 		latency = searchResult->second;
+	}
+	else {
+		debugPrintf("could not find address!\n");
 	}
 
 	if (latency == 0) { // don't bother the other thread if we don't want any delay
