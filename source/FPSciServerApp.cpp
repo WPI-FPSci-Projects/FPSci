@@ -101,9 +101,10 @@ void FPSciServerApp::onNetwork() {
             switch (inPacket->type()) {
             case HANDSHAKE: {
                 shared_ptr<HandshakeReplyPacket> outPacket = GenericPacket::createUnreliable<HandshakeReplyPacket>(&m_unreliableSocket, &srcAddr);
-                if (outPacket->send() <= 0) {
+                NetworkUtils::send(outPacket);
+                /*if (outPacket->send() <= 0) {
                     debugPrintf("Failed to send the handshke reply\n");
-                }
+                }*/
                 break;
             }
             case BATCH_ENTITY_UPDATE: {
@@ -167,7 +168,8 @@ void FPSciServerApp::onNetwork() {
                     else {
                         shared_ptr<DestroyEntityPacket> outPacket = GenericPacket::createReliable<DestroyEntityPacket>(m_connectedClients[i]->peer);
                         outPacket->populate(m_networkFrameNum, client->guid);
-                        outPacket->send();
+                        NetworkUtils::send(outPacket);
+                        //outPacket->send();
                     }
                 }
                 break;
@@ -180,7 +182,8 @@ void FPSciServerApp::onNetwork() {
                 /* Reply to the registration */
                 shared_ptr<RegistrationReplyPacket> registrationReply = GenericPacket::createReliable<RegistrationReplyPacket>(newClient->peer);
                 registrationReply->populate(newClient->guid, 0);
-                registrationReply->send();
+                NetworkUtils::send(registrationReply);
+                //registrationReply->send();
                 debugPrintf("\tRegistered client: %s\n", newClient->guid.toString16());
 
                 Any modelSpec = PARSE_ANY(ArticulatedModel::Specification{			///< Basic model spec for target
@@ -216,7 +219,8 @@ void FPSciServerApp::onNetwork() {
                     if (newClient->guid != m_connectedClients[i]->guid) {
                         createEntityPacket = GenericPacket::createReliable<CreateEntityPacket>(newClient->peer);
                         createEntityPacket->populate(m_networkFrameNum, m_connectedClients[i]->guid);
-                        createEntityPacket->send();
+                        NetworkUtils::send(createEntityPacket);
+                        //createEntityPacket->send();
                         debugPrintf("Sent add to %s to add %s\n", newClient->guid.toString16(), m_connectedClients[i]->guid.toString16());
                     }
                 }
@@ -227,10 +231,12 @@ void FPSciServerApp::onNetwork() {
                     float heading = 90;
                     shared_ptr<SetSpawnPacket> setSpawnPacket = GenericPacket::createReliable<SetSpawnPacket>(newClient->peer);
                     setSpawnPacket->populate(position, heading);
-                    setSpawnPacket->send();
+                    NetworkUtils::send(setSpawnPacket);
+                    //setSpawnPacket->send();
                     shared_ptr<RespawnClientPacket> respawnPacket = GenericPacket::createReliable<RespawnClientPacket>(newClient->peer);
                     respawnPacket->populate();
-                    respawnPacket->send();
+                    NetworkUtils::send(respawnPacket);
+                    //respawnPacket->send();
                 }
                 break;
             }

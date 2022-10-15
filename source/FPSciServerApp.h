@@ -5,7 +5,6 @@
 #pragma once
 #include "FPSciApp.h"
 #include "NoWindow.h"
-#include "NetworkUtils.h"
 
 class FPSciServerApp : public FPSciApp {
 

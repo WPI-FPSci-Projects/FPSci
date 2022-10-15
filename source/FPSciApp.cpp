@@ -984,7 +984,8 @@ void FPSciApp::onNetwork() {
 
 	if (!m_socketConnected) {
 		shared_ptr<HandshakePacket> handshake = GenericPacket::createUnreliable<HandshakePacket>(&m_unreliableSocket, &m_unreliableServerAddress);
-		handshake->send();
+		NetworkUtils::send(handshake);
+		//handshake->send();
 	}
 
 	// wait to send updates until we're sure we're connected
@@ -994,7 +995,8 @@ void FPSciApp::onNetwork() {
 		Array<BatchEntityUpdatePacket::EntityUpdate> updates;
 		updates.append(BatchEntityUpdatePacket::EntityUpdate(scene()->entity("player")->frame(), m_playerGUID.toString16()));
 		updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
-		updatePacket->send();
+		NetworkUtils::send(updatePacket);
+		//updatePacket->send();
 	}
 
 	/* Recevie and handle any packets */
@@ -1068,7 +1070,8 @@ void FPSciApp::onNetwork() {
 				debugPrintf("\tHost: %s\n", ipStr);
 				shared_ptr<RegisterClientPacket> registrationPacket = GenericPacket::createReliable<RegisterClientPacket>(m_serverPeer);
 				registrationPacket->populate(m_serverPeer, m_playerGUID, localAddress.port);
-				registrationPacket->send();
+				NetworkUtils::send(registrationPacket);
+				//registrationPacket->send();
 				break;
 			}
 			case CREATE_ENTITY: {
@@ -1644,7 +1647,8 @@ void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
 	if (experimentConfig.isNetworked) {
 		shared_ptr<ReportHitPacket> outPacket = GenericPacket::createReliable<ReportHitPacket>(m_serverPeer);
 		outPacket->populate(m_networkFrameNum, GUniqueID::fromString16(target->name().c_str()), m_playerGUID);
-		outPacket->send();
+		NetworkUtils::send(outPacket);
+		//outPacket->send();
 		return;
 	}
 
@@ -1749,7 +1753,8 @@ void FPSciApp::missEvent() {
 		if (experimentConfig.isNetworked && m_socketConnected) {
 			shared_ptr<PlayerInteractPacket> outPacket = GenericPacket::createUnreliable<PlayerInteractPacket>(&m_unreliableSocket, &m_unreliableServerAddress);
 			outPacket->populate(m_networkFrameNum, PlayerActionType::Miss, m_playerGUID);
-			outPacket->send();
+			NetworkUtils::send(outPacket);
+			//outPacket->send();
 		}
 	}
 }
@@ -1846,7 +1851,8 @@ void FPSciApp::onUserInput(UserInput* ui) {
 			if (!player->getPlayerReady()) {
 				player->setPlayerReady(true);
 					shared_ptr<ReadyUpClientPacket> outPacket = GenericPacket::createReliable<ReadyUpClientPacket>(m_serverPeer);
-				outPacket->send();
+					NetworkUtils::send(outPacket);
+					//outPacket->send();
 			}
 		}
 	}

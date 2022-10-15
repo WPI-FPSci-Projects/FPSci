@@ -1,5 +1,6 @@
 #include "NetworkUtils.h"
 #include "TargetEntity.h"
+#include "LatentNetwork.h"
 
 NetworkUtils::ConnectedClient* NetworkUtils::registerClient(RegisterClientPacket* packet) {
 	ConnectedClient* newClient = new ConnectedClient();
@@ -131,3 +132,47 @@ void NetworkUtils::broadcastUnreliable(shared_ptr<GenericPacket> packet, ENetSoc
 		packet->send();
 	}
 }
+
+void NetworkUtils::sendPacketDelayed(shared_ptr<GenericPacket> packet, int delay) {
+	std::chrono::time_point<std::chrono::high_resolution_clock> timestamp = std::chrono::high_resolution_clock::now();
+	timestamp = timestamp + std::chrono::milliseconds(delay);
+	shared_ptr<LatentPacket> latentPacket = LatentPacket::create(packet, timestamp);
+	LatentNetwork::getInstance().enqueuePacket(latentPacket);
+}
+
+void NetworkUtils::setAddressLatency(ENetAddress addr, int latency)
+{
+	NetworkUtils::latencyMap.erase(addr);
+	NetworkUtils::latencyMap.insert({ addr, latency });
+}
+
+void NetworkUtils::removeAddressLatency(ENetAddress addr)
+{
+	NetworkUtils::latencyMap.erase(addr);
+}
+
+void NetworkUtils::setDefaultLatency(int latency)
+{
+	NetworkUtils::defaultLatency = latency;
+}
+
+void NetworkUtils::send(shared_ptr<GenericPacket> packet)
+{
+	int latency = NetworkUtils::defaultLatency;
+	ENetAddress addr = *(packet->getDestinationAddress());
+	auto searchResult = NetworkUtils::latencyMap.find(addr);
+	if (searchResult != NetworkUtils::latencyMap.end()) {
+		latency = searchResult->second;
+	}
+
+	if (latency == 0) { // don't bother the other thread if we don't want any delay
+		packet->send();
+	}
+	else {
+		sendPacketDelayed(packet, latency);
+	}
+}
+
+// default latency is none by default:
+int NetworkUtils::defaultLatency = 0;
+std::map<ENetAddress, int, ENetAddressCompare> NetworkUtils::latencyMap;

@@ -118,6 +118,15 @@ public:
 		m_reliable = false;
 	}
 
+	const ENetAddress* getDestinationAddress() {
+		if (m_reliable) {
+			return &m_destPeer->address;
+		}
+		else {
+			return m_destAddr;
+		}
+	}
+
 	/** Returns whether the packet was sent/received on the reliable channel */
 	bool isReliable() { return m_reliable; }
 	/** Returns the source address (only used on inbound packets */
