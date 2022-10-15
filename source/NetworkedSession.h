@@ -44,7 +44,7 @@ protected:
 
 public:
 
-	NetworkedPresentationState currentState; ///Current Networked State
+	
 	static shared_ptr<NetworkedSession> create(FPSciApp* app) {
 		return createShared<NetworkedSession>(app);
 	}

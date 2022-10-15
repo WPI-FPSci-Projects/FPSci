@@ -41,13 +41,12 @@ enum PresentationState
 	trialTask,
 	trialFeedback,
 	sessionFeedback,
-	complete
-};
-enum NetworkedPresentationState
-{
+	complete,
+
 	initialNetworkedState,
 	networkedSessionRoundStart,
 	networkedSessionRoundTimeout,
+	networkedSessionRoundFeedback,
 	networkedSessionComplete
 };
 static String presentationStateToString(const PresentationState& state) {

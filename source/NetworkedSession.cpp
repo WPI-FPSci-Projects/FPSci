@@ -53,13 +53,13 @@ void NetworkedSession::onInit(String filename, String description)
 
 void NetworkedSession::updateNetworkedPresentationState()
 {
-	if (currentState == NetworkedPresentationState::initialNetworkedState) {
+	if (currentState == PresentationState::initialNetworkedState) {
 		if (!m_player->getPlayerReady())
 			m_feedbackMessage = formatFeedback(m_config->feedback.networkedSesstionInitial);
 		else
 			m_feedbackMessage = formatFeedback(m_config->feedback.networkedSesstionWaitForOthers);
 	}
-	else if (currentState == NetworkedPresentationState::networkedSessionRoundStart) {
+	else if (currentState == PresentationState::networkedSessionRoundStart) {
 		if (getRemainingTrialTime() <= 0.0f && !m_app->isServer)
 			sessionTimeout();
 	}
@@ -74,18 +74,18 @@ void NetworkedSession::startSession()
 	m_player->setPlayerMovement(true);
 	m_feedbackMessage.clear();
 	sessionStarted = true;
-	currentState = NetworkedPresentationState::networkedSessionRoundStart;
+	currentState = PresentationState::networkedSessionRoundStart;
 }
 
 void NetworkedSession::resetSession()
 {
-	currentState = NetworkedPresentationState::initialNetworkedState;
+	currentState = PresentationState::initialNetworkedState;
 	m_player->setPlayerReady(false);
 	m_player->setPlayerMovement(false);
 }
 
 void NetworkedSession::sessionTimeout()
 {
-	currentState = NetworkedPresentationState::networkedSessionRoundTimeout;
+	currentState = PresentationState::networkedSessionRoundTimeout;
 	NetworkUtils::sendSessionTimeoutMessage(m_app->getServerPeer(), m_app->getFrameNumber());
 }

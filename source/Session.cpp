@@ -444,8 +444,9 @@ void Session::updatePresentationState()
 			}
 		}
 	}
-	else if (currentState == PresentationState::trialFeedback)
+	if (currentState == PresentationState::trialFeedback)
 	{
+		
 		if ((stateElapsedTime > m_config->timing.trialFeedbackDuration) && (remainingTargets <= 0))
 		{
 			if (blockComplete()) {
