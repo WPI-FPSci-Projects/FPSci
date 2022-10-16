@@ -120,18 +120,24 @@ shared_ptr<GenericPacket> NetworkUtils::receivePacket(ENetHost* host, ENetSocket
 }
 
 void NetworkUtils::broadcastReliable(shared_ptr<GenericPacket> packet, ENetHost* localHost) {
-	for (int i = 0; i < localHost->connectedPeers; i ++) {
-		debugPrintf("Sending packet over reliable channel\n");
-		shared_ptr<GenericPacket> pack = packet->clone();
-		pack->setReliableDest(&localHost->peers[i]);
-		NetworkUtils::send(pack);
+	for (int i = 0; i < localHost->peerCount; i ++) {
+		/* 
+		 * Must loop through all the possible peers because ENet does not remove 
+		 * a peer from the array when they disconnect 
+		 */
+		if (localHost->peers[i].state == ENET_PEER_STATE_CONNECTED) {
+			shared_ptr<GenericPacket> packetCopy = packet->clone();
+			packetCopy->setReliableDest(&localHost->peers[i]);
+			NetworkUtils::send(packetCopy);
+		}
 	}
 }
 
 void NetworkUtils::broadcastUnreliable(shared_ptr<GenericPacket> packet, ENetSocket* srcSocket, Array<ENetAddress*> addresses) {
 	for (ENetAddress* destAddr : addresses) {
-		packet->setUnreliableDest(srcSocket, destAddr);
-		NetworkUtils::send(packet);
+		shared_ptr<GenericPacket> packetCopy = packet->clone();
+		packetCopy->setUnreliableDest(srcSocket, destAddr);
+		NetworkUtils::send(packetCopy);
 	}
 }
 

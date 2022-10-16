@@ -165,13 +165,13 @@ void FPSciServerApp::onNetwork() {
                     if (m_connectedClients[i]->guid == client->guid) {
                         m_connectedClients.remove(i, 1);
                     }
-                    else {
-                        shared_ptr<DestroyEntityPacket> outPacket = GenericPacket::createReliable<DestroyEntityPacket>(m_connectedClients[i]->peer);
-                        outPacket->populate(m_networkFrameNum, client->guid);
-                        NetworkUtils::send(outPacket);
-                        //outPacket->send();
-                    }
                 }
+                
+                shared_ptr<DestroyEntityPacket> outPacket = GenericPacket::createForBroadcast<DestroyEntityPacket>();
+                outPacket->populate(m_networkFrameNum, client->guid);
+                NetworkUtils::broadcastReliable(outPacket, m_localHost);
+                //NetworkUtils::send(outPacket);
+                //outPacket->send();
                 break;
             }
             case REGISTER_CLIENT: {
