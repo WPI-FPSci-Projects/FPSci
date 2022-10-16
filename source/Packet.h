@@ -137,7 +137,7 @@ public:
 	/** Returns the type of packet that this is (used to know how to handle a packet) */
 	virtual PacketType type() { return m_type; };
 	/** Returns the *this* (used to clone a packet when broadcasting) */
-	virtual GenericPacket* getTypedPacket() { return this; }
+	virtual shared_ptr<GenericPacket> clone() { return createShared<GenericPacket>(*this); }
 
 	/** Sends the packet over the network on the correct channel */
 	int send();
@@ -191,7 +191,7 @@ public:
 	};
 
 	PacketType type() override { return BATCH_ENTITY_UPDATE; }
-	BatchEntityUpdatePacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<BatchEntityUpdatePacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber, Array<EntityUpdate> updates, NetworkUpdateType updateType);
@@ -221,7 +221,7 @@ protected:
 	
 public:
 	PacketType type() override { return CREATE_ENTITY; }
-	CreateEntityPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<CreateEntityPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber, GUniqueID guid);
@@ -248,7 +248,7 @@ protected:
 
 public:
 	PacketType type() override { return DESTROY_ENTITY; }
-	DestroyEntityPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<DestroyEntityPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber, GUniqueID guid);
@@ -276,7 +276,7 @@ protected:
 	
 public:
 	PacketType type() override { return REGISTER_CLIENT; }
-	RegisterClientPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<RegisterClientPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(ENetPeer* peer, GUniqueID guid, uint16 portNum);
@@ -305,7 +305,7 @@ protected:
 
 public:
 	PacketType type() override { return CLIENT_REGISTRATION_REPLY; }
-	RegistrationReplyPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<RegistrationReplyPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(GUniqueID guid, uint8 status);
@@ -333,7 +333,7 @@ protected:
 
 public:
 	PacketType type() override { return HANDSHAKE; }
-	HandshakePacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<HandshakePacket>(*this); }
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
@@ -354,7 +354,7 @@ protected:
 
 public:
 	PacketType type() override { return HANDSHAKE_REPLY; }
-	HandshakeReplyPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<HandshakeReplyPacket>(*this); }
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
@@ -375,7 +375,7 @@ protected:
 
 public:
 	PacketType type() override { return MOVE_CLIENT; }
-	MoveClientPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<MoveClientPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber, CFrame newPosition);
@@ -402,7 +402,7 @@ protected:
 
 public:
 	PacketType type() override { return REPORT_HIT; }
-	ReportHitPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<ReportHitPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber, GUniqueID shotID, GUniqueID shooterID);
@@ -430,7 +430,7 @@ protected:
 
 public:
 	PacketType type() override { return SET_SPAWN_LOCATION; }
-	SetSpawnPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<SetSpawnPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(Point3 spawnPositionTranslation, float spawnHeading);
@@ -457,7 +457,7 @@ protected:
 
 public:
 	PacketType type() override { return RESPAWN_CLIENT; }
-	RespawnClientPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<RespawnClientPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber = 0);
@@ -483,7 +483,7 @@ protected:
 
 public:
 	PacketType type() override { return READY_UP_CLIENT; }
-	ReadyUpClientPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<ReadyUpClientPacket>(*this); }
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
@@ -505,7 +505,7 @@ protected:
 
 public:
 	PacketType type() override { return START_NETWORKED_SESSION; }
-	StartSessionPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<StartSessionPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber);
@@ -531,7 +531,7 @@ protected:
 
 public:
 	PacketType type() override { return START_NETWORKED_SESSION; }
-	PlayerInteractPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<PlayerInteractPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber, uint8 remoteAction, GUniqueID actorID);
@@ -566,7 +566,7 @@ public:
 	}
 
 	PacketType type() override { return RELIABLE_CONNECT; }
-	ReliableConnectPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<ReliableConnectPacket>(*this); }
 };
 
 /** A Packet indicating that a client has disconnected from the reliable connection
@@ -590,5 +590,5 @@ public:
 	}
 
 	PacketType type() override { return RELIABLE_DISCONNECT; }
-	ReliableDisconnectPacket* getTypedPacket() override { return this; }
+	shared_ptr<GenericPacket> clone() override { return createShared<ReliableDisconnectPacket>(*this); }
 };

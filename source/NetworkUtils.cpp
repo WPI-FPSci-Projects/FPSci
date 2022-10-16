@@ -120,10 +120,11 @@ shared_ptr<GenericPacket> NetworkUtils::receivePacket(ENetHost* host, ENetSocket
 }
 
 void NetworkUtils::broadcastReliable(shared_ptr<GenericPacket> packet, ENetHost* localHost) {
-	for (int i = 0; i < localHost->peerCount; i ++) {
-		//shared_ptr<GenericPacket> pack = packet->getTypedPacket();
-		packet->setReliableDest(&localHost->peers[i]);
-		NetworkUtils::send(packet);
+	for (int i = 0; i < localHost->connectedPeers; i ++) {
+		debugPrintf("Sending packet over reliable channel\n");
+		shared_ptr<GenericPacket> pack = packet->clone();
+		pack->setReliableDest(&localHost->peers[i]);
+		NetworkUtils::send(pack);
 	}
 }
 
