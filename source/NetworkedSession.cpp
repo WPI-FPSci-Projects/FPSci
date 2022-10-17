@@ -63,6 +63,9 @@ void NetworkedSession::updateNetworkedPresentationState()
 		if (getRemainingTrialTime() <= 0.0f && !m_app->isServer)
 			sessionTimeout();
 	}
+	else if (currentState == PresentationState::networkedSessionRoundFeedback) {
+		updatePresentationState();
+	}
 }
 
 void NetworkedSession::startSession()
@@ -88,4 +91,8 @@ void NetworkedSession::sessionTimeout()
 {
 	currentState = PresentationState::networkedSessionRoundTimeout;
 	NetworkUtils::sendSessionTimeoutMessage(m_app->getServerPeer(), m_app->getFrameNumber());
+}
+
+void NetworkedSession::feedbackStart() {
+	currentState = PresentationState::networkedSessionRoundFeedback;
 }

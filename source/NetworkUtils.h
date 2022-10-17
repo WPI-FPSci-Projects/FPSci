@@ -123,7 +123,9 @@ public:
 		SEND_PLAYER_CONFIG_TO_CLIENTS,
 
 		ADD_POINTS,
-		CLIENT_SESSION_TIMEOUT,
+		CLIENT_ROUND_TIMEOUT,
+		CLIENT_FEEDBACK_START,
+		CLIENT_FEEDBACK_SUBMITTED,
 		RESET_CLIENT_ROUND
 	};
 
@@ -168,4 +170,6 @@ public:
 	static int sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* peer, PlayerConfig* playerConfig, bool broadcast);
 	static int sendSessionTimeoutMessage(ENetPeer* serverPeer, uint16 frameNum);
 	static void broadcastResetRound(ENetHost* serverHost, uint16 frameNum);
+	static void broadcastRoundFeedback(ENetHost* serverHost, uint16 frameNum);
+	static int sendFeedbackSubmittedMessage(ENetPeer* serverPeer, uint16 frameNum);
 };

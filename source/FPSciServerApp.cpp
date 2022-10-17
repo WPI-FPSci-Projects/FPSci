@@ -245,7 +245,7 @@ void FPSciServerApp::onNetwork() {
                     debugPrintf("All PLAYERS ARE READY!\n");
                 }
             }
-            else if (type == NetworkUtils::MessageType::CLIENT_SESSION_TIMEOUT) {
+            else if (type == NetworkUtils::MessageType::CLIENT_ROUND_TIMEOUT) {
                 m_clientsTimedOut++;
                 if (m_clientsTimedOut >= experimentConfig.numPlayers)
                 {
@@ -266,7 +266,8 @@ void FPSciServerApp::onNetwork() {
                         NetworkUtils::broadcastDestroyEntity(m_connectedClients[1].guid, m_localHost, m_networkFrameNum);
                     }
 
-                    NetworkUtils::broadcastResetRound(m_localHost, m_frameNumber);
+                    NetworkUtils::broadcastRoundFeedback(m_localHost, m_frameNumber);
+                    //NetworkUtils::broadcastResetRound(m_localHost, m_frameNumber);
                 }
             }
             enet_packet_destroy(event.packet);

@@ -1210,6 +1210,11 @@ void FPSciApp::onNetwork() {
 			else if (type == NetworkUtils::MessageType::RESET_CLIENT_ROUND) {
 				static_cast<NetworkedSession*>(sess.get())->resetSession();
 				scene()->typedEntity<PlayerEntity>("player")->respawn();
+				sessConfig->clientScore = 0;
+			}
+
+			else if (type == NetworkUtils::MessageType::CLIENT_FEEDBACK_START) {
+				static_cast<NetworkedSession*>(sess.get())->feedbackStart();
 			}
 			
 			enet_packet_destroy(event.packet);

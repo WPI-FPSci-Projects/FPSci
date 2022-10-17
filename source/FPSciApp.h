@@ -47,6 +47,7 @@ enum PresentationState
 	networkedSessionRoundStart,
 	networkedSessionRoundTimeout,
 	networkedSessionRoundFeedback,
+	networkedSessionRoundOver,
 	networkedSessionComplete
 };
 static String presentationStateToString(const PresentationState& state) {

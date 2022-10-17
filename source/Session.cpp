@@ -444,10 +444,9 @@ void Session::updatePresentationState()
 			}
 		}
 	}
-	if (currentState == PresentationState::trialFeedback)
+	if (currentState == PresentationState::trialFeedback || currentState == PresentationState::networkedSessionRoundFeedback)
 	{
-		
-		if ((stateElapsedTime > m_config->timing.trialFeedbackDuration) && (remainingTargets <= 0))
+		if ((stateElapsedTime > m_config->timing.trialFeedbackDuration) && (remainingTargets <= 0) || currentState == PresentationState::networkedSessionRoundFeedback)
 		{
 			if (blockComplete()) {
 				m_currBlock++;		// Increment the block index
@@ -462,9 +461,10 @@ void Session::updatePresentationState()
 						else if (!m_app->dialog->visible()) {														// Check for whether dialog is closed (otherwise we are waiting for input)
 							if (m_app->dialog->complete) {															// Has this dialog box been completed? (or was it closed without an answer?)
 								m_config->questionArray[m_currQuestionIdx].result = m_app->dialog->result;			// Store response w/ quesiton
-								if (m_config->logger.enable) {
-									logger->addQuestion(m_config->questionArray[m_currQuestionIdx], m_config->id, m_app->dialog);	// Log the question and its answer
-								}
+								//TODO Fix logging
+								//if (m_config->logger.enable) {
+								//	logger->addQuestion(m_config->questionArray[m_currQuestionIdx], m_config->id, m_app->dialog);	// Log the question and its answer
+								//}
 								m_currQuestionIdx++;																
 								if (m_currQuestionIdx < m_config->questionArray.size()) {							// Double check we have a next question before launching the next question
 									m_app->presentQuestion(m_config->questionArray[m_currQuestionIdx]);				// Present the next question (if there is one)
@@ -492,13 +492,21 @@ void Session::updatePresentationState()
 
 						m_feedbackMessage = formatFeedback(m_config->feedback.sessComplete);						// Update the feedback message
 						m_currQuestionIdx = -1;
-						newState = PresentationState::sessionFeedback;
+						if (currentState == PresentationState::networkedSessionRoundFeedback)
+							currentState = PresentationState::networkedSessionRoundOver;
+						else
+							newState = PresentationState::sessionFeedback;
 					}
 				}
-				else {					// Block is complete but session isn't
-					m_feedbackMessage = formatFeedback(m_config->feedback.blockComplete);
-					updateBlock();
-					newState = PresentationState::initial;
+				else {				
+					if (currentState == PresentationState::networkedSessionRoundFeedback)
+						currentState = PresentationState::networkedSessionRoundOver;
+					else {
+						// Block is complete but session isn't
+						m_feedbackMessage = formatFeedback(m_config->feedback.blockComplete);
+						updateBlock();
+						newState = PresentationState::initial;
+					}
 				}
 			}
 			else {

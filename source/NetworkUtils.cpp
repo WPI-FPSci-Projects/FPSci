@@ -334,7 +334,7 @@ int NetworkUtils::sendSessionTimeoutMessage(ENetPeer* serverPeer, uint16 frameNu
 {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);
-	outBuffer.writeUInt8(NetworkUtils::CLIENT_SESSION_TIMEOUT);
+	outBuffer.writeUInt8(NetworkUtils::CLIENT_ROUND_TIMEOUT);
 	outBuffer.writeUInt16(frameNum);
 	
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
@@ -349,4 +349,25 @@ void NetworkUtils::broadcastResetRound(ENetHost* serverHost, uint16 frameNum)
 	outBuffer.writeUInt16(frameNum);
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	enet_host_broadcast(serverHost, 0, packet);
+}
+
+void NetworkUtils::broadcastRoundFeedback(ENetHost* serverHost, uint16 frameNum)
+{
+	BinaryOutput outBuffer;
+	outBuffer.setEndian(G3D_BIG_ENDIAN);
+	outBuffer.writeUInt8(NetworkUtils::MessageType::CLIENT_FEEDBACK_START);
+	outBuffer.writeUInt16(frameNum);
+	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
+	enet_host_broadcast(serverHost, 0, packet);
+}
+
+int NetworkUtils::sendFeedbackSubmittedMessage(ENetPeer* serverPeer, uint16 frameNum)
+{
+	BinaryOutput outBuffer;
+	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);
+	outBuffer.writeUInt8(NetworkUtils::CLIENT_FEEDBACK_SUBMITTED);
+	outBuffer.writeUInt16(frameNum);
+
+	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
+	return enet_peer_send(serverPeer, 0, packet);
 }

@@ -58,4 +58,5 @@ public:
 	void startSession();
 	void resetSession();
 	void sessionTimeout();
+	void feedbackStart();
 };
