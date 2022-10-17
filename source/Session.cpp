@@ -446,6 +446,7 @@ void Session::updatePresentationState()
 	}
 	if (currentState == PresentationState::trialFeedback || currentState == PresentationState::networkedSessionRoundFeedback)
 	{
+		debugPrintf("QA DONE!0 state: %d\n ", currentState);
 		if ((stateElapsedTime > m_config->timing.trialFeedbackDuration) && (remainingTargets <= 0) || currentState == PresentationState::networkedSessionRoundFeedback)
 		{
 			if (blockComplete()) {
@@ -488,19 +489,29 @@ void Session::updatePresentationState()
 						if (m_config->logger.enable) {
 							endLogging();
 						}
-						m_app->markSessComplete(m_config->id);														// Add this session to user's completed sessions
-
-						m_feedbackMessage = formatFeedback(m_config->feedback.sessComplete);						// Update the feedback message
-						m_currQuestionIdx = -1;
 						if (currentState == PresentationState::networkedSessionRoundFeedback)
+						{
 							currentState = PresentationState::networkedSessionRoundOver;
+							newState = currentState;
+							m_currQuestionIdx = -1;
+						}
 						else
+						{
+							m_app->markSessComplete(m_config->id);														// Add this session to user's completed sessions
+
+							m_feedbackMessage = formatFeedback(m_config->feedback.sessComplete);						// Update the feedback message
+							m_currQuestionIdx = -1;
+
 							newState = PresentationState::sessionFeedback;
+						}
 					}
 				}
 				else {				
 					if (currentState == PresentationState::networkedSessionRoundFeedback)
+					{
 						currentState = PresentationState::networkedSessionRoundOver;
+						newState = currentState;
+					}
 					else {
 						// Block is complete but session isn't
 						m_feedbackMessage = formatFeedback(m_config->feedback.blockComplete);
@@ -510,9 +521,16 @@ void Session::updatePresentationState()
 				}
 			}
 			else {
-				m_feedbackMessage = "";				// Clear the feedback message
-				nextCondition();
-				newState = PresentationState::pretrial;
+				if (currentState == PresentationState::networkedSessionRoundFeedback)
+				{
+					currentState = PresentationState::networkedSessionRoundOver;
+					newState = currentState;
+				}
+				else {
+					m_feedbackMessage = "";				// Clear the feedback message
+					nextCondition();
+					newState = PresentationState::pretrial;
+				}
 			}
 		}
 	}
