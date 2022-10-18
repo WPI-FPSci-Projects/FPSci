@@ -80,7 +80,7 @@ void FPSciServerApp::initExperiment() {
     debugPrintf("Began listening\n");
 
     isServer = true;
-    static_cast<NetworkedSession*>(sess.get())->startSession(); // Set player as ready for the server player.
+    static_cast<NetworkedSession*>(sess.get())->startRound(); // Set player as ready for the server player.
     m_clientFirstRoundPeeker = true;
 }
 
@@ -217,6 +217,7 @@ void FPSciServerApp::onNetwork() {
             }
             else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {
                 m_clientsReady++;
+                m_clientFeedbackSubmitted = 0;
                 debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), m_clientsReady);
                 
                 if (m_clientsReady >= experimentConfig.numPlayers)
@@ -267,7 +268,13 @@ void FPSciServerApp::onNetwork() {
                     }
 
                     NetworkUtils::broadcastRoundFeedback(m_localHost, m_frameNumber);
-                    //NetworkUtils::broadcastResetRound(m_localHost, m_frameNumber);
+                }
+            }
+            else if (type == NetworkUtils::MessageType::CLIENT_FEEDBACK_SUBMITTED) {
+                m_clientFeedbackSubmitted++;
+
+                if (m_clientFeedbackSubmitted >= experimentConfig.numPlayers) {
+                    NetworkUtils::broadcastResetRound(m_localHost, m_frameNumber);
                 }
             }
             enet_packet_destroy(event.packet);

@@ -1160,7 +1160,7 @@ void FPSciApp::onNetwork() {
 				//static_cast<NetworkedSession*>(sess.get())->resetSession();
 			}
 			else if (type == NetworkUtils::MessageType::START_NETWORKED_SESSION) {
-				static_cast<NetworkedSession*>(sess.get())->startSession();
+				static_cast<NetworkedSession*>(sess.get())->startRound();
 				m_networkFrameNum = frameNum; // Set the frame number to sync with the server
 				debugPrintf("Recieved a request to start session.\n");
 			}
@@ -1208,7 +1208,7 @@ void FPSciApp::onNetwork() {
 				scene()->typedEntity<PlayerEntity>("player")->respawn();
 			}
 			else if (type == NetworkUtils::MessageType::RESET_CLIENT_ROUND) {
-				static_cast<NetworkedSession*>(sess.get())->resetSession();
+				static_cast<NetworkedSession*>(sess.get())->resetRound();
 				scene()->typedEntity<PlayerEntity>("player")->respawn();
 				sessConfig->clientScore = 0;
 			}

@@ -48,7 +48,7 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 void NetworkedSession::onInit(String filename, String description)
 {
 	m_player = m_app->scene()->typedEntity<PlayerEntity>("player");
-	resetSession();
+	resetRound();
 }
 
 void NetworkedSession::updateNetworkedPresentationState()
@@ -61,14 +61,22 @@ void NetworkedSession::updateNetworkedPresentationState()
 	}
 	else if (currentState == PresentationState::networkedSessionRoundStart) {
 		if (getRemainingTrialTime() <= 0.0f && !m_app->isServer)
-			sessionTimeout();
+			roundTimeout();
 	}
 	else if (currentState == PresentationState::networkedSessionRoundFeedback) {
 		updatePresentationState();
 	}
+	else if (currentState == PresentationState::networkedSessionRoundOver) {
+
+		if (!m_roundOver)
+			NetworkUtils::sendFeedbackSubmittedMessage(m_app->getServerPeer(), m_app->getFrameNumber());
+
+		m_player->setPlayerMovement(false);
+		m_roundOver = true;
+	}
 }
 
-void NetworkedSession::startSession()
+void NetworkedSession::startRound()
 {
 	m_config->hud.enable = true;
 	m_config->hud.showBanner = true;
@@ -76,21 +84,22 @@ void NetworkedSession::startSession()
 	m_timer.startTimer();
 	m_player->setPlayerMovement(true);
 	m_feedbackMessage.clear();
-	sessionStarted = true;
+	m_sessionStarted = true;
 	currentState = PresentationState::networkedSessionRoundStart;
+	m_roundOver = false;
 }
 
-void NetworkedSession::resetSession()
+void NetworkedSession::resetRound()
 {
 	currentState = PresentationState::initialNetworkedState;
 	m_player->setPlayerReady(false);
 	m_player->setPlayerMovement(false);
 }
 
-void NetworkedSession::sessionTimeout()
+void NetworkedSession::roundTimeout()
 {
 	currentState = PresentationState::networkedSessionRoundTimeout;
-	NetworkUtils::sendSessionTimeoutMessage(m_app->getServerPeer(), m_app->getFrameNumber());
+	NetworkUtils::sendRoundTimeoutMessage(m_app->getServerPeer(), m_app->getFrameNumber());
 }
 
 void NetworkedSession::feedbackStart() {

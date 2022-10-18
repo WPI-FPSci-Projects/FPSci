@@ -330,7 +330,7 @@ int NetworkUtils::sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* clien
 	return 0;
 }
 
-int NetworkUtils::sendSessionTimeoutMessage(ENetPeer* serverPeer, uint16 frameNum)
+int NetworkUtils::sendRoundTimeoutMessage(ENetPeer* serverPeer, uint16 frameNum)
 {
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D::G3D_BIG_ENDIAN);
