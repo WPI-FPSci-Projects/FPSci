@@ -60,4 +60,5 @@ public:
 	void resetRound();
 	void roundTimeout();
 	void feedbackStart();
+	void endSession();
 };

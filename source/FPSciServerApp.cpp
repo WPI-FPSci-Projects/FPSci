@@ -250,22 +250,10 @@ void FPSciServerApp::onNetwork() {
                 m_clientsTimedOut++;
                 if (m_clientsTimedOut >= experimentConfig.numPlayers)
                 {
-                    //TODO READ PLAYER CONFIG AS PLAYER CONFIG CLASS FROM .any
-                    //TODO SEND PLAYER CONFIG AFTER EACH ROUND
                     m_numberOfRoundsPlayed++;
                     m_clientsReady = 0;
                     m_clientsTimedOut = 0;
                     debugPrintf("Round Over!\n");
-
-                    if (m_numberOfRoundsPlayed >= sessConfig->trials[0].count)
-                    {
-                        debugPrintf("SESSION OVER");
-
-                        // TODO end of session things
-
-                        NetworkUtils::broadcastDestroyEntity(m_connectedClients[0].guid, m_localHost, m_networkFrameNum); // TODO Replace with something suitable
-                        NetworkUtils::broadcastDestroyEntity(m_connectedClients[1].guid, m_localHost, m_networkFrameNum);
-                    }
 
                     NetworkUtils::broadcastRoundFeedback(m_localHost, m_frameNumber);
                 }
@@ -273,7 +261,13 @@ void FPSciServerApp::onNetwork() {
             else if (type == NetworkUtils::MessageType::CLIENT_FEEDBACK_SUBMITTED) {
                 m_clientFeedbackSubmitted++;
 
-                if (m_clientFeedbackSubmitted >= experimentConfig.numPlayers) {
+                if (m_numberOfRoundsPlayed >= sessConfig->trials[0].count)
+                {
+                    debugPrintf("SESSION OVER");
+                    NetworkUtils::broadcastEndSession(m_localHost, m_frameNumber);
+                }
+
+                else if (m_clientFeedbackSubmitted >= experimentConfig.numPlayers) {
                     NetworkUtils::broadcastResetRound(m_localHost, m_frameNumber);
                 }
             }

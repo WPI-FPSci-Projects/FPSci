@@ -1216,6 +1216,9 @@ void FPSciApp::onNetwork() {
 			else if (type == NetworkUtils::MessageType::CLIENT_FEEDBACK_START) {
 				static_cast<NetworkedSession*>(sess.get())->feedbackStart();
 			}
+			else if (type == NetworkUtils::MessageType::CLIENT_SESSION_END) {
+			static_cast<NetworkedSession*>(sess.get())->endSession();
+			}
 			
 			enet_packet_destroy(event.packet);
 		}
@@ -1704,8 +1707,9 @@ void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
 	target->playHitSound();
 
 	debugPrintf("HIT TARGET: %s\n", target->name().c_str());
-	if (experimentConfig.isNetworked) { // TODO DON'T SEND IF NOT NETWORKED
-		NetworkUtils::sendHitReport(GUniqueID::fromString16(target->name().c_str()), m_playerGUID, m_serverPeer, m_networkFrameNum);
+	if (experimentConfig.isNetworked) {
+		if(sess->currentState != PresentationState::networkedSessionRoundFeedback && sess->currentState != PresentationState::networkedSessionRoundTimeout && sess->currentState != PresentationState::initialNetworkedState && sess->currentState != PresentationState::networkedSessionRoundOver)
+			NetworkUtils::sendHitReport(GUniqueID::fromString16(target->name().c_str()), m_playerGUID, m_serverPeer, m_networkFrameNum);
 		return;
 	}
 

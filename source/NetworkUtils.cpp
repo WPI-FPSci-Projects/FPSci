@@ -371,3 +371,13 @@ int NetworkUtils::sendFeedbackSubmittedMessage(ENetPeer* serverPeer, uint16 fram
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	return enet_peer_send(serverPeer, 0, packet);
 }
+
+void NetworkUtils::broadcastEndSession(ENetHost* serverHost, uint16 frameNum)
+{
+	BinaryOutput outBuffer;
+	outBuffer.setEndian(G3D_BIG_ENDIAN);
+	outBuffer.writeUInt8(NetworkUtils::MessageType::CLIENT_SESSION_END);
+	outBuffer.writeUInt16(frameNum);
+	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
+	enet_host_broadcast(serverHost, 0, packet);
+}

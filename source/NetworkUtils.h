@@ -126,7 +126,8 @@ public:
 		CLIENT_ROUND_TIMEOUT,
 		CLIENT_FEEDBACK_START,
 		CLIENT_FEEDBACK_SUBMITTED,
-		RESET_CLIENT_ROUND
+		RESET_CLIENT_ROUND,
+		CLIENT_SESSION_END
 	};
 
 	enum NetworkUpdateType {
@@ -172,4 +173,5 @@ public:
 	static void broadcastResetRound(ENetHost* serverHost, uint16 frameNum);
 	static void broadcastRoundFeedback(ENetHost* serverHost, uint16 frameNum);
 	static int sendFeedbackSubmittedMessage(ENetPeer* serverPeer, uint16 frameNum);
+	static void broadcastEndSession(ENetHost* serverHost, uint16 frameNum);
 };
