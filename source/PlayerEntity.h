@@ -90,6 +90,7 @@ public:
 
     Point3* respawnPos = nullptr;              ///< Holds position for player Spawn
     bool* respawnToPos = nullptr;              ///< Respawns the player if true
+    float* respawnHeading = nullptr;           ///< Holds pointer to where the player will be looking after respawn
 
     float* movementRestrictionX;               ///< Holds the X distance of how far player can go when restricted movement is enabled.
     float* movementRestrictionZ;               ///< Holds the Z distance of how far player can go when restricted movement is enabled.
@@ -100,7 +101,7 @@ public:
 
     bool* propagatePlayerConfigsToAll = nullptr;    ///< Checks if propagating player configs to clients is enabled or not
     bool* propagatePlayerConfigsToSelectedClient = nullptr; ///< Checks if propagating player configs to one client is enabled or not
-    bool* readFromFile = nullptr;
+    bool* readFromFile = nullptr;                   ///< When true, the server will read from config and send the data to the clients
 
     int* selectedClientIdx = nullptr;               ///< Indicates to the index of the client thats currently selected
 

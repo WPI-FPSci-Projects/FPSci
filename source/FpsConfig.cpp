@@ -183,6 +183,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("headBobAmplitude", headBobAmplitude);
 		reader.getIfPresent("headBobFrequency", headBobFrequency);
 		reader.getIfPresent("respawnPos", respawnPos);
+		reader.getIfPresent("respawnHeading", respawnHeading);
 		reader.getIfPresent("accelerationEnabled", accelerationEnabled);
 		reader.getIfPresent("movementAcceleration", movementAcceleration);
 		reader.getIfPresent("movementDeceleration", movementDeceleration);
@@ -214,6 +215,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client1headBobAmplitude", clientPlayerConfigs[0].headBobAmplitude);
 		reader.getIfPresent("Client1headBobFrequency", clientPlayerConfigs[0].headBobFrequency);
 		reader.getIfPresent("Client1respawnPos", clientPlayerConfigs[0].respawnPos);
+		reader.getIfPresent("Client1respawnHeading", clientPlayerConfigs[0].respawnHeading);
 		reader.getIfPresent("Client1accelerationEnabled", clientPlayerConfigs[0].accelerationEnabled);
 		reader.getIfPresent("Client1movementAcceleration", clientPlayerConfigs[0].movementAcceleration);
 		reader.getIfPresent("Client1movementDeceleration", clientPlayerConfigs[0].movementDeceleration);
@@ -242,6 +244,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client2headBobAmplitude", clientPlayerConfigs[1].headBobAmplitude);
 		reader.getIfPresent("Client2headBobFrequency", clientPlayerConfigs[1].headBobFrequency);
 		reader.getIfPresent("Client2respawnPos", clientPlayerConfigs[1].respawnPos);
+		reader.getIfPresent("Client2respawnHeading", clientPlayerConfigs[1].respawnHeading);
 		reader.getIfPresent("Client2accelerationEnabled", clientPlayerConfigs[1].accelerationEnabled);
 		reader.getIfPresent("Client2movementAcceleration", clientPlayerConfigs[1].movementAcceleration);
 		reader.getIfPresent("Client2movementDeceleration", clientPlayerConfigs[1].movementDeceleration);
@@ -263,6 +266,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client2propagatePlayerConfigs", clientPlayerConfigs[1].propagatePlayerConfigsToAll);
 
 		reader.getIfPresent("respawnPosArray", respawnPosArray);
+		reader.getIfPresent("respawnHeadingArray", respawnHeadingArray);
 		reader.getIfPresent("movementRestrictionXArray", movementRestrictionXArray);
 		reader.getIfPresent("movementRestrictionZArray", movementRestrictionZArray);
 		reader.getIfPresent("restrictedMovementEnabledArray", restrictedMovementEnabledArray);

@@ -285,6 +285,11 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 		c->setWidth(width * 0.95f);
 	} positionPane->endRow();
 	positionPane->beginRow(); {
+		auto c = positionPane->addNumberBox("Respawn Heading", &(config.player.respawnHeading), "\xB0", GuiTheme::LINEAR_SLIDER, 0.0f, 360.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	} positionPane->endRow();
+	positionPane->beginRow(); {
 		positionPane->addButton("Respawn Player", &m_sessionConfig, &SessionConfig::respawnPlayer);
 	} positionPane->endRow();
 

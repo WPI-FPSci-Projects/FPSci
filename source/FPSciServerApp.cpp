@@ -567,6 +567,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
 
                 // Create different defenders with different configs
                 m_defendersRoundConfigs[j].respawnPos = sessConfig->player.respawnPosArray[i];
+                m_defendersRoundConfigs[j].respawnHeading = sessConfig->player.respawnHeadingArray[i];
                 m_defendersRoundConfigs[j].movementRestrictionX = sessConfig->player.movementRestrictionXArray[i];
                 m_defendersRoundConfigs[j].movementRestrictionZ = sessConfig->player.movementRestrictionZArray[i];
                 m_defendersRoundConfigs[j].restrictedMovementEnabled = sessConfig->player.restrictedMovementEnabledArray[i];

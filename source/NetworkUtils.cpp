@@ -315,6 +315,7 @@ int NetworkUtils::sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* clien
 
 	outBuffer.writeVector3(selectedConfig.respawnPos);
 	outBuffer.writeBool8(true);
+	outBuffer.writeFloat32(selectedConfig.respawnHeading);
 
 	outBuffer.writeFloat32(selectedConfig.movementRestrictionX);
 	outBuffer.writeFloat32(selectedConfig.movementRestrictionZ);

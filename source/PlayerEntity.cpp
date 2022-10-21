@@ -234,6 +234,7 @@ void PlayerEntity::onSimulation(SimTime absoluteTime, SimTime deltaTime) {
 
 	if (respawnToPos != nullptr && *respawnToPos) {
 		setRespawnPosition(*respawnPos);
+		setRespawnHeadingDegrees(*respawnHeading);
 		respawn();
 		*respawnToPos = false;
 	}

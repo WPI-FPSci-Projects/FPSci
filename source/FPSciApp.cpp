@@ -730,6 +730,7 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->headBobFrequency = &sessConfig->player.headBobFrequency;
 	player->respawnPos = &sessConfig->player.respawnPos;
 	player->respawnToPos = &sessConfig->player.respawnToPos;
+	player->respawnHeading = &sessConfig->player.respawnHeading;
 	player->accelerationEnabled = &sessConfig->player.accelerationEnabled;
 	player->movementAcceleration = &sessConfig->player.movementAcceleration;
 	player->movementDeceleration = &sessConfig->player.movementDeceleration;
@@ -1193,6 +1194,7 @@ void FPSciApp::onNetwork() {
 
 				sessConfig->player.respawnPos = packet_contents.readVector3();
 				sessConfig->player.respawnToPos = packet_contents.readBool8();
+				sessConfig->player.respawnHeading = packet_contents.readFloat32();
 
 				sessConfig->player.movementRestrictionX = packet_contents.readFloat32();
 				sessConfig->player.movementRestrictionZ = packet_contents.readFloat32();
