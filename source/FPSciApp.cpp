@@ -127,22 +127,22 @@ void FPSciApp::initExperiment() {
 			m_pingSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
 			enet_socket_set_option(m_pingSocket, ENET_SOCKOPT_NONBLOCK, 1);
 
-			try {
-				m_playerGUID = GUniqueID::create();
-			}
-			catch (std::runtime_error e) {
-				logPrintf("Error on GUID creation: %s", e.what());
-				debugPrintf("Error on GUID creation: %s", e.what());
-			}
-
-			// initialize variables to be reset by handshakes
-			m_enetConnected = false;
-			m_socketConnected = false;
-
 			// Initialize ping statistics
 			m_pingStats.pingQueue.pushBack(0);
 			experimentConfig.pingSMASize > 0 ? m_pingStats.smaRTTSize = experimentConfig.pingSMASize : m_pingStats.smaRTTSize = 5;
 		}
+
+		try {
+			m_playerGUID = GUniqueID::create();
+		}
+		catch (std::runtime_error e) {
+			logPrintf("Error on GUID creation: %s", e.what());
+			debugPrintf("Error on GUID creation: %s", e.what());
+		}
+
+		// initialize variables to be reset by handshakes
+		m_enetConnected = false;
+		m_socketConnected = false;
 	}
 }
 
