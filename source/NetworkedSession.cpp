@@ -57,11 +57,14 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 			if (notNull(logger) && serverApp->getClientRTTStatistics().size() > 0) {
 				logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, serverApp->getClientRTTStatistics().get(client->unreliableAddress.host), serverApp->m_networkFrameNum, client->frameNumber, client->guid));
 			}
+			else if (notNull(logger)) {
+				logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, serverApp->m_networkFrameNum, client->frameNumber, client->guid));
+			}
 		}
 	}
 	// Client-side logging
 	else {
-		if (notNull(logger)) {
+		if (notNull(logger) && m_app->startupConfig.pingEnabled) {
 			NetworkUtils::PingStatistics pingStatistics = m_app->getPingStatistics();
 			logger->logPingStatistics(LoggedPingStatistics(pingStatistics.pingQueue, pingStatistics.smaPing, pingStatistics.maxPing, pingStatistics.minPing));
 		}

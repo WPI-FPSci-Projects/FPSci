@@ -34,6 +34,7 @@ public:
 	bool	fullscreen = true;									///< Whether the app runs in windowed mode
 	Vector2 windowSize = { 1920, 980 };							///< Window size (when not run in fullscreen)
 	bool	jsonAnyOutput = true;								///< Write all outputs as fully JSON compatible .Any files
+	bool	pingEnabled = true;									///< Primary flag for enabling ping
 	int		pingInterval = 1000;								///< Interval (in ms) to send ping packets at
 
 	ConfigFiles defaultExperiment = ConfigFiles::defaults();	///< Setup default list

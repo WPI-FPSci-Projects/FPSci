@@ -87,6 +87,7 @@ StartupConfig::StartupConfig(const Any& any) {
 		reader.getIfPresent("fullscreen", fullscreen);
 		reader.getIfPresent("windowSize", windowSize);
 		reader.getIfPresent("jsonAnyOutput", jsonAnyOutput);
+		reader.getIfPresent("pingEnabled", pingEnabled);
 		reader.getIfPresent("pingInterval", pingInterval);
 		reader.getIfPresent("lowerFrameRateInBackground", lowerFrameRateInBackground);
 		

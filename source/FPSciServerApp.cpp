@@ -79,56 +79,60 @@ void FPSciServerApp::initExperiment() {
 
     debugPrintf("Began listening\n");
 
-    // Add separate socket for ping
-    m_pingSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
-    enet_socket_set_option(m_pingSocket, ENET_SOCKOPT_NONBLOCK, 1);
-    // Check if the ping port is not already used
-    if (experimentConfig.pingPort != experimentConfig.serverPort && 
-        experimentConfig.pingPort != experimentConfig.serverPort + 1) {
-        localAddress.port = experimentConfig.pingPort;
-    }
-    else {
-        experimentConfig.pingPort == experimentConfig.serverPort + 1 ?
-        localAddress.port = experimentConfig.pingPort + 1 :
-        localAddress.port = experimentConfig.pingPort + 2;
-        logPrintf("Ping: port %d is already in use, opening up port %d for pinging\n", experimentConfig.pingPort, localAddress.port);
-    }
+    // If we are pinging
+    if (startupConfig.pingEnabled) {
 
-    if (enet_socket_bind(m_pingSocket, &localAddress)) {
-        debugPrintf("bind failed with error: %d\n", WSAGetLastError());
-        throw std::runtime_error("Could not bind ping to the local address");
-    }
+        // Add separate socket for ping
+        m_pingSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+        enet_socket_set_option(m_pingSocket, ENET_SOCKOPT_NONBLOCK, 1);
+        // Check if the ping port is not already used
+        if (experimentConfig.pingPort != experimentConfig.serverPort &&
+            experimentConfig.pingPort != experimentConfig.serverPort + 1) {
+            localAddress.port = experimentConfig.pingPort;
+        }
+        else {
+            experimentConfig.pingPort == experimentConfig.serverPort + 1 ?
+                localAddress.port = experimentConfig.pingPort + 1 :
+                localAddress.port = experimentConfig.pingPort + 2;
+            logPrintf("Ping: port %d is already in use, opening up port %d for pinging\n", experimentConfig.pingPort, localAddress.port);
+        }
 
-    // Initialize lambdas and threads for listening for pings
-    auto s2cPing = [](ENetSocket socket) {
-        ENetAddress addr_from;
-        ENetBuffer buff;
-        void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
-        buff.data = data;
-        buff.dataLength = ENET_HOST_DEFAULT_MTU;
+        if (enet_socket_bind(m_pingSocket, &localAddress)) {
+            debugPrintf("bind failed with error: %d\n", WSAGetLastError());
+            throw std::runtime_error("Could not bind ping to the local address");
+        }
 
-        while (true) {
-            while (enet_socket_receive(socket, &addr_from, &buff, 1)) {
-                char ip[16];
-                enet_address_get_host_ip(&addr_from, ip, 16);
-                BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
-                NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
+        // Initialize lambdas and threads for listening for pings
+        auto s2cPing = [](ENetSocket socket) {
+            ENetAddress addr_from;
+            ENetBuffer buff;
+            void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
+            buff.data = data;
+            buff.dataLength = ENET_HOST_DEFAULT_MTU;
 
-                if (type == NetworkUtils::MessageType::PING) {
-                    NetworkUtils::sendPingReply(socket, addr_from, &buff);
+            while (true) {
+                while (enet_socket_receive(socket, &addr_from, &buff, 1)) {
+                    char ip[16];
+                    enet_address_get_host_ip(&addr_from, ip, 16);
+                    BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
+                    NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
+
+                    if (type == NetworkUtils::MessageType::PING) {
+                        NetworkUtils::sendPingReply(socket, addr_from, &buff);
+                    }
                 }
             }
-        }
-    };
-    shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
-    player->setPlayerMovement(true);
+        };
+        shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
+        player->setPlayerMovement(true);
 
-    std::thread s2cPing_Th(s2cPing, m_pingSocket);
-    s2cPing_Th.detach();
+        std::thread s2cPing_Th(s2cPing, m_pingSocket);
+        s2cPing_Th.detach();
 
-    // Initialize dummy ping statistics
-    m_pingStats.pingQueue.pushBack(0);
-    experimentConfig.pingSMASize > 0 ? m_pingStats.smaRTTSize = experimentConfig.pingSMASize : m_pingStats.smaRTTSize = 5;
+        // Initialize dummy ping statistics
+        m_pingStats.pingQueue.pushBack(0);
+        experimentConfig.pingSMASize > 0 ? m_pingStats.smaRTTSize = experimentConfig.pingSMASize : m_pingStats.smaRTTSize = 5;
+    }
 
     static_cast<NetworkedSession*>(sess.get())->startSession(); // Set player as ready for the server player.
 }

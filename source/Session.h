@@ -82,6 +82,18 @@ public:
 		remote_frame = remoteFrameNum;
 		guid = clientGUID.toString16();
 	}
+
+	FrameInfo(FILETIME t, float simDeltaTime, uint32 localFrameNum, uint32 remoteFrameNum, GUniqueID clientGUID) {
+		time = t;
+		sdt = simDeltaTime;
+		latest_RTT = 0;
+		sma_RTT = 0;
+		min_RTT = 0;
+		max_RTT = 0;
+		local_frame = localFrameNum;
+		remote_frame = remoteFrameNum;
+		guid = clientGUID.toString16();
+	}
 };
 
 struct TargetLocation {

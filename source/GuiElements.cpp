@@ -334,6 +334,9 @@ RenderControls::RenderControls(FPSciApp* app, SessionConfig& config, bool& drawF
 	auto pingPane = pane->addPane("Ping/Packet RTT");
 	pingPane->beginRow(); {
 		pingPane->addCheckBox("Show Ping", &drawPing);
+		if (!app->startupConfig.pingEnabled) {
+			pingPane->setEnabled(false);
+		}
 	}pingPane->endRow();
 
 	auto menuPane = pane->addPane("User Menu");

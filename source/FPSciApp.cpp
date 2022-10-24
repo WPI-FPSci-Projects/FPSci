@@ -108,37 +108,41 @@ void FPSciApp::initExperiment() {
 		m_unreliableSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
 		enet_socket_set_option(m_unreliableSocket, ENET_SOCKOPT_NONBLOCK, 1); //Set socket to non-blocking
 
-		// Ping socket setup
-		enet_address_set_host(&m_pingServerAddress, experimentConfig.serverAddress.c_str());
-		// Check if the ping port is not already used
-		if (experimentConfig.pingPort != experimentConfig.serverPort &&
-			experimentConfig.pingPort != experimentConfig.serverPort + 1) {
-			m_pingServerAddress.port = experimentConfig.pingPort;
-		}
-		else {
-			experimentConfig.pingPort == experimentConfig.serverPort + 1 ?
-			m_pingServerAddress.port = experimentConfig.pingPort + 1 :
-			m_pingServerAddress.port = experimentConfig.pingPort + 2;
-			logPrintf("Ping: port %d is already in use, using port %d for pinging\n", experimentConfig.pingPort, m_pingServerAddress.port);
-		}
-		m_pingSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
-		enet_socket_set_option(m_pingSocket, ENET_SOCKOPT_NONBLOCK, 1);
+		// If we are pinging
+		if (startupConfig.pingEnabled) {
 
-		try {
-			m_playerGUID = GUniqueID::create();
-		}
-		catch (std::runtime_error e) {
-			logPrintf("Error on GUID creation: %s", e.what());
-			debugPrintf("Error on GUID creation: %s", e.what());
-		}
+			// Ping socket setup
+			enet_address_set_host(&m_pingServerAddress, experimentConfig.serverAddress.c_str());
+			// Check if the ping port is not already used
+			if (experimentConfig.pingPort != experimentConfig.serverPort &&
+				experimentConfig.pingPort != experimentConfig.serverPort + 1) {
+				m_pingServerAddress.port = experimentConfig.pingPort;
+			}
+			else {
+				experimentConfig.pingPort == experimentConfig.serverPort + 1 ?
+					m_pingServerAddress.port = experimentConfig.pingPort + 1 :
+					m_pingServerAddress.port = experimentConfig.pingPort + 2;
+				logPrintf("Ping: port %d is already in use, using port %d for pinging\n", experimentConfig.pingPort, m_pingServerAddress.port);
+			}
+			m_pingSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+			enet_socket_set_option(m_pingSocket, ENET_SOCKOPT_NONBLOCK, 1);
 
-		// initialize variables to be reset by handshakes
-		m_enetConnected = false;
-		m_socketConnected = false;
-		
-		// Initialize ping statistics
-		m_pingStats.pingQueue.pushBack(0);
-		experimentConfig.pingSMASize > 0 ? m_pingStats.smaRTTSize = experimentConfig.pingSMASize : m_pingStats.smaRTTSize = 5;
+			try {
+				m_playerGUID = GUniqueID::create();
+			}
+			catch (std::runtime_error e) {
+				logPrintf("Error on GUID creation: %s", e.what());
+				debugPrintf("Error on GUID creation: %s", e.what());
+			}
+
+			// initialize variables to be reset by handshakes
+			m_enetConnected = false;
+			m_socketConnected = false;
+
+			// Initialize ping statistics
+			m_pingStats.pingQueue.pushBack(0);
+			experimentConfig.pingSMASize > 0 ? m_pingStats.smaRTTSize = experimentConfig.pingSMASize : m_pingStats.smaRTTSize = 5;
+		}
 	}
 }
 
@@ -1043,55 +1047,59 @@ void FPSciApp::onNetwork() {
 			logPrintf("Failed to send a packet to the server\n");
 		}
 
-		// Begin pinging once connected
-		if (!m_startedPinging) {
-			m_pinging = true;
+		// If we are pinging
+		if (startupConfig.pingEnabled) {
 
-			if (startupConfig.pingInterval > 0) {
-				m_pingInterval = startupConfig.pingInterval;
-			}
+			// Begin pinging once connected
+			if (!m_startedPinging) {
+				m_pinging = true;
 
-			// Initialize lambdas and threads for sending and recieving pings
-			auto c2sPing = [](ENetSocket socket, ENetAddress address, int i, bool& pinging) {
-				while (pinging) {
-					NetworkUtils::sendPingClient(socket, address);
-					std::this_thread::sleep_for(std::chrono::milliseconds(i));
+				if (startupConfig.pingInterval > 0) {
+					m_pingInterval = startupConfig.pingInterval;
 				}
-			};
-			auto pingAck = [](ENetSocket socket, NetworkUtils::PingStatistics& stats, bool& pinging) {
-				ENetAddress addr_from;
-				ENetBuffer buff;
-				void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
-				buff.data = data;
-				buff.dataLength = ENET_HOST_DEFAULT_MTU;
 
-				while (pinging) {
-					while (enet_socket_receive(socket, &addr_from, &buff, 1)) {
-						char ip[16];
-						enet_address_get_host_ip(&addr_from, ip, 16);
-						BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
-						NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
+				// Initialize lambdas and threads for sending and recieving pings
+				auto c2sPing = [](ENetSocket socket, ENetAddress address, int i, bool& pinging) {
+					while (pinging) {
+						NetworkUtils::sendPingClient(socket, address);
+						std::this_thread::sleep_for(std::chrono::milliseconds(i));
+					}
+				};
+				auto pingAck = [](ENetSocket socket, NetworkUtils::PingStatistics& stats, bool& pinging) {
+					ENetAddress addr_from;
+					ENetBuffer buff;
+					void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
+					buff.data = data;
+					buff.dataLength = ENET_HOST_DEFAULT_MTU;
 
-						if (type == NetworkUtils::MessageType::PING) {
-							NetworkUtils::handlePingReply(packet_contents, stats);
+					while (pinging) {
+						while (enet_socket_receive(socket, &addr_from, &buff, 1)) {
+							char ip[16];
+							enet_address_get_host_ip(&addr_from, ip, 16);
+							BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
+							NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
+
+							if (type == NetworkUtils::MessageType::PING) {
+								NetworkUtils::handlePingReply(packet_contents, stats);
+							}
 						}
 					}
-				}
-			};
+				};
 
-			std::thread c2sPing_Th(c2sPing, m_pingSocket, m_pingServerAddress, m_pingInterval, std::ref(m_pinging));
-			c2sPing_Th.detach();
+				std::thread c2sPing_Th(c2sPing, m_pingSocket, m_pingServerAddress, m_pingInterval, std::ref(m_pinging));
+				c2sPing_Th.detach();
 
-			std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_pingStats), std::ref(m_pinging));
-			pingAck_Th.detach();
+				std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_pingStats), std::ref(m_pinging));
+				pingAck_Th.detach();
 
-			debugPrintf("Initialized ping threads\n");
-			m_startedPinging = true;
-		}
+				debugPrintf("Initialized ping threads\n");
+				m_startedPinging = true;
+			}
 
-		// Send current ping data to the server, due to packet size send every 30 frames to reduce network traffic
-		if (m_frameNumber % 30 == 0) {
-			NetworkUtils::sendPingData(m_unreliableSocket, m_unreliableServerAddress, m_pingStats);
+			// Send current ping data to the server, due to packet size send every 30 frames to reduce network traffic
+			if (m_frameNumber % 30 == 0) {
+				NetworkUtils::sendPingData(m_unreliableSocket, m_unreliableServerAddress, m_pingStats);
+			}
 		}
 
 	}
