@@ -1,6 +1,7 @@
 #include "NetworkUtils.h"
 #include "TargetEntity.h"
 #include "LatentNetwork.h"
+#include "FpsConfig.h"
 
 NetworkUtils::ConnectedClient* NetworkUtils::registerClient(RegisterClientPacket* packet) {
 	ConnectedClient* newClient = new ConnectedClient();
@@ -66,6 +67,9 @@ shared_ptr<GenericPacket> NetworkUtils::createTypedPacket(PacketType type, ENetA
 		break;
 	case PacketType::PLAYER_INTERACT:
 		return GenericPacket::createReceive<PlayerInteractPacket>(srcAddr, inBuffer);
+		break;
+	case PacketType::SEND_PLAYER_CONFIG:
+		return GenericPacket::createReceive<SendPlayerConfigPacket>(srcAddr, inBuffer);
 		break;
 	default:
 		debugPrintf("WARNING: Could not create a typed packet of for type %d. Returning GenericPacket instead\n", type);
@@ -174,7 +178,7 @@ void NetworkUtils::send(shared_ptr<GenericPacket> packet)
 		latency = searchResult->second;
 	}
 	else {
-		debugPrintf("could not find address!\n");
+		//debugPrintf("could not find address!\n");
 	}
 
 	if (latency == 0) { // don't bother the other thread if we don't want any delay

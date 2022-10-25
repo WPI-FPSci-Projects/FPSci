@@ -429,7 +429,7 @@ void FPSciApp::updateControls(bool firstSession) {
 		rect = m_playerControls->rect();
 		removeWidget(m_playerControls);
 	}
-	m_playerControls = PlayerControls::create(*sessConfig, std::bind(&FPSciApp::exportScene, this), theme);
+	m_playerControls = PlayerControls::create(*sessConfig, std::bind(&FPSciApp::exportScene, this), theme   );
 	m_playerControls->setVisible(visible);
 	if (!rect.isEmpty())
 		m_playerControls->setRect(rect);
@@ -736,7 +736,11 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->movementRestrictionZ = &sessConfig->player.movementRestrictionZ;
 	player->restrictedMovementEnabled = &sessConfig->player.restrictedMovementEnabled;
 	player->counterStrafing = &sessConfig->player.counterStrafing;
-
+	player->propagatePlayerConfigsToAll = &sessConfig->player.propagatePlayerConfigsToAll;
+	player->propagatePlayerConfigsToSelectedClient = &sessConfig->player.propagatePlayerConfigsToSelectedClient;
+	player->readFromFile = &sessConfig->player.readFromFile;
+	player->selectedClientIdx = &sessConfig->player.selectedClientIdx;
+	player->clientPlayerConfigs = &sessConfig->player.clientPlayerConfigs;
 	// Respawn player
 	player->respawn();
 	updateMouseSensitivity();
@@ -1153,6 +1157,44 @@ void FPSciApp::onNetwork() {
 				debugPrintf("Recieved a request to start session.\n");
 				break;
 			}
+			case SEND_PLAYER_CONFIG: {
+				debugPrintf("Received an updated player config\n");
+				//TODO: Decide if we can just replace the the local player config and do that instead
+				SendPlayerConfigPacket* typedPacket = static_cast<SendPlayerConfigPacket*> (inPacket.get());
+				sessConfig->player.moveRate = typedPacket->m_playerConfig->moveRate;
+				sessConfig->player.moveScale = typedPacket->m_playerConfig->moveScale;
+
+				(sessConfig->player.axisLock)[0] = typedPacket->m_playerConfig->axisLock[0];
+				(sessConfig->player.axisLock)[1] = typedPacket->m_playerConfig->axisLock[1];
+				(sessConfig->player.axisLock)[2] = typedPacket->m_playerConfig->axisLock[2];
+
+				sessConfig->player.accelerationEnabled = typedPacket->m_playerConfig->accelerationEnabled;
+				sessConfig->player.movementAcceleration = typedPacket->m_playerConfig->movementAcceleration;
+				sessConfig->player.movementDeceleration = typedPacket->m_playerConfig->movementDeceleration;
+
+				sessConfig->player.sprintMultiplier = typedPacket->m_playerConfig->sprintMultiplier;
+
+				sessConfig->player.jumpVelocity = typedPacket->m_playerConfig->jumpVelocity;
+				sessConfig->player.jumpInterval = typedPacket->m_playerConfig->jumpInterval;
+				sessConfig->player.jumpTouch = typedPacket->m_playerConfig->jumpTouch;
+
+				sessConfig->player.height = typedPacket->m_playerConfig->height;
+				sessConfig->player.crouchHeight = typedPacket->m_playerConfig->crouchHeight;
+
+				sessConfig->player.headBobEnabled = typedPacket->m_playerConfig->headBobEnabled;
+				sessConfig->player.headBobAmplitude = typedPacket->m_playerConfig->headBobAmplitude;
+				sessConfig->player.headBobFrequency = typedPacket->m_playerConfig->headBobFrequency;
+
+				sessConfig->player.respawnPos = typedPacket->m_playerConfig->respawnPos;
+				sessConfig->player.respawnToPos = typedPacket->m_playerConfig->respawnToPos;
+
+				sessConfig->player.movementRestrictionX = typedPacket->m_playerConfig->movementRestrictionX;
+				sessConfig->player.movementRestrictionZ = typedPacket->m_playerConfig->movementRestrictionZ;
+				sessConfig->player.restrictedMovementEnabled = typedPacket->m_playerConfig->restrictedMovementEnabled;
+
+				sessConfig->player.counterStrafing = typedPacket->m_playerConfig->counterStrafing;
+				break;
+			}
 			default:
 				debugPrintf("WARNING: unhandled packet received on reliable channel of type: %d\n", inPacket->type());
 			}
@@ -1332,7 +1374,6 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 		// Get the next session for the current user
 		updateSession(userStatusTable.getNextSession());
 	}
-
 	// Update time at which this simulation finished
 	m_lastOnSimulationRealTime = m_lastOnSimulationRealTime + rdt;
 	m_lastOnSimulationSimTime = m_lastOnSimulationSimTime + sdt;

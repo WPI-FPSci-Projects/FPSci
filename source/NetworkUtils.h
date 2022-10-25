@@ -128,13 +128,13 @@ public:
 	static void broadcastReliable(shared_ptr<GenericPacket> packet, ENetHost* localHost);
 	static void broadcastUnreliable(shared_ptr<GenericPacket> packet, ENetSocket* srcSocket, Array<ENetAddress*> addresses);
 
-	static void sendPacketDelayed(shared_ptr<GenericPacket> packet, int delay);
 	static void setAddressLatency(ENetAddress addr, int latency);
 	static void removeAddressLatency(ENetAddress addr);
 	static void setDefaultLatency(int latency);
 	static void send(shared_ptr<GenericPacket> packet);
 
 	protected:
+		static void sendPacketDelayed(shared_ptr<GenericPacket> packet, int delay);
 		static int defaultLatency;
 		static std::map<ENetAddress, int, ENetAddressCompare> latencyMap;
 };

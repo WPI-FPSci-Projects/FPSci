@@ -349,3 +349,91 @@ void PlayerInteractPacket::deserialize(BinaryInput& inBuffer) {
 	m_remoteAction = inBuffer.readUInt8();
 	m_actorID.deserialize(inBuffer);
 }
+
+/****************************
+ *Send Player Config Packet *
+ ****************************/
+
+void SendPlayerConfigPacket::populate(PlayerConfig playerConfig) {
+	m_playerConfig = createShared<PlayerConfig>(playerConfig);
+}
+
+void SendPlayerConfigPacket::serialize(BinaryOutput& outBuffer) {
+	GenericPacket::serialize(outBuffer);	// Call the super serialize
+	PlayerConfig selectedConfig = *m_playerConfig;
+	if ((*m_playerConfig).readFromFile == true) {
+		int index = (*m_playerConfig).selectedClientIdx ? index = 0 : index = 1;
+		selectedConfig = (*m_playerConfig).clientPlayerConfigs[index];
+		(*m_playerConfig).readFromFile = false;
+	}
+	outBuffer.writeFloat32(selectedConfig.moveRate);
+	outBuffer.writeVector2(selectedConfig.moveScale);
+
+	outBuffer.writeBool8((selectedConfig.axisLock)[0]);
+	outBuffer.writeBool8((selectedConfig.axisLock)[1]);
+	outBuffer.writeBool8((selectedConfig.axisLock)[2]);
+
+	outBuffer.writeBool8(selectedConfig.accelerationEnabled);
+	outBuffer.writeFloat32(selectedConfig.movementAcceleration);
+	outBuffer.writeFloat32(selectedConfig.movementDeceleration);
+
+	outBuffer.writeFloat32(selectedConfig.sprintMultiplier);
+
+	outBuffer.writeFloat32(selectedConfig.jumpVelocity);
+	outBuffer.writeFloat32(selectedConfig.jumpInterval);
+	outBuffer.writeBool8(selectedConfig.jumpTouch);
+
+	outBuffer.writeFloat32(selectedConfig.height);
+	outBuffer.writeFloat32(selectedConfig.crouchHeight);
+
+	outBuffer.writeBool8(selectedConfig.headBobEnabled);
+	outBuffer.writeFloat32(selectedConfig.headBobAmplitude);
+	outBuffer.writeFloat32(selectedConfig.headBobFrequency);
+
+	outBuffer.writeVector3(selectedConfig.respawnPos);
+	outBuffer.writeBool8(true);
+
+	outBuffer.writeFloat32(selectedConfig.movementRestrictionX);
+	outBuffer.writeFloat32(selectedConfig.movementRestrictionZ);
+	outBuffer.writeBool8(selectedConfig.restrictedMovementEnabled);
+
+	outBuffer.writeBool8(selectedConfig.counterStrafing);
+}
+
+void SendPlayerConfigPacket::deserialize(BinaryInput& inBuffer) {
+	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
+
+	m_playerConfig = createShared<PlayerConfig>();
+	m_playerConfig->moveRate = inBuffer.readFloat32();
+	m_playerConfig->moveScale = inBuffer.readVector2();
+
+	(m_playerConfig->axisLock)[0] = inBuffer.readBool8();
+	(m_playerConfig->axisLock)[1] = inBuffer.readBool8();
+	(m_playerConfig->axisLock)[2] = inBuffer.readBool8();
+
+	m_playerConfig->accelerationEnabled = inBuffer.readBool8();
+	m_playerConfig->movementAcceleration = inBuffer.readFloat32();
+	m_playerConfig->movementDeceleration = inBuffer.readFloat32();
+
+	m_playerConfig->sprintMultiplier = inBuffer.readFloat32();
+
+	m_playerConfig->jumpVelocity = inBuffer.readFloat32();
+	m_playerConfig->jumpInterval = inBuffer.readFloat32();
+	m_playerConfig->jumpTouch = inBuffer.readBool8();
+
+	m_playerConfig->height = inBuffer.readFloat32();
+	m_playerConfig->crouchHeight = inBuffer.readFloat32();
+
+	m_playerConfig->headBobEnabled = inBuffer.readBool8();
+	m_playerConfig->headBobAmplitude = inBuffer.readFloat32();
+	m_playerConfig->headBobFrequency = inBuffer.readFloat32();
+
+	m_playerConfig->respawnPos = inBuffer.readVector3();
+	m_playerConfig->respawnToPos = inBuffer.readBool8();
+
+	m_playerConfig->movementRestrictionX = inBuffer.readFloat32();
+	m_playerConfig->movementRestrictionZ = inBuffer.readFloat32();
+	m_playerConfig->restrictedMovementEnabled = inBuffer.readBool8();
+
+	m_playerConfig->counterStrafing = inBuffer.readBool8();
+}

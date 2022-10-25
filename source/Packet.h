@@ -2,6 +2,7 @@
 #include <G3D/G3D.h>
 #include <enet/enet.h>
 #include "TargetEntity.h"
+#include "FPSConfig.h"
 
 enum PacketType {
 	UNINTALIZED_TYPE,
@@ -27,6 +28,8 @@ enum PacketType {
 	START_NETWORKED_SESSION,
 
 	PLAYER_INTERACT,
+
+	SEND_PLAYER_CONFIG,
 
 	RELIABLE_CONNECT,			///< Packet type to represent an enet event type connect
 	RELIABLE_DISCONNECT			///< Packet type to represent an enet event type disconnect
@@ -539,6 +542,33 @@ public:
 	uint32 m_frameNumber;							///< Frame number that this action took place
 	uint8 m_remoteAction;							///< Type of action (PlayerActionType)
 	GUniqueID m_actorID;							///< GUID of the client who did this action
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+};
+
+
+/** A Packet for sending the client a Player Config
+*
+* This packet is used to send the client a player config so that the server
+* can control the settings of a remote client for experiments
+*/
+class SendPlayerConfigPacket : public GenericPacket {
+protected:
+	SendPlayerConfigPacket() : GenericPacket() {}
+	SendPlayerConfigPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	SendPlayerConfigPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	SendPlayerConfigPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return SEND_PLAYER_CONFIG; }
+	shared_ptr<GenericPacket> clone() override { return createShared<SendPlayerConfigPacket>(*this); }
+
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
+	void populate(PlayerConfig playerConfig);
+
+	shared_ptr<PlayerConfig> m_playerConfig;					///< playerConfig to be sent
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;

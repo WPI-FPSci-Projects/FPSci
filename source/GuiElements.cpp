@@ -149,9 +149,14 @@ void WaypointDisplay::setManager(WidgetManager *manager) {
 	}
 }
 
+void PlayerControls::setConnectedClients()
+{
+	m_sessionConfig.player.selectedClientIdx = m_connectedClientIdx;
+}
+
 PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> exportCallback,
 	const shared_ptr<GuiTheme>& theme, float width, float height) :
-	GuiWindow("Player Controls", theme, Rect2D::xywh(5, 5, width, height), GuiTheme::NORMAL_WINDOW_STYLE, GuiWindow::HIDE_ON_CLOSE)
+	GuiWindow("Player Controls", theme, Rect2D::xywh(5, 5, width, height), GuiTheme::NORMAL_WINDOW_STYLE, GuiWindow::HIDE_ON_CLOSE), m_sessionConfig(config)
 {
 
 	// Create the GUI pane
@@ -275,11 +280,24 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 		c->setWidth(width * 0.95f);
 	} positionPane->endRow();
 	positionPane->beginRow(); {
-		positionPane->addCheckBox("Respawn Player Now?", &(config.player.respawnToPos));
+		positionPane->addButton("Respawn Player", &m_sessionConfig, &SessionConfig::respawnPlayer);
 	} positionPane->endRow();
+
+	auto clientCommunicationPane = pane->addPane("Client Communation");
+	clientCommunicationPane->beginRow(); {
+		m_connectedClientIdx = config.player.selectedClientIdx;
+		clientCommunicationPane->addDropDownList("Select Client", m_connectedClients, &m_connectedClientIdx, std::bind(&PlayerControls::setConnectedClients, this));
+		clientCommunicationPane->addButton("Send player controls from GUI", &config, &SessionConfig::propagatePlayerControlsToSelectedClientFromGUI);
+		clientCommunicationPane->addButton("Send player controls from File", &config, &SessionConfig::propagatePlayerControlsToSelectedClientFromFile);
+	} clientCommunicationPane->endRow();
+	clientCommunicationPane->beginRow(); {
+		clientCommunicationPane->addButton("Send player controls from GUI to all the clients", &config, &SessionConfig::propagatePlayerControlsToAllFromGUI);
+	} clientCommunicationPane->endRow();
 	pack();
 	moveTo(Vector2(440, 300));
 }
+
+
 
 RenderControls::RenderControls(FPSciApp* app, SessionConfig& config, bool& drawFps, const int numReticles, float& brightness,
 	const shared_ptr<GuiTheme>& theme, const int maxFrameDelay, const float minFrameRate, const float maxFrameRate, float width, float height) :

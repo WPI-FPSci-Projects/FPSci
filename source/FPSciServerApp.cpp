@@ -329,6 +329,28 @@ void FPSciServerApp::onNetwork() {
         clientAddresses.append(&c->unreliableAddress);
     }
     NetworkUtils::broadcastUnreliable(updatePacket, &m_unreliableSocket, clientAddresses);
+
+    // Broadcast the PlayerConfig to all clients
+    if (sessConfig->player.propagatePlayerConfigsToAll) {
+        sessConfig->player.propagatePlayerConfigsToAll = false;
+        shared_ptr<SendPlayerConfigPacket> configPacket = GenericPacket::createForBroadcast<SendPlayerConfigPacket>();
+        configPacket->populate(sessConfig->player);
+        NetworkUtils::broadcastReliable(configPacket, m_localHost);
+    }
+
+    if (sessConfig->player.propagatePlayerConfigsToSelectedClient) {
+        sessConfig->player.propagatePlayerConfigsToSelectedClient = false;
+        shared_ptr<SendPlayerConfigPacket> configPacket;
+        if (sessConfig->player.selectedClientIdx == 0) {
+            debugPrintf("Sent an updated player config to player 1\n");
+            configPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[0]->peer);
+        }
+        else {
+            configPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[1]->peer);
+        }
+        configPacket->populate(sessConfig->player);
+        NetworkUtils::send(configPacket);
+    }
 }
 
 void FPSciServerApp::onInit() {
