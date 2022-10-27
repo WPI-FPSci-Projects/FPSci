@@ -168,6 +168,7 @@ void FPSciServerApp::onNetwork() {
                     event, packet_contents, m_historicalPlayerCount);
                 m_connectedClients.append(newClient);
                 debugPrintf("\tRegistered client: %s\n", newClient.guid.toString16());
+                debugPrintf("\tPlayer ID: %i\n", newClient.playerID);
 
                 Any modelSpec = PARSE_ANY(ArticulatedModel::Specification{			///< Basic model spec for target
                     filename = "model/target/mid_poly_sphere_no_outline.obj";
@@ -189,6 +190,7 @@ void FPSciServerApp::onNetwork() {
 
                 target->setWorldSpace(true);
                 target->setColor(G3D::Color3(20.0, 20.0, 200.0));
+                target->setPlayerID(newClient.playerID);
 
                 /* Add the new target to the scene */
                 (*scene()).insert(target);
@@ -202,13 +204,13 @@ void FPSciServerApp::onNetwork() {
 
                 /* ADD NEW CLIENT TO OTHER CLIENTS, ADD OTHER CLIENTS TO NEW CLIENT */
 
-                NetworkUtils::broadcastCreateEntity(newClient.guid, m_localHost, m_networkFrameNum);
+                NetworkUtils::broadcastCreateEntity(newClient.guid, m_localHost, m_networkFrameNum, newClient.playerID);
                 debugPrintf("Sent a broadcast packet to all connected peers\n");
 
                 for (int i = 0; i < m_connectedClients.length(); i++) {
                     // Create entitys on the new client for all other clients
                     if (newClient.guid != m_connectedClients[i].guid) {
-                        NetworkUtils::sendCreateEntity(m_connectedClients[i].guid, newClient.peer, m_networkFrameNum);
+                        NetworkUtils::sendCreateEntity(m_connectedClients[i].guid, newClient.peer, m_networkFrameNum, m_connectedClients[i].playerID);
                         debugPrintf("Sent add to %s to add %s\n", newClient.guid.toString16(), m_connectedClients[i].guid.toString16());
                     }
                 }

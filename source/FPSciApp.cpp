@@ -1082,6 +1082,7 @@ void FPSciApp::onNetwork() {
 				GUniqueID entity_id;
 				entity_id.deserialize(packet_contents);
 				if (entity_id != m_playerGUID) {
+					// ignores if server tells us to create ourself
 					debugPrintf("Created entity with ID %s\n", entity_id.toString16());
 
 					Any modelSpec = PARSE_ANY(ArticulatedModel::Specification{			///< Basic model spec for target
@@ -1104,9 +1105,18 @@ void FPSciApp::onNetwork() {
 					//target->setHitSound(config->hitSound, m_app->soundTable, config->hitSoundVol);
 					//target->setDestoyedSound(config->destroyedSound, m_app->soundTable, config->destroyedSoundVol);
 					target->setColor(G3D::Color3(20.0, 20.0, 200.0));
+					target->setPlayerID(packet_contents.readUInt8());
 
 					(*scene()).insert(target);
 					static_cast<NetworkedSession*>(sess.get())->addHittableTarget(target);
+				}
+				else
+				{
+					// when we're told to create ourself, update our playerID to match what the server gives us
+					uint8 playerID = packet_contents.readUInt8();
+					debugPrintf("Updated playerID from %i to %i after server told us to create ourself\n", m_playerID,
+					            playerID);
+					m_playerID = playerID;
 				}
 			}
 
@@ -1117,12 +1127,14 @@ void FPSciApp::onNetwork() {
 				debugPrintf("INFO: Received registration reply...\n");
 				GUniqueID clientGUID;
 				clientGUID.deserialize(packet_contents);
-				uint8 playerID = packet_contents.readUInt8();
 				if (clientGUID == m_playerGUID) {
+					uint8 playerID = packet_contents.readUInt8();
 					int status = packet_contents.readUInt8();
 					if (status == 0) {
 						m_enetConnected = true;
 						debugPrintf("INFO: Received registration from server\n");
+						m_playerID = playerID;
+						debugPrintf("INFO: Got assigned playerID %i\n", m_playerID);
 					}
 					else {
 						debugPrintf("WARN: Server connection refused (%i)", status);

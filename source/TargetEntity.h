@@ -483,6 +483,8 @@ protected:
 
 	bool			m_remote;
 
+	uint8 m_playerID = -1; ///< Player ID (for remote targets)
+
 	NetworkedEntity() {}
 	void init(AnyTableReader& propertyTable);
 
@@ -504,6 +506,16 @@ public:
 
 	void setSpeed(float speed) {
 		m_speed = speed;
+	}
+
+	void setPlayerID(uint8 playerID)
+	{
+		m_playerID = playerID;
+	}
+
+	uint8 getPlayerID()
+	{
+		return m_playerID;
 	}
 
 	void fromNetwork(BinaryInput b);

@@ -160,8 +160,8 @@ public:
 	static int sendHandshake(ENetSocket socket, ENetAddress address);
 	static int sendRegisterClient(GUniqueID id, uint16 port, ENetPeer* peer);
 	static ConnectedClient registerClient(ENetEvent event, BinaryInput& inBuffer, uint8 playerID);
-	static void broadcastCreateEntity(GUniqueID id, ENetHost* serverHost, uint16 frameNum);
-	static int sendCreateEntity(GUniqueID guid, ENetPeer* peer, uint16 frameNum);
+	static void broadcastCreateEntity(GUniqueID id, ENetHost* serverHost, uint16 frameNum, uint8 playerID);
+	static int sendCreateEntity(GUniqueID guid, ENetPeer* peer, uint16 frameNum, uint8 playerID);
 	static void broadcastBatchEntityUpdate(Array<shared_ptr<Entity>> entities, Array<ENetAddress> destinations, ENetSocket sendSocket, uint16 frameNum);
 	static void serverBatchEntityUpdate(Array<shared_ptr<NetworkedEntity>> entities, Array<ConnectedClient> clients, ENetSocket sendSocket, uint16 frameNum);
 	static int sendSetSpawnPos(G3D::Point3 position, float heading, ENetPeer* peer);

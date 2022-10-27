@@ -148,6 +148,7 @@ NetworkUtils::ConnectedClient NetworkUtils::registerClient(ENetEvent event, Bina
 	GUniqueID clientGUID;
 	clientGUID.deserialize(inBuffer);
 	newClient.guid = clientGUID;
+	newClient.playerID = playerID;
 	ENetAddress addr;
 	addr.host = event.peer->address.host;
 	addr.port = inBuffer.readUInt16();   // Set the port to what the client sends to us because we might loose the UDP handshake packet
@@ -181,24 +182,28 @@ int NetworkUtils::sendRegisterClient(GUniqueID id, uint16 port, ENetPeer* peer) 
 	return enet_peer_send(peer, 0, registerPacket);
 }
 
-void NetworkUtils::broadcastCreateEntity(GUniqueID guid, ENetHost* serverHost, uint16 frameNum) {
+void NetworkUtils::broadcastCreateEntity(GUniqueID guid, ENetHost* serverHost, uint16 frameNum, uint8 playerID)
+{
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::CREATE_ENTITY);
 	outBuffer.writeUInt16(frameNum);
 	guid.serialize(outBuffer);		// Send the GUID as a byte string to the server so it can identify the client
+	outBuffer.writeUInt8(playerID);
 
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	// update the other peers with new connection
 	enet_host_broadcast(serverHost, 0, packet);
 }
 
-int NetworkUtils::sendCreateEntity(GUniqueID guid, ENetPeer* peer, uint16 frameNum) {
+int NetworkUtils::sendCreateEntity(GUniqueID guid, ENetPeer* peer, uint16 frameNum, uint8 playerID)
+{
 	BinaryOutput outBuffer;
 	outBuffer.setEndian(G3D_BIG_ENDIAN);
 	outBuffer.writeUInt8(NetworkUtils::MessageType::CREATE_ENTITY);
 	outBuffer.writeUInt16(frameNum);
 	guid.serialize(outBuffer);		// Send the GUID as a byte string to the server so it can identify the client
+	outBuffer.writeUInt8(playerID);
 	ENetPacket* packet = enet_packet_create((void*)outBuffer.getCArray(), outBuffer.length(), ENET_PACKET_FLAG_RELIABLE);
 	return enet_peer_send(peer, 0, packet);
 }
