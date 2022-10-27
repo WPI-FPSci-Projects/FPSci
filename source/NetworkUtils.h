@@ -139,6 +139,7 @@ public:
 		GUniqueID guid;
 		ENetAddress unreliableAddress;
 		uint8 playerID;
+		shared_ptr<NetworkedEntity> entity;
 		shared_ptr<Weapon> weapon;
 		shared_ptr<Camera> camera;
 	};

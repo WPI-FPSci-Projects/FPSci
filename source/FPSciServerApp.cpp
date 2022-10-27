@@ -197,6 +197,8 @@ void FPSciServerApp::onNetwork() {
                 //debugPrintf("%d\n", newPlayer->axisLock);
                 //(*scene()).insert(newPlayer);
                 //m_remotePlayers.append(newPlayer);
+                // add entity to ConnectedClient
+                m_connectedClients.last().entity = target;
 
                 target->setWorldSpace(true);
                 target->setColor(G3D::Color3(20.0, 20.0, 200.0));
