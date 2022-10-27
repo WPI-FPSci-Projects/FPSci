@@ -112,6 +112,7 @@ void FPSciApp::initExperiment() {
 		m_enetConnected = false;
 		m_socketConnected = false;
 	}
+	sessConfig->isNetworked = experimentConfig.isNetworked;
 }
 
 void FPSciApp::toggleUserSettingsMenu() {
@@ -722,6 +723,7 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->headBobFrequency = &sessConfig->player.headBobFrequency;
 	player->respawnPos = &sessConfig->player.respawnPos;
 	player->respawnToPos = &sessConfig->player.respawnToPos;
+	player->respawnHeading = &sessConfig->player.respawnHeading;
 	player->accelerationEnabled = &sessConfig->player.accelerationEnabled;
 	player->movementAcceleration = &sessConfig->player.movementAcceleration;
 	player->movementDeceleration = &sessConfig->player.movementDeceleration;
@@ -735,6 +737,7 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->movementRestrictionX = &sessConfig->player.movementRestrictionX;
 	player->movementRestrictionZ = &sessConfig->player.movementRestrictionZ;
 	player->restrictedMovementEnabled = &sessConfig->player.restrictedMovementEnabled;
+	player->restrictionBoxAngle = &sessConfig->player.restrictionBoxAngle;
 	player->counterStrafing = &sessConfig->player.counterStrafing;
 	player->propagatePlayerConfigsToAll = &sessConfig->player.propagatePlayerConfigsToAll;
 	player->propagatePlayerConfigsToSelectedClient = &sessConfig->player.propagatePlayerConfigsToSelectedClient;
@@ -986,8 +989,10 @@ void FPSciApp::onAI() {
 
 void FPSciApp::onNetwork() {
 	GApp::onNetwork();
-	//if (experimentConfig.isNetworked && sess->currentState == NetworkedPresentationState::networkedSessionStart) {
-	m_networkFrameNum++;
+
+
+	//if (experimentConfig.isNetworked && sess->currentState == PresentationState::networkedSessionRoundStart) {
+		m_networkFrameNum++;
 	//}
 
 	
@@ -1157,12 +1162,12 @@ void FPSciApp::onNetwork() {
 			case RESPAWN_CLIENT: {
 				debugPrintf("Recieved a request to respawn\n");
 				scene()->typedEntity<PlayerEntity>("player")->respawn();
-				netSess->resetSession();
+				//netSess->resetSession();
 				break;
 			}
 			case START_NETWORKED_SESSION: {
 				StartSessionPacket* typedPacket = static_cast<StartSessionPacket*> (inPacket.get());
-				netSess->startSession();
+				netSess->startRound();
 				m_networkFrameNum = typedPacket->m_frameNumber; // Set the frame number to sync with the server
 				debugPrintf("Recieved a request to start session.\n");
 				break;
@@ -1196,17 +1201,38 @@ void FPSciApp::onNetwork() {
 
 				sessConfig->player.respawnPos = typedPacket->m_playerConfig->respawnPos;
 				sessConfig->player.respawnToPos = typedPacket->m_playerConfig->respawnToPos;
+				sessConfig->player.respawnHeading = typedPacket->m_playerConfig->respawnHeading;
 
 				sessConfig->player.movementRestrictionX = typedPacket->m_playerConfig->movementRestrictionX;
 				sessConfig->player.movementRestrictionZ = typedPacket->m_playerConfig->movementRestrictionZ;
 				sessConfig->player.restrictedMovementEnabled = typedPacket->m_playerConfig->restrictedMovementEnabled;
+				sessConfig->player.restrictionBoxAngle = typedPacket->m_playerConfig->restrictionBoxAngle;
 
 				sessConfig->player.counterStrafing = typedPacket->m_playerConfig->counterStrafing;
 				break;
 			}
+			case ADD_POINTS: {
+				sessConfig->clientScore++;
+				debugPrintf("Enemy Hit! Points Added!\n");
+				scene()->typedEntity<PlayerEntity>("player")->respawn();
+				break;
+			}
+			case RESET_CLIENT_ROUND: {
+				netSess.get()->resetRound();
+				scene()->typedEntity<PlayerEntity>("player")->respawn();
+				sessConfig->clientScore = 0;
+				break;
+			}
+			case CLIENT_FEEDBACK_START: {
+				netSess.get()->feedbackStart();
+				break;
+			}
+			case CLIENT_SESSION_END: {
+				netSess->endSession();
+				break;
+			}
 			default:
 				debugPrintf("WARNING: unhandled packet received on reliable channel of type: %d\n", inPacket->type());
-			}
 		}
 		inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
 	}
@@ -1695,10 +1721,11 @@ void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
 
 	debugPrintf("HIT TARGET: %s\n", target->name().c_str());
 	if (experimentConfig.isNetworked) {
-		shared_ptr<ReportHitPacket> outPacket = GenericPacket::createReliable<ReportHitPacket>(m_serverPeer);
-		outPacket->populate(m_networkFrameNum, GUniqueID::fromString16(target->name().c_str()), m_playerGUID);
-		NetworkUtils::send(outPacket);
-		//outPacket->send();
+		if (sess->currentState != PresentationState::networkedSessionRoundFeedback && sess->currentState != PresentationState::networkedSessionRoundTimeout && sess->currentState != PresentationState::initialNetworkedState && sess->currentState != PresentationState::networkedSessionRoundOver) {
+			shared_ptr<ReportHitPacket> outPacket = GenericPacket::createReliable<ReportHitPacket>(m_serverPeer);
+			outPacket->populate(m_networkFrameNum, GUniqueID::fromString16(target->name().c_str()), m_playerGUID);
+			NetworkUtils::send(outPacket);
+		}
 		return;
 	}
 

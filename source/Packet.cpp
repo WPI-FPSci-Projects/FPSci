@@ -392,10 +392,12 @@ void SendPlayerConfigPacket::serialize(BinaryOutput& outBuffer) {
 
 	outBuffer.writeVector3(selectedConfig.respawnPos);
 	outBuffer.writeBool8(true);
+	outBuffer.writeFloat32(selectedConfig.respawnHeading);
 
 	outBuffer.writeFloat32(selectedConfig.movementRestrictionX);
 	outBuffer.writeFloat32(selectedConfig.movementRestrictionZ);
 	outBuffer.writeBool8(selectedConfig.restrictedMovementEnabled);
+	outBuffer.writeFloat32(selectedConfig.restrictionBoxAngle);
 
 	outBuffer.writeBool8(selectedConfig.counterStrafing);
 }
@@ -430,10 +432,63 @@ void SendPlayerConfigPacket::deserialize(BinaryInput& inBuffer) {
 
 	m_playerConfig->respawnPos = inBuffer.readVector3();
 	m_playerConfig->respawnToPos = inBuffer.readBool8();
+	m_playerConfig->respawnHeading = inBuffer.readFloat32();
 
 	m_playerConfig->movementRestrictionX = inBuffer.readFloat32();
 	m_playerConfig->movementRestrictionZ = inBuffer.readFloat32();
 	m_playerConfig->restrictedMovementEnabled = inBuffer.readBool8();
+	m_playerConfig->restrictionBoxAngle = inBuffer.readFloat32();
 
 	m_playerConfig->counterStrafing = inBuffer.readBool8();
+}
+
+
+/********************
+ *ADD POINTS PACKET *
+ ********************/
+
+void AddPointPacket::serialize(BinaryOutput& outBuffer) {
+	GenericPacket::serialize(outBuffer);	// Call the super serialize
+}
+
+void AddPointPacket::deserialize(BinaryInput& inBuffer) {
+	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
+}
+
+
+/****************************
+ *RESET CLIENT ROUND PACKET *
+ ****************************/
+
+void ResetClientRoundPacket::serialize(BinaryOutput& outBuffer) {
+	GenericPacket::serialize(outBuffer);	// Call the super serialize
+}
+
+void ResetClientRoundPacket::deserialize(BinaryInput& inBuffer) {
+	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
+}
+
+/*******************************
+ *CLIENT FEEDBACK START PACKET *
+ *******************************/
+
+void ClientFeedbackStartPacket::serialize(BinaryOutput& outBuffer) {
+	GenericPacket::serialize(outBuffer);	// Call the super serialize
+}
+
+void ClientFeedbackStartPacket::deserialize(BinaryInput& inBuffer) {
+	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
+}
+
+
+/****************************
+ *CLIENT SESSION END PACKET *
+ ****************************/
+
+void ClientSessionEndPacket::serialize(BinaryOutput& outBuffer) {
+	GenericPacket::serialize(outBuffer);	// Call the super serialize
+}
+
+void ClientSessionEndPacket::deserialize(BinaryInput& inBuffer) {
+	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
 }

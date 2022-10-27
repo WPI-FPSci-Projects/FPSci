@@ -30,6 +30,10 @@ enum PacketType {
 	PLAYER_INTERACT,
 
 	SEND_PLAYER_CONFIG,
+	ADD_POINTS,
+	RESET_CLIENT_ROUND,
+	CLIENT_FEEDBACK_START,
+	CLIENT_SESSION_END,
 
 	RELIABLE_CONNECT,			///< Packet type to represent an enet event type connect
 	RELIABLE_DISCONNECT			///< Packet type to represent an enet event type disconnect
@@ -574,6 +578,97 @@ protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
 };
+
+/** TODO: Add comment here for packet description
+
+*/
+
+class AddPointPacket : public GenericPacket {
+protected:
+	AddPointPacket() : GenericPacket() {}
+	AddPointPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	AddPointPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	AddPointPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return ADD_POINTS; }
+	shared_ptr<GenericPacket> clone() override { return createShared<AddPointPacket>(*this); }
+
+	/** This Packet has no content and as such does not have a populate method */
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+};
+
+/** TODO: Add comment here for packet description
+
+*/
+
+class ResetClientRoundPacket : public GenericPacket {
+protected:
+	ResetClientRoundPacket() : GenericPacket() {}
+	ResetClientRoundPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	ResetClientRoundPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	ResetClientRoundPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return RESET_CLIENT_ROUND; }
+	shared_ptr<GenericPacket> clone() override { return createShared<ResetClientRoundPacket>(*this); }
+
+	/** This Packet has no content and as such does not have a populate method */
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+};
+
+
+/** TODO: Add comment here for packet description
+
+*/
+
+class ClientFeedbackStartPacket : public GenericPacket {
+protected:
+	ClientFeedbackStartPacket() : GenericPacket() {}
+	ClientFeedbackStartPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	ClientFeedbackStartPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	ClientFeedbackStartPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return CLIENT_FEEDBACK_START; }
+	shared_ptr<GenericPacket> clone() override { return createShared<ClientFeedbackStartPacket>(*this); }
+
+	/** This Packet has no content and as such does not have a populate method */
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+};
+
+
+/** TODO: Add comment here for packet description
+
+*/
+
+class ClientSessionEndPacket : public GenericPacket {
+protected:
+	ClientSessionEndPacket() : GenericPacket() {}
+	ClientSessionEndPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	ClientSessionEndPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	ClientSessionEndPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return CLIENT_SESSION_END; }
+	shared_ptr<GenericPacket> clone() override { return createShared<ClientSessionEndPacket>(*this); }
+
+	/** This Packet has no content and as such does not have a populate method */
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+};
+
 
 /** A Packet representing an incoming connection on the reliable channel
 *

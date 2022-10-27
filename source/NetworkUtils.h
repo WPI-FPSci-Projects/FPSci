@@ -107,10 +107,31 @@ struct ENetAddressCompare {
 	}
 };
 
+<<<<<<< HEAD
 
 class NetworkUtils
 {
 public:
+=======
+		READY_UP_CLIENT,
+		START_NETWORKED_SESSION,
+		SEND_PLAYER_CONFIG_TO_CLIENTS,
+
+		ADD_POINTS,
+		CLIENT_ROUND_TIMEOUT,
+		CLIENT_FEEDBACK_START,
+		CLIENT_FEEDBACK_SUBMITTED,
+		RESET_CLIENT_ROUND,
+		CLIENT_SESSION_END,
+
+		PLAYER_INTERACT
+	};
+
+	enum NetworkUpdateType {
+		NOOP,
+		REPLACE_FRAME,
+	};
+>>>>>>> origin/RestrictedMovement---Sessions&Rounds
 
 	// Struct containing all the data needed to keep track of and comunicate with clients
 	struct ConnectedClient {
@@ -133,8 +154,48 @@ public:
 	static void setDefaultLatency(int latency);
 	static void send(shared_ptr<GenericPacket> packet);
 
+<<<<<<< HEAD
 	protected:
 		static void sendPacketDelayed(shared_ptr<GenericPacket> packet, int delay);
 		static int defaultLatency;
 		static std::map<ENetAddress, int, ENetAddressCompare> latencyMap;
 };
+=======
+	static shared_ptr<NetworkedEntity> updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer);
+	static shared_ptr<Entity> updateEntity(shared_ptr<Entity> entity, BinaryInput& inBuffer);
+	static void createFrameUpdate(GUniqueID id, shared_ptr<Entity> entity, BinaryOutput& outBuffer);
+
+	static void handleDestroyEntity(shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer);
+	static void broadcastDestroyEntity(GUniqueID id, ENetHost* serverHost, uint32 frameNum);
+
+	static int sendHitReport(GUniqueID shot_id, GUniqueID shooter_id, ENetPeer* serverPeer, uint32 frameNum);
+	static GUniqueID handleHitReport(ENetHost* serverHost, ENetPeer* clientPeer, BinaryInput& inBuffer, uint32 frameNum);
+
+	static int sendPlayerInteract(RemotePlayerAction remoteAction, ENetSocket sendSocket, ENetAddress destAddr, uint32 frameNum);
+	static RemotePlayerAction handlePlayerInteractServer(ENetSocket sendSocket, Array<ConnectedClient*> clients, BinaryInput& inBuffer, uint32 frameNum);
+	static RemotePlayerAction handlePlayerInteractClient(BinaryInput& inBuffer);
+
+	static int sendMoveClient(CFrame frame, ENetPeer* peer, uint32 frameNum);
+	static int sendHandshakeReply(ENetSocket socket, ENetAddress address);
+	static int sendHandshake(ENetSocket socket, ENetAddress address);
+	static int sendRegisterClient(GUniqueID id, uint16 port, ENetPeer* peer);
+	static ConnectedClient* registerClient(ENetEvent event, BinaryInput& inBuffer, uint32 frameNum);
+	static void broadcastCreateEntity(GUniqueID id, ENetHost* serverHost, uint32 frameNum);
+	static int sendCreateEntity(GUniqueID guid, ENetPeer* peer, uint32 frameNum);
+	static void broadcastBatchEntityUpdate(Array<shared_ptr<Entity>> entities, Array<ENetAddress> destinations, ENetSocket sendSocket, uint32 frameNum);
+	static void serverBatchEntityUpdate(Array<shared_ptr<NetworkedEntity>> entities, Array<ConnectedClient*> clients, ENetSocket sendSocket, uint32 frameNum);
+	static int sendSetSpawnPos(G3D::Point3 position, float heading, ENetPeer* peer);
+	static void handleSetSpawnPos(shared_ptr<PlayerEntity> player, BinaryInput& inBuffer);
+	static int sendRespawnClient(ENetPeer* peer, uint32 frameNum);
+	static void broadcastRespawn(ENetHost* serverHost, uint32 frameNum);
+	
+	static int sendReadyUpMessage(ENetPeer* serverPeer);
+	static void broadcastStartSession(ENetHost* serverHost, uint32 frameNum);
+	static int sendPlayerConfigToClient(ENetHost* serverHost, ENetPeer* peer, PlayerConfig* playerConfig, bool broadcast);
+	static int sendRoundTimeoutMessage(ENetPeer* serverPeer, uint16 frameNum);
+	static void broadcastResetRound(ENetHost* serverHost, uint16 frameNum);
+	static void broadcastRoundFeedback(ENetHost* serverHost, uint16 frameNum);
+	static int sendFeedbackSubmittedMessage(ENetPeer* serverPeer, uint16 frameNum);
+	static void broadcastEndSession(ENetHost* serverHost, uint16 frameNum);
+};
+>>>>>>> origin/RestrictedMovement---Sessions&Rounds
