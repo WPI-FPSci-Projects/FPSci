@@ -17,6 +17,8 @@ protected:
     Array <NetworkUtils::ConnectedClient> m_connectedClients;          //> List of all connected clients and all atributes needed to comunicate with them
     int   playersReady;                                               ///> Numbers of player(s) that are ready.
     Array<shared_ptr<RemotePlayer>> m_remotePlayers;                 ///> List of all remote players, not including self(server)
+    uint8 m_historicalPlayerCount = 0;
+    ///> Number of players that have ever connected to the server, used for assigning playerIDs
 
     DataHandler* m_dataHandler = new DataHandler();
 
