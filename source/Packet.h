@@ -533,7 +533,7 @@ protected:
 	PlayerInteractPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
 
 public:
-	PacketType type() override { return START_NETWORKED_SESSION; }
+	PacketType type() override { return PLAYER_INTERACT; }
 	shared_ptr<GenericPacket> clone() override { return createShared<PlayerInteractPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
