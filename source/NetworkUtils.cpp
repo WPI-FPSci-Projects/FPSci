@@ -17,6 +17,28 @@ void NetworkUtils::updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Sce
 	if (ignoreIDs.contains(entity_id)) { // don't let the server move ignored entities
 		entity = nullptr;
 	}
+	updateEntity(entity, inBuffer, networkHandler, entity_id);
+	// Allways call this even if the entity is ignored so we remove the data from the BinaryInput
+}
+
+// This duplication is made to enable updateEntity to update the local client player along with other NetworkedEntities
+void NetworkUtils::updateEntity(GUniqueID localGUID, shared_ptr<Scene> scene, BinaryInput& inBuffer, DataHandler* networkHandler) {
+	GUniqueID entity_id;
+	entity_id.deserialize(inBuffer);
+	shared_ptr<Entity> entity = (*scene).typedEntity<NetworkedEntity>(entity_id.toString16());
+	if (entity == nullptr)
+	{
+		if (entity_id == localGUID)
+		{
+			entity = (*scene).typedEntity<PlayerEntity>("player");
+			updateEntity(entity, inBuffer, networkHandler, entity_id);
+			return;
+		}
+		else
+		{
+			debugPrintf("Received update for entity %s, but it doesn't exist\n", entity_id.toString16().c_str());
+		}
+	}
 	updateEntity(entity, inBuffer, networkHandler, entity_id); // Allways call this even if the entity is ignored so we remove the data from the BinaryInput
 }
 

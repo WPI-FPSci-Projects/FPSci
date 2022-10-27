@@ -1030,11 +1030,23 @@ void FPSciApp::onNetwork() {
 			//TODO: move to NetworkUtil
 			int num_packet_members = packet_contents.readUInt8(); // get # of frames in this packet
 
-			Array<GUniqueID> ignore;
-			ignore.append(m_playerGUID); // don't let the server update our location here.
-
-			for (int i = 0; i < num_packet_members; i++) { // get new frames and update objects
-				NetworkUtils::updateEntity(ignore, scene(), packet_contents, nullptr);
+			if (experimentConfig.isAuthoritativeServer)
+			{ // server overwrites client location
+				for (int i = 0; i < num_packet_members; i++)
+				{
+					// get new frames and update objects
+					NetworkUtils::updateEntity(m_playerGUID, scene(), packet_contents, nullptr);
+				}
+			}
+			else
+			{ // don't let the server update our location if we're not under authoritative server mode
+				Array<GUniqueID> ignore;
+				ignore.append(m_playerGUID);
+				for (int i = 0; i < num_packet_members; i++)
+				{
+					// get new frames and update objects
+					NetworkUtils::updateEntity(ignore, scene(), packet_contents, nullptr);
+				}
 			}
 		}
 		/* check for reply to a handshake*/

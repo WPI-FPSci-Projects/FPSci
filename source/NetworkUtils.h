@@ -145,6 +145,7 @@ public:
 	};
 
 	static void updateEntity(Array <GUniqueID> ignoreIDs, shared_ptr<G3D::Scene> scene, BinaryInput& inBuffer, DataHandler* networkHandler);
+	static void updateEntity(GUniqueID localGUID, shared_ptr<Scene> scene, BinaryInput& inBuffer, DataHandler* networkHandler);
 	static void updateEntity(shared_ptr<Entity> entity, BinaryInput& inBuffer, DataHandler* networkHandler, GUniqueID playerID);
 	static void createFrameUpdate(GUniqueID id, shared_ptr<Entity> entity, BinaryOutput& outBuffer, uint16 frameNum);
 

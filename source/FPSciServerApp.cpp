@@ -114,6 +114,7 @@ void FPSciServerApp::onNetwork() {
             };
         }
         /* If the client is trying to update an entity's positon on the server */
+        // Client currently only update self position, needs check for AS if changed
         else if (type == NetworkUtils::MessageType::BATCH_ENTITY_UPDATE) {
             //update locally entity displayed on the server: 
             int num_packet_members = packet_contents.readUInt8(); // get # of frames in this packet
