@@ -32,7 +32,72 @@
 #include <ctime>
 #include "Session.h"
 
-enum NetworkedPresentationState;
+struct RemotePlayerAction {
+	FILETIME			time;
+	Point2				viewDirection = Point2::zero();
+	Point3				position = Point3::zero();
+	PresentationState	state;
+	PlayerActionType	action = PlayerActionType::None;
+	String				actorID = "";
+	String				affectedID = "";
+
+	RemotePlayerAction() {};
+
+	RemotePlayerAction(FILETIME t, Point2 playerViewDirection, Point3 playerPosition, PresentationState trialState, PlayerActionType playerAction, String actor, String affected) {
+		time = t;
+		viewDirection = playerViewDirection;
+		position = playerPosition;
+		action = playerAction;
+		state = trialState;
+		actorID = actor;
+		affectedID = affected;
+	}
+
+	inline bool noChangeFrom(const RemotePlayerAction& other) const {
+		return viewDirection == other.viewDirection && position == other.position && action == other.action && state == other.state && actorID == other.actorID && affectedID == other.affectedID;
+	}
+};
+
+/* Data storage object for Logging purposes*/
+struct NetworkedClient {
+	FILETIME	time;
+	Point2		viewDirection = Point2::zero();
+	Point3		position = Point3::zero();
+	GUniqueID	playerID = GUniqueID::NONE(0);
+	uint32		localFrame = 0;
+	uint32		remoteFrame = 0;
+	PresentationState	state;
+	PlayerActionType	action = PlayerActionType::None;
+
+	NetworkedClient() {};
+
+	NetworkedClient(FILETIME t, Point2 playerViewDirection, Point3 playerPosition, GUniqueID id, uint32 local_frame, uint32 remote_frame) {
+		time = t;
+		viewDirection = playerViewDirection;
+		position = playerPosition;
+		remoteFrame = remote_frame;
+		localFrame = local_frame;
+		playerID = id;
+	}
+
+	NetworkedClient(FILETIME t, Point2 playerViewDirection, Point3 playerPosition, GUniqueID id, uint32 local_frame, uint32 remote_frame, PresentationState playerState, PlayerActionType playerAction) {
+		time = t;
+		viewDirection = playerViewDirection;
+		position = playerPosition;
+		remoteFrame = remote_frame;
+		localFrame = local_frame;
+		playerID = id;
+		state = playerState;
+		action = playerAction;
+
+	}
+	
+	inline bool noChangeFrom(const NetworkedClient& other) const {
+		return viewDirection == other.viewDirection && position == other.position && state == other.state && playerID == other.playerID;
+	}
+
+};
+
 
 class NetworkedSession : public Session {
 protected:
@@ -45,7 +110,6 @@ protected:
 
 public:
 
-	
 	static shared_ptr<NetworkedSession> create(FPSciApp* app) {
 		return createShared<NetworkedSession>(app);
 	}
@@ -61,4 +125,7 @@ public:
 	void roundTimeout();
 	void feedbackStart();
 	void endSession();
+	void accumulateFrameInfo(RealTime t, float sdt, float idt) override;
+	void logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame, PlayerActionType action);
+	void logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame);
 };
