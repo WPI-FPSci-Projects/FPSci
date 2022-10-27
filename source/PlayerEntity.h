@@ -208,22 +208,3 @@ public:
 	void updateFromInput(UserInput* ui);
 
 };
-
-class RemotePlayer : public PlayerEntity
-{
-private:
-	uint8 m_playerID = -1;			// should be equal to UINT8_MAX which is 255
-	RemotePlayer() = default;
-
-public:
-	/** For programmatic construction at runtime */
-	static shared_ptr<RemotePlayer> create 
-	(const String&                           name,
-	 Scene*                                  scene,
-	 const CFrame&                           position,
-	 const shared_ptr<Model>&                model);
-	
-	uint8 getPlayerID();
-	void setPlayerID(uint8 id);
-	void updateFromRemoteInput(InputHandler::NetworkInput data);
-};

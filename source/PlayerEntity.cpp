@@ -89,7 +89,6 @@ void PlayerEntity::onPose(Array<shared_ptr<Surface> >& surfaceArray) {
     VisibleEntity::onPose(surfaceArray);
 }
 
-// should mirror code changes in RemotePlayer::updateFromInput();
 void PlayerEntity::updateFromInput(UserInput* ui) {
 	if (!m_PlayerMovement)
 		return;
@@ -467,89 +466,4 @@ bool PlayerEntity::slideMove(SimTime deltaTime) {
 	
 	return collided;
     //screenPrintf("%d collision iterations", iterations);
-}
-
-/* REMOTE PLAYER CODE GOES HERE ================================================================================================================*/
-
-shared_ptr<RemotePlayer> RemotePlayer::create 
-(const String&                           name,
- Scene*                                  scene,
- const CFrame&                           position,
- const shared_ptr<Model>&                model) {
-
-	// Don't initialize in the constructor, where it is unsafe to throw Any parse exceptions
-	shared_ptr<RemotePlayer> remotePlayer(new RemotePlayer());
-
-	// Initialize each base class, which parses its own fields
-	remotePlayer->Entity::init(name, scene, position, shared_ptr<Entity::Track>(), true, true);
-	remotePlayer->VisibleEntity::init(model, true, Surface::ExpressiveLightScatteringProperties(), ArticulatedModel::PoseSpline());
-	remotePlayer->PlayerEntity::init(Sphere(1.0f));
- 
-	return remotePlayer;
-}
-
-uint8 RemotePlayer::getPlayerID() {
-	return m_playerID;
-}
-
-void RemotePlayer::setPlayerID(uint8 id) {
-	m_playerID = id;
-}
-
-// should mirror code changes in PlayerEntity::updateFromInput();
-void RemotePlayer::updateFromRemoteInput(InputHandler::NetworkInput data) {
-	if (!m_PlayerMovement)
-		return;
-
-	m_walkSpeed = 0;
-
-	if (!m_sprinting) {
-		m_walkSpeed = *moveRate * units::meters() / units::seconds();
-	}
-	else {
-		m_walkSpeed = *moveRate * *sprintMultiplier * units::meters() / units::seconds();
-	}
-
-	if ((*axisLock)[0] && (*axisLock)[2]){
-		m_linearVector = Vector3(0, 0, 0);
-	}
-	else if ((*axisLock)[0]) {
-		m_linearVector = Vector3(data.GetXMovement() * moveScale->x, 0, 0);
-	}
-	else if ((*axisLock)[2]) {
-		m_linearVector = Vector3(0, 0, -data.GetYMovement() * moveScale->y);
-	}
-	else {
-		m_linearVector = Vector3(data.GetXMovement() * moveScale->x, 0, -data.GetYMovement() * moveScale->y);
-	}
-
-	// Counter strafing
-	if (*counterStrafing && (((m_lastDirection * m_acceleratedVelocity).x > 0 && m_linearVector.x < 0) || ((m_lastDirection * m_acceleratedVelocity).x < 0 && m_linearVector.x > 0))) {
-		m_acceleratedVelocity = 0;
-		m_linearVector.x = 0;
-	}
-
-	if (m_linearVector.magnitude() > 0) {
-		m_gettingMovementInput = true;
-	}
-
-	// Add jump here (if needed)
-	RealTime timeSinceLastJump = System::time() - m_lastJumpTime;
-	if (m_jumpPressed && timeSinceLastJump > *jumpInterval) {
-		// Allow jumping if jumpTouch = False or if jumpTouch = True and the player is in contact w/ the map
-		if (!(*jumpTouch) || m_inContact) {
-			const Vector3 jv(0, *jumpVelocity * units::meters() / units::seconds(), 0);
-			m_linearVector += jv;
-			m_lastJumpTime = System::time();
-		}
-	}
-	m_jumpPressed = false;
-
-	// Get the mouse rotation here
-	Vector2 mouseRotate = data.GetXYMouseDelta() * turnScale * (float)m_cameraRadiansPerMouseDot;
-	float yaw = mouseRotate.x;
-	float pitch = mouseRotate.y;
-
-	// Set the player view velocity
-	setDesiredAngularVelocity(yaw, pitch);
 }

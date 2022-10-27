@@ -139,19 +139,10 @@ void FPSciServerApp::onNetwork() {
         else if (event.type == ENET_EVENT_TYPE_DISCONNECT) {
             debugPrintf("disconnection recieved...\n");
             logPrintf("%s disconnected.\n", ip);
-            /* Removes the clinet from the list of connected clients and orders all other clients to delete that entity */
+            /* Removes the client from the list of connected clients and orders all other clients to delete that entity */
             for (int i = 0; i < m_connectedClients.size(); i++) {
                 if (m_connectedClients[i].peer->address.host == event.peer->address.host &&
                     m_connectedClients[i].peer->address.port == event.peer->address.port) {
-
-                    // iterate through m_remotePlayers and remove the player with the same playerID
-                    //for (int j = 0; j < m_remotePlayers.size(); j++) {
-                    //    if (m_remotePlayers[j]->getPlayerID() == m_connectedClients[i].playerID) {
-                    //        m_remotePlayers.remove(j, 1);
-                    //        break;
-                    //    }
-                    //}
-                    
                     GUniqueID id = m_connectedClients[i].guid;
                     shared_ptr<NetworkedEntity> entity = scene()->typedEntity<NetworkedEntity>(id.toString16());
                     if (entity != nullptr) {
@@ -193,11 +184,6 @@ void FPSciServerApp::onNetwork() {
                 shared_ptr<Model> model = ArticulatedModel::create(modelSpec);
                 /* Create a new entity for the client */
                 const shared_ptr<NetworkedEntity>& target = NetworkedEntity::create(newClient.guid.toString16(), &(*scene()), model, CFrame());
-                //shared_ptr<RemotePlayer> newPlayer = RemotePlayer::create(
-                //    String(m_remotePlayers.length() + 1), &(*scene()), CFrame(), model);
-                //debugPrintf("%d\n", newPlayer->axisLock);
-                //(*scene()).insert(newPlayer);
-                //m_remotePlayers.append(newPlayer);
                 // add entity to ConnectedClient
                 m_connectedClients.last().entity = target;
 
@@ -264,7 +250,6 @@ void FPSciServerApp::onNetwork() {
         Array<shared_ptr<NetworkedEntity>> entityArray;
         scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
         NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
-        //  NetworkUtils::serverBatchEntityUpdate(RemotePlayers, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
     }
 }
 
@@ -521,6 +506,5 @@ void FPSciServerApp::onASBroadcast()
         Array<shared_ptr<NetworkedEntity>> entityArray;
         scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
         NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
-        //  NetworkUtils::serverBatchEntityUpdate(RemotePlayers, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
     }
 }
