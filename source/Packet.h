@@ -405,7 +405,7 @@ protected:
 
 public:
 	PacketType type() override { return REPORT_HIT; }
-	shared_ptr<GenericPacket> clone() override { return createShared<ReportHitPacket>(*this); }
+	shared_ptr<GenericPacket> clone() override { return static_pointer_cast<GenericPacket> (createShared<ReportHitPacket>(*this)); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
 	void populate(uint32 frameNumber, GUniqueID shotID, GUniqueID shooterID);

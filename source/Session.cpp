@@ -73,6 +73,7 @@ SessionConfig::SessionConfig(const Any& any) : FpsConfig(any, defaultConfig()) {
 		reader.getIfPresent("closeOnComplete", closeOnComplete);
 		reader.getIfPresent("blockCount", blockCount);
 		reader.getIfPresent("hitsToKill", hitsToKill);
+		reader.getIfPresent("networkLatency", networkLatency);
 		reader.get("trials", trials, format("Issues in the (required) \"trials\" array for session: \"%s\"", id));
 		break;
 	default:
@@ -91,6 +92,8 @@ Any SessionConfig::toAny(const bool forceAll) const {
 	a["description"] = description;
 	if (forceAll || def.closeOnComplete != closeOnComplete)	a["closeOnComplete"] = closeOnComplete;
 	if (forceAll || def.blockCount != blockCount)				a["blockCount"] = blockCount;
+	if (forceAll || def.hitsToKill != hitsToKill)			a["hitsToKill"] = hitsToKill;
+	if (forceAll || def.networkLatency != networkLatency)	a["networkLatency"] = networkLatency;
 	a["trials"] = trials;
 	return a;
 }

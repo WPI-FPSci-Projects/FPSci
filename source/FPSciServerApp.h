@@ -31,4 +31,5 @@ public:
     uint32 frameNumFromID(GUniqueID id) override;
 
     Array<NetworkUtils::ConnectedClient*> getConnectedClients() { return m_connectedClients; }
+    void updateSession(const String& id, bool forceReload) override;
 };

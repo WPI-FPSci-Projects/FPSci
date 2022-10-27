@@ -925,6 +925,12 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 	{
 		m_firstSession = false;
 	}
+
+	if (experimentConfig.isNetworked) {
+		/* Set the latency to be what the new latency */
+		NetworkUtils::setAddressLatency(m_reliableServerAddress, sessConfig->networkLatency);
+		NetworkUtils::setAddressLatency(m_unreliableServerAddress, sessConfig->networkLatency);
+	}
 }
 
 void FPSciApp::quitRequest() {
@@ -1116,6 +1122,10 @@ void FPSciApp::onNetwork() {
 					if (typedPacket->m_status == 0) {
 						m_enetConnected = true;
 						debugPrintf("INFO: Received registration from server\n");
+
+						/* Set the amount of latency to add */
+						NetworkUtils::setAddressLatency(m_unreliableServerAddress, sessConfig->networkLatency);
+						NetworkUtils::setAddressLatency(typedPacket->srcAddr(), sessConfig->networkLatency);
 					}
 					else {
 						debugPrintf("WARN: Server connection refused (%i)", typedPacket->m_status);
@@ -1158,7 +1168,6 @@ void FPSciApp::onNetwork() {
 				break;
 			}
 			case SEND_PLAYER_CONFIG: {
-				debugPrintf("Received an updated player config\n");
 				//TODO: Decide if we can just replace the the local player config and do that instead
 				SendPlayerConfigPacket* typedPacket = static_cast<SendPlayerConfigPacket*> (inPacket.get());
 				sessConfig->player.moveRate = typedPacket->m_playerConfig->moveRate;

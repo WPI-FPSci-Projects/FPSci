@@ -155,6 +155,7 @@ public:
 	Array<TrialCount>	trials;							///< Array of trials (and their counts) to be performed
 	bool				closeOnComplete = false;		///< Close application on session completed?
 	int					hitsToKill = 1;
+	int					networkLatency = 0;			///< Amount of latenecy to add to all network packets
 
 	SessionConfig() : FpsConfig(defaultConfig()) {}
 	SessionConfig(const Any& any);

@@ -183,10 +183,11 @@ void FPSciServerApp::onNetwork() {
                 shared_ptr<RegistrationReplyPacket> registrationReply = GenericPacket::createReliable<RegistrationReplyPacket>(newClient->peer);
                 registrationReply->populate(newClient->guid, 0);
                 NetworkUtils::send(registrationReply);
-                NetworkUtils::setAddressLatency(typedPacket->srcAddr(), 1000);
                 ENetAddress addr = typedPacket->srcAddr();
                 addr.port = typedPacket->m_portNum;
-                NetworkUtils::setAddressLatency(addr, 1000);
+                /* Set the amount of latency to add */
+                NetworkUtils::setAddressLatency(addr, sessConfig->networkLatency);
+                NetworkUtils::setAddressLatency(typedPacket->srcAddr(), sessConfig->networkLatency);
                 //registrationReply->send();
                 debugPrintf("\tRegistered client: %s\n", newClient->guid.toString16());
 
@@ -342,7 +343,6 @@ void FPSciServerApp::onNetwork() {
         sessConfig->player.propagatePlayerConfigsToSelectedClient = false;
         shared_ptr<SendPlayerConfigPacket> configPacket;
         if (sessConfig->player.selectedClientIdx == 0) {
-            debugPrintf("Sent an updated player config to player 1\n");
             configPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[0]->peer);
         }
         else {
@@ -616,4 +616,190 @@ NetworkUtils::ConnectedClient* FPSciServerApp::getClientFromGUID(GUniqueID ID)
 uint32 FPSciServerApp::frameNumFromID(GUniqueID id) 
 {
     return getClientFromGUID(id)->frameNumber;
+}
+
+void FPSciServerApp::updateSession(const String& id, bool forceReload) {
+    // Check for a valid ID (non-emtpy and
+    Array<String> ids;
+    experimentConfig.getSessionIds(ids);
+    if (!id.empty() && ids.contains(id))
+    {
+        // Load the session config specified by the id
+        sessConfig = experimentConfig.getSessionConfigById(id);
+        logPrintf("User selected session: %s. Updating now...\n", id.c_str());
+        m_userSettingsWindow->setSelectedSession(id);
+        // Create the session based on the loaded config
+        if (experimentConfig.isNetworked) {
+            netSess = NetworkedSession::create(this, sessConfig);
+            sess = (shared_ptr<Session>)netSess;
+        }
+        else {
+            sess = Session::create(this, sessConfig);
+        }
+    }
+    else
+    {
+        // Create an empty session
+        sessConfig = SessionConfig::create();
+        netSess = NetworkedSession::create(this);
+        sess = (shared_ptr<Session>)netSess;
+    }
+
+    // Update reticle
+    reticleConfig.index = sessConfig->reticle.indexSpecified ? sessConfig->reticle.index : currentUser()->reticle.index;
+    reticleConfig.scale = sessConfig->reticle.scaleSpecified ? sessConfig->reticle.scale : currentUser()->reticle.scale;
+    reticleConfig.color = sessConfig->reticle.colorSpecified ? sessConfig->reticle.color : currentUser()->reticle.color;
+    reticleConfig.changeTimeS = sessConfig->reticle.changeTimeSpecified ? sessConfig->reticle.changeTimeS : currentUser()->reticle.changeTimeS;
+    setReticle(reticleConfig.index);
+
+    // Update the controls for this session
+    updateControls(m_firstSession); // If first session consider showing the menu
+
+    // Update the frame rate/delay
+    updateParameters(sessConfig->render.frameDelay, sessConfig->render.frameRate);
+
+    // Handle buffer setup here
+    updateShaderBuffers();
+
+    // Update shader table
+    m_shaderTable.clear();
+    if (!sessConfig->render.shader3D.empty())
+    {
+        m_shaderTable.set(sessConfig->render.shader3D, G3D::Shader::getShaderFromPattern(sessConfig->render.shader3D));
+    }
+    if (!sessConfig->render.shader2D.empty())
+    {
+        m_shaderTable.set(sessConfig->render.shader2D, G3D::Shader::getShaderFromPattern(sessConfig->render.shader2D));
+    }
+    if (!sessConfig->render.shaderComposite.empty())
+    {
+        m_shaderTable.set(sessConfig->render.shaderComposite, G3D::Shader::getShaderFromPattern(sessConfig->render.shaderComposite));
+    }
+
+    // Update shader parameters
+    m_startTime = System::time();
+    m_last2DTime = m_startTime;
+    m_last3DTime = m_startTime;
+    m_lastCompositeTime = m_startTime;
+    m_frameNumber = 0;
+
+    // Load (session dependent) fonts
+    hudFont = GFont::fromFile(System::findDataFile(sessConfig->hud.hudFont));
+    m_combatFont = GFont::fromFile(System::findDataFile(sessConfig->targetView.combatTextFont));
+
+    // Handle clearing the targets here (clear any remaining targets before loading a new scene)
+    if (notNull(scene()))
+        sess->clearTargets();
+
+    // Load the experiment scene if we haven't already (target only)
+    if (sessConfig->scene.name.empty())
+    {
+        // No scene specified, load default scene
+        if (m_loadedScene.name.empty() || forceReload)
+        {
+            loadScene(m_defaultSceneName); // Note: this calls onGraphics()
+            m_loadedScene.name = m_defaultSceneName;
+        }
+        // Otherwise let the loaded scene persist
+    }
+    else if (sessConfig->scene != m_loadedScene || forceReload)
+    {
+        loadScene(sessConfig->scene.name);
+        m_loadedScene = sessConfig->scene;
+    }
+
+    // Player parameters
+    initPlayer();
+
+    // Check for play mode specific parameters
+    if (notNull(weapon))
+        weapon->clearDecals();
+    weapon->setConfig(&sessConfig->weapon);
+    weapon->setScene(scene());
+    weapon->setCamera(activeCamera());
+
+    // Update weapon model (if drawn) and sounds
+    weapon->loadModels();
+    weapon->loadSounds();
+    if (!sessConfig->audio.sceneHitSound.empty())
+    {
+        m_sceneHitSound = Sound::create(System::findDataFile(sessConfig->audio.sceneHitSound));
+    }
+    if (!sessConfig->audio.refTargetHitSound.empty())
+    {
+        m_refTargetHitSound = Sound::create(System::findDataFile(sessConfig->audio.refTargetHitSound));
+    }
+
+    // Load static HUD textures
+    for (StaticHudElement element : sessConfig->hud.staticElements)
+    {
+        hudTextures.set(element.filename, Texture::fromFile(System::findDataFile(element.filename)));
+    }
+
+    // Update colored materials to choose from for target health
+    for (String id : sessConfig->getUniqueTargetIds())
+    {
+        shared_ptr<TargetConfig> tconfig = experimentConfig.getTargetConfigById(id);
+        materials.remove(id);
+        materials.set(id, makeMaterials(tconfig));
+    }
+
+    const String resultsDirPath = startupConfig.experimentList[experimentIdx].resultsDirPath;
+
+    // Check for need to start latency logging and if so run the logger now
+    if (!FileSystem::isDirectory(resultsDirPath))
+    {
+        FileSystem::createDirectory(resultsDirPath);
+    }
+
+    // Create and check log file name
+    const String logFileBasename = sessConfig->logger.logToSingleDb ? experimentConfig.description + "_" + userStatusTable.currentUser + "_" + m_expConfigHash : id + "_" + userStatusTable.currentUser + "_" + String(FPSciLogger::genFileTimestamp());
+    const String logFilename = FilePath::makeLegalFilename(logFileBasename);
+    // This is the specified path and log basename with illegal characters replaced, but not suffix (.db)
+    const String logPath = resultsDirPath + logFilename;
+
+    if (systemConfig.hasLogger)
+    {
+        if (!sessConfig->clickToPhoton.enabled)
+        {
+            logPrintf("WARNING: Using a click-to-photon logger without the click-to-photon region enabled!\n\n");
+        }
+        if (m_pyLogger == nullptr)
+        {
+            m_pyLogger = PythonLogger::create(systemConfig.loggerComPort, systemConfig.hasSync, systemConfig.syncComPort);
+        }
+        else
+        {
+            // Handle running logger if we need to (terminate then merge results)
+            m_pyLogger->mergeLogToDb();
+        }
+        // Run a new logger if we need to (include the mode to run in here...)
+        m_pyLogger->run(logPath, sessConfig->clickToPhoton.mode);
+    }
+
+    // Initialize the experiment (this creates the results file)
+    sess->onInit(logPath, experimentConfig.description + "/" + sessConfig->description);
+
+    // Don't create a results file for a user w/ no sessions left
+    if (m_userSettingsWindow->sessionsForSelectedUser() == 0)
+    {
+        logPrintf("No sessions remaining for selected user.\n");
+    }
+    else if (sessConfig->logger.enable)
+    {
+        logPrintf("Created results file: %s.db\n", logPath.c_str());
+    }
+
+    if (m_firstSession)
+    {
+        m_firstSession = false;
+    }
+
+    if (experimentConfig.isNetworked) {
+        for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
+            /* Set the latency for every client that is currently connected */
+            NetworkUtils::setAddressLatency(client->peer->address, sessConfig->networkLatency);
+            NetworkUtils::setAddressLatency(client->unreliableAddress, sessConfig->networkLatency);
+        }
+    }
 }
