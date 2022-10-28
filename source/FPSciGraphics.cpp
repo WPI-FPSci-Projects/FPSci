@@ -536,8 +536,9 @@ void FPSciApp::drawHUD(RenderDevice *rd, Vector2 resolution) {
 			hudFont->draw2D(rd, time_string, hudCenter - Vector2(80, 0) * scale.x, scale.x * sessConfig->hud.bannerSmallFontSize, 
 				Color3::white(), Color4::clear(), GFont::XALIGN_RIGHT, GFont::YALIGN_CENTER);
 		}
-		if(sessConfig->hud.bannerShowProgress) hudFont->draw2D(rd, prog_string, hudCenter + Vector2(0, -1), scale.x * sessConfig->hud.bannerLargeFontSize, Color3::white(), Color4::clear(), GFont::XALIGN_CENTER, GFont::YALIGN_CENTER);
+		if(sessConfig->hud.bannerShowProgress) hudFont->draw2D(rd, prog_string, hudCenter + Vector2(0, -10), scale.x * sessConfig->hud.bannerLargeFontSize, Color3::white(), Color4::clear(), GFont::XALIGN_CENTER, GFont::YALIGN_CENTER);
 		if(sessConfig->hud.bannerShowScore) hudFont->draw2D(rd, score_string, hudCenter + Vector2(125, 0) * scale, scale.x * sessConfig->hud.bannerSmallFontSize, Color3::white(), Color4::clear(), GFont::XALIGN_RIGHT, GFont::YALIGN_CENTER);
+		if(sessConfig->isNetworked) hudFont->draw2D(rd, sessConfig->player.playerType, hudCenter + Vector2(0, 11) * scale, scale.x * sessConfig->hud.bannerSmallFontSize + 3, Color3::white(), Color4::clear(), GFont::XALIGN_CENTER, GFont::YALIGN_CENTER);
 	}
 
 	// Draw any static HUD elements

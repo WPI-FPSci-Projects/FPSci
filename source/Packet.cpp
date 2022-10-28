@@ -400,6 +400,8 @@ void SendPlayerConfigPacket::serialize(BinaryOutput& outBuffer) {
 	outBuffer.writeFloat32(selectedConfig.restrictionBoxAngle);
 
 	outBuffer.writeBool8(selectedConfig.counterStrafing);
+
+	outBuffer.writeString(selectedConfig.playerType);
 }
 
 void SendPlayerConfigPacket::deserialize(BinaryInput& inBuffer) {
@@ -440,6 +442,7 @@ void SendPlayerConfigPacket::deserialize(BinaryInput& inBuffer) {
 	m_playerConfig->restrictionBoxAngle = inBuffer.readFloat32();
 
 	m_playerConfig->counterStrafing = inBuffer.readBool8();
+	m_playerConfig->playerType = inBuffer.readString();
 }
 
 

@@ -1208,6 +1208,8 @@ void FPSciApp::onNetwork() {
 				sessConfig->player.restrictionBoxAngle = typedPacket->m_playerConfig->restrictionBoxAngle;
 
 				sessConfig->player.counterStrafing = typedPacket->m_playerConfig->counterStrafing;
+
+				sessConfig->player.playerType = typedPacket->m_playerConfig->playerType;
 				break;
 			}
 			case ADD_POINTS: {

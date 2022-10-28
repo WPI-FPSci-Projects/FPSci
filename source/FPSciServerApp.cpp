@@ -678,6 +678,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
                 m_peekersRoundConfigs[j].movementRestrictionZ = sessConfig->player.movementRestrictionZArray[i];
                 m_peekersRoundConfigs[j].restrictedMovementEnabled = sessConfig->player.restrictedMovementEnabledArray[i];
                 m_peekersRoundConfigs[j].restrictionBoxAngle = sessConfig->player.restrictionBoxAngleArray[i];
+                m_peekersRoundConfigs[j].playerType = "PEEKER";
 
                 m_peekersRoundConfigs[j].moveRate = sessConfig->player.clientLatencyArray[j - peekersConfigIdx];   //TODO CHANGE MOVERATE WITH LATENCY
             }
@@ -696,6 +697,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
                 m_defendersRoundConfigs[j].movementRestrictionZ = sessConfig->player.movementRestrictionZArray[i];
                 m_defendersRoundConfigs[j].restrictedMovementEnabled = sessConfig->player.restrictedMovementEnabledArray[i];
                 m_defendersRoundConfigs[j].restrictionBoxAngle = sessConfig->player.restrictionBoxAngleArray[i];
+                m_defendersRoundConfigs[j].playerType = "DEFENDER";
 
                 m_defendersRoundConfigs[j].moveRate = sessConfig->player.clientLatencyArray[j - defendersConfigIdx];   //TODO CHANGE MOVERATE WITH LATENCY
             }
