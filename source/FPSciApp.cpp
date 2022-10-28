@@ -112,7 +112,7 @@ void FPSciApp::initExperiment() {
 		m_enetConnected = false;
 		m_socketConnected = false;
 	}
-	sessConfig->isNetworked = experimentConfig.isNetworked;
+	sessConfig->isNetworked = &experimentConfig.isNetworked;
 }
 
 void FPSciApp::toggleUserSettingsMenu() {
@@ -1210,6 +1210,8 @@ void FPSciApp::onNetwork() {
 				sessConfig->player.counterStrafing = typedPacket->m_playerConfig->counterStrafing;
 
 				sessConfig->player.playerType = typedPacket->m_playerConfig->playerType;
+
+				sessConfig->networkedSessionProgress = typedPacket->m_networkedSessionProgress;
 				break;
 			}
 			case ADD_POINTS: {

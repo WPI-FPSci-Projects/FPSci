@@ -154,10 +154,12 @@ public:
 	int					blockCount = 1;					///< Default to just 1 block per session
 	Array<TrialCount>	trials;							///< Array of trials (and their counts) to be performed
 	bool				closeOnComplete = false;		///< Close application on session completed?
-	bool				isNetworked = false;			///< Checks if its a networked session or not
+	bool*				isNetworked = nullptr;			///< Checks if its a networked session or not
 	int					clientScore = 0;				///< Keeps track of clients score
 	int					hitsToKill = 1;
-	int					networkLatency = 0;			///< Amount of latenecy to add to all network packets
+	int					networkLatency = 0;				///< Amount of latenecy to add to all network packets
+	int					numberOfRoundsPlayed = 0;		///< Tracks the number of rounds played by the clients
+	float				networkedSessionProgress;		///< Keeps track of the progress of a networked session
 
 
 	SessionConfig() : FpsConfig(defaultConfig()) {}

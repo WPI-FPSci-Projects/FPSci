@@ -13,7 +13,6 @@ FPSciServerApp::FPSciServerApp(const GApp::Settings& settings) : FPSciApp(settin
 void FPSciServerApp::initExperiment() {
     m_clientsReady = 0;
     m_clientsTimedOut = 0;
-    m_numberOfRoundsPlayed = 0;
     // Load config from files
     loadConfigs(startupConfig.experimentList[experimentIdx]);
     m_lastSavedUser = *currentUser();			// Copy over the startup user for saves
@@ -84,6 +83,9 @@ void FPSciServerApp::initExperiment() {
     m_clientFirstRoundPeeker = true;
     shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
     player->setPlayerMovement(true);
+
+    sessConfig->numberOfRoundsPlayed = 0;
+    sessConfig->isNetworked = &experimentConfig.isNetworked;
 }
 
 void FPSciServerApp::onNetwork() {
@@ -307,31 +309,31 @@ void FPSciServerApp::onNetwork() {
                 {
                     if (m_clientsReady >= experimentConfig.numPlayers)
                     {
-                        if (m_numberOfRoundsPlayed % 2 == 0) {
+                        if (sessConfig->numberOfRoundsPlayed % 2 == 0) {
 
                             m_clientFirstRoundPeeker = rand() % 2;
                             // Make them instantly spawn to the new location
-                            m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first].respawnToPos = true;
-                            m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second].respawnToPos = true;
+                            m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].respawnToPos = true;
+                            m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].respawnToPos = true;
 
                             shared_ptr<SendPlayerConfigPacket> outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[m_clientFirstRoundPeeker]->peer);
-                            outPacket->populate(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first]);
+                            outPacket->populate(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], sessConfig->networkedSessionProgress);
                             NetworkUtils::send(outPacket);
                             outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[!m_clientFirstRoundPeeker]->peer);
-                            outPacket->populate(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second]);
+                            outPacket->populate(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], sessConfig->networkedSessionProgress);
                             NetworkUtils::send(outPacket);
                         }
                         else {
 
                             // Make them instantly spawn to the new location
-                            m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first].respawnToPos = true;
-                            m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second].respawnToPos = true;
+                            m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].respawnToPos = true;
+                            m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].respawnToPos = true;
 
                             shared_ptr<SendPlayerConfigPacket> outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[!m_clientFirstRoundPeeker]->peer);
-                            outPacket->populate(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].first]);
+                            outPacket->populate(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], sessConfig->networkedSessionProgress);
                             NetworkUtils::send(outPacket);
                             outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[m_clientFirstRoundPeeker]->peer);
-                            outPacket->populate(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[m_numberOfRoundsPlayed / 2].second]);
+                            outPacket->populate(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], sessConfig->networkedSessionProgress);
                             NetworkUtils::send(outPacket);
                         }
                         shared_ptr<StartSessionPacket> startSessPacket = GenericPacket::createForBroadcast<StartSessionPacket>();
@@ -345,9 +347,13 @@ void FPSciServerApp::onNetwork() {
             }
             case CLIENT_ROUND_TIMEOUT: {
                 m_clientsTimedOut++;
+                
                 if (m_clientsTimedOut >= experimentConfig.numPlayers)
                 {
-                    m_numberOfRoundsPlayed++;
+                    sessConfig->numberOfRoundsPlayed++;
+                    debugPrintf("Rounds Played %d, Rounds Left %d\n", sessConfig->numberOfRoundsPlayed, sessConfig->trials[0].count - sessConfig->numberOfRoundsPlayed);
+                    sessConfig->networkedSessionProgress = (float)sessConfig->numberOfRoundsPlayed / (float)sessConfig->trials[0].count;
+                    debugPrintf("SESSION PROGRESS: %f\n", sessConfig->networkedSessionProgress);
                     m_clientsReady = 0;
                     m_clientsTimedOut = 0;
                     debugPrintf("Round Over!\n");
@@ -360,7 +366,7 @@ void FPSciServerApp::onNetwork() {
             case CLIENT_FEEDBACK_SUBMITTED: {
                 m_clientFeedbackSubmitted++;
 
-                if (m_numberOfRoundsPlayed >= sessConfig->trials[0].count)
+                if (sessConfig->numberOfRoundsPlayed >= sessConfig->trials[0].count)
                 {
                     debugPrintf("SESSION OVER");
                     shared_ptr<ClientSessionEndPacket> outPacket = GenericPacket::createForBroadcast<ClientSessionEndPacket>();
@@ -378,6 +384,7 @@ void FPSciServerApp::onNetwork() {
                 break;
             }
         }
+        
         inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
     }
 
@@ -401,7 +408,7 @@ void FPSciServerApp::onNetwork() {
     if (sessConfig->player.propagatePlayerConfigsToAll) {
         sessConfig->player.propagatePlayerConfigsToAll = false;
         shared_ptr<SendPlayerConfigPacket> configPacket = GenericPacket::createForBroadcast<SendPlayerConfigPacket>();
-        configPacket->populate(sessConfig->player);
+        configPacket->populate(sessConfig->player, sessConfig->networkedSessionProgress);
         NetworkUtils::broadcastReliable(configPacket, m_localHost);
     }
 
@@ -414,7 +421,7 @@ void FPSciServerApp::onNetwork() {
         else {
             configPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[1]->peer);
         }
-        configPacket->populate(sessConfig->player);
+        configPacket->populate(sessConfig->player, sessConfig->networkedSessionProgress);
         NetworkUtils::send(configPacket);
     }
 }

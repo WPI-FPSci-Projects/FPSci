@@ -572,9 +572,10 @@ public:
 	shared_ptr<GenericPacket> clone() override { return createShared<SendPlayerConfigPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
-	void populate(PlayerConfig playerConfig);
+	void populate(PlayerConfig playerConfig, float sessionProgress);
 
 	shared_ptr<PlayerConfig> m_playerConfig;					///< playerConfig to be sent
+	float m_networkedSessionProgress;							///< Networked Session progression to be sent
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;

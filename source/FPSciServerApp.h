@@ -15,7 +15,6 @@ protected:
 
     int   m_clientsReady;                                              ///< Numbers of clients(s) that are ready
     int   m_clientsTimedOut;                                           ///< Numbers of clients(s) that have timed out
-    int   m_numberOfRoundsPlayed;                                      ///< Tracks the number of rounds played by the clients
     int   m_clientFirstRoundPeeker;                                    ///< Determines which client will be peeker in the first round
     int   m_clientFeedbackSubmitted;                                   ///< Numbers of clients(s) that have submitted feedback
     Array <PlayerConfig> m_peekersRoundConfigs;                        ///< Keeps the round configs for the peekers
