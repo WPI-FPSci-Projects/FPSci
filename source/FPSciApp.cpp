@@ -85,9 +85,9 @@ void FPSciApp::initExperiment() {
 		if (enet_initialize() != 0) {
 			// print an error and terminate if Enet does not initialize successfully
 			throw std::runtime_error("Could not initialize ENet networking");
-
+			
 		}
-
+		
 		m_localHost = enet_host_create(NULL, 1, 2, 0, 0); // create a host on an arbitrary port which we use to contact the server
 		if (m_localHost == NULL)
 		{
@@ -992,9 +992,8 @@ void FPSciApp::onNetwork() {
 
 
 	//if (experimentConfig.isNetworked && sess->currentState == PresentationState::networkedSessionRoundStart) {
-	m_networkFrameNum++;
+		m_networkFrameNum++;
 	//}
-
 
 
 	if (!m_socketConnected) {
@@ -1235,81 +1234,678 @@ void FPSciApp::onNetwork() {
 				debugPrintf("WARNING: unhandled packet received on reliable channel of type: %d\n", inPacket->type());
 			}
 		}
-			inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
+		inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
 	}
 }
 
-	void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
-		// TODO: this should eventually probably use sdt instead of rdt
-		RealTime currentRealTime;
-		if (m_lastOnSimulationRealTime == 0)
+void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
+	// TODO: this should eventually probably use sdt instead of rdt
+	RealTime currentRealTime;
+	if (m_lastOnSimulationRealTime == 0)
+	{
+		m_lastOnSimulationRealTime = System::time();  // Grab the current system time if uninitialized
+		currentRealTime = m_lastOnSimulationRealTime; // Set this equal to the current system time
+	}
+	else
+	{
+		currentRealTime = m_lastOnSimulationRealTime + rdt; // Increment the time by the current real time delta
+	}
+
+	bool stateCanFire = sess->currentState == PresentationState::trialTask || (experimentConfig.isNetworked) && !m_userSettingsWindow->visible();
+
+	// These variables will be used to fire after the various weapon styles populate them below
+	int numShots = 0;
+	float damagePerShot = +weapon->damagePerShot();
+	RealTime newLastFireTime = currentRealTime;
+
+	if (shootButtonJustPressed && stateCanFire && !weapon->canFire(currentRealTime))
+	{
+		// Invalid click since the weapon isn't ready to fire
+		sess->accumulatePlayerAction(PlayerActionType::FireCooldown);
+	}
+	else if (shootButtonJustPressed && !weapon->config()->autoFire && weapon->canFire(currentRealTime) && stateCanFire)
+	{
+		// Discrete weapon fires a single shot with normal damage at the current time
+		numShots = 1;
+		// These copy the above defaults, but are here for clarity
+		damagePerShot = weapon->damagePerShot();
+		newLastFireTime = currentRealTime;
+	}
+	else if (weapon->config()->autoFire && !weapon->config()->isContinuous() && !shootButtonUp && stateCanFire)
+	{
+		// Autofire weapon should create shots until currentRealTime with normal damage
+		if (shootButtonJustPressed)
 		{
-			m_lastOnSimulationRealTime = System::time();  // Grab the current system time if uninitialized
-			currentRealTime = m_lastOnSimulationRealTime; // Set this equal to the current system time
+			// If the button was just pressed, fire one bullet half way through
+			weapon->setLastFireTime(m_lastOnSimulationRealTime + rdt * 0.5f);
+			numShots = 1;
+		}
+		// Add on bullets until the frame time
+		int newShots = weapon->numShotsUntil(currentRealTime);
+		numShots += newShots;
+		newLastFireTime = weapon->lastFireTime() + (float)(newShots)*weapon->config()->firePeriod;
+		// This copies the above default, but are here for clarity
+		damagePerShot = weapon->damagePerShot();
+	}
+	else if (weapon->config()->isContinuous() && (!shootButtonUp || shootButtonJustReleased) && stateCanFire)
+	{
+		// Continuous weapon should have been firing continuously, but since we do sampled simulation
+		// this approximates continuous fire by releasing a single "megabullet"
+		// with power that matches the elapsed time at the current
+		numShots = 1;
+
+		// If the button was just pressed, assume the duration should begin half way through
+		if (shootButtonJustPressed)
+		{
+			weapon->setLastFireTime(m_lastOnSimulationRealTime + rdt * 0.5f);
+		}
+		// If the shoot button just released, assume the fire ended half way through
+		newLastFireTime = shootButtonJustReleased ? m_lastOnSimulationRealTime + rdt * 0.5f : currentRealTime;
+		RealTime fireDuration = weapon->fireDurationUntil(newLastFireTime);
+		damagePerShot = (float)fireDuration * weapon->config()->damagePerSecond;
+	}
+
+	// Actually shoot here
+	m_currentWeaponDamage = damagePerShot; // pass this to the callback where weapon damage is applied
+	bool shotFired = false;
+	for (int shotId = 0; shotId < numShots; shotId++)
+	{
+		Array<shared_ptr<Entity>> dontHit;
+		dontHit.append(m_explosions);
+		dontHit.append(sess->unhittableTargets());
+		Model::HitInfo info;
+		float hitDist = finf();
+		int hitIdx = -1;
+
+		shared_ptr<TargetEntity> target = weapon->fire(sess->hittableTargets(), hitIdx, hitDist, info, dontHit, false); // Fire the weapon
+		if (isNull(target))																								// Miss case
+		{
+			// Play scene hit sound
+			if (!weapon->config()->isContinuous() && notNull(m_sceneHitSound))
+			{
+				m_sceneHitSound->play(sessConfig->audio.sceneHitSoundVol);
+			}
+		}
+		shotFired = true;
+	}
+	if (shotFired)
+	{
+		weapon->setLastFireTime(newLastFireTime);
+	}
+	weapon->playSound(shotFired, shootButtonUp);
+
+	// TODO (or NOTTODO): The following can be cleared at the cost of one more level of inheritance.
+	sess->onSimulation(rdt, sdt, idt);
+
+	// These are all we need from GApp::onSimulation() for walk mode
+	m_widgetManager->onSimulation(rdt, sdt, idt);
+	if (scene())
+	{
+		scene()->onSimulation(sdt);
+	}
+
+	// make sure mouse sensitivity is set right
+	if (m_userSettingsWindow->visible())
+	{
+		updateMouseSensitivity();
+	}
+
+	// Simulate the projectiles
+	weapon->simulateProjectiles(sdt, sess->hittableTargets());
+
+	// explosion animation
+	for (int i = 0; i < m_explosions.size(); i++)
+	{
+		shared_ptr<VisibleEntity> explosion = m_explosions[i];
+		m_explosionRemainingTimes[i] -= sdt;
+		if (m_explosionRemainingTimes[i] <= 0)
+		{
+			scene()->remove(explosion);
+			m_explosions.fastRemove(i);
+			m_explosionRemainingTimes.fastRemove(i);
+			i--;
 		}
 		else
 		{
-			currentRealTime = m_lastOnSimulationRealTime + rdt; // Increment the time by the current real time delta
+			// could update animation here...
+		}
+	}
+
+	// Move the player
+	const shared_ptr<PlayerEntity>& p = scene()->typedEntity<PlayerEntity>("player");
+	playerCamera->setFrame(p->getCameraFrame());
+
+	// Handle developer mode features here
+	if (startupConfig.developerMode)
+	{
+		// If the debug camera is selected, update it's position from the FPM
+		if (activeCamera() == m_debugCamera)
+		{
+			m_debugCamera->setFrame(m_cameraManipulator->frame());
 		}
 
-		bool stateCanFire = sess->currentState == PresentationState::trialTask || (experimentConfig.isNetworked) && !m_userSettingsWindow->visible();
-
-		// These variables will be used to fire after the various weapon styles populate them below
-		int numShots = 0;
-		float damagePerShot = +weapon->damagePerShot();
-		RealTime newLastFireTime = currentRealTime;
-
-		if (shootButtonJustPressed && stateCanFire && !weapon->canFire(currentRealTime))
+		// Handle frame rate/delay updates here
+		if (sessConfig->render.frameRate != lastSetFrameRate || displayLagFrames != sessConfig->render.frameDelay)
 		{
-			// Invalid click since the weapon isn't ready to fire
-			sess->accumulatePlayerAction(PlayerActionType::FireCooldown);
+			updateParameters(sessConfig->render.frameDelay, sessConfig->render.frameRate);
 		}
-		else if (shootButtonJustPressed && !weapon->config()->autoFire && weapon->canFire(currentRealTime) && stateCanFire)
+
+		if (notNull(waypointManager))
 		{
-			// Discrete weapon fires a single shot with normal damage at the current time
-			numShots = 1;
-			// These copy the above defaults, but are here for clarity
-			damagePerShot = weapon->damagePerShot();
-			newLastFireTime = currentRealTime;
+			// Handle highlighting for selected target
+			waypointManager->updateSelected();
+			// Handle player motion recording here
+			waypointManager->updatePlayerPosition(p->getCameraFrame().translation);
 		}
-		else if (weapon->config()->autoFire && !weapon->config()->isContinuous() && !shootButtonUp && stateCanFire)
+
+		// Example GUI dynamic layout code.  Resize the debugWindow to fill
+		// the screen horizontally.
+		debugWindow->setRect(Rect2D::xywh(0.0f, 0.0f, (float)window()->width(), debugWindow->rect().height()));
+	}
+
+	// Check for completed session
+	if (sess->moveOn)
+	{
+		// Get the next session for the current user
+		updateSession(userStatusTable.getNextSession());
+	}
+	// Update time at which this simulation finished
+	m_lastOnSimulationRealTime = m_lastOnSimulationRealTime + rdt;
+	m_lastOnSimulationSimTime = m_lastOnSimulationSimTime + sdt;
+	m_lastOnSimulationIdealSimTime = m_lastOnSimulationIdealSimTime + idt;
+
+	// Clear button press state
+	shootButtonJustPressed = false;
+	shootButtonJustReleased = false;
+}
+
+bool FPSciApp::onEvent(const GEvent& event) {
+	GKey ksym = event.key.keysym.sym;
+	bool foundKey = false;
+
+	// Handle developer mode key-bound shortcuts here...
+	if (startupConfig.developerMode)
+	{
+		if (event.type == GEventType::KEY_DOWN)
 		{
-			// Autofire weapon should create shots until currentRealTime with normal damage
-			if (shootButtonJustPressed)
+			// Window display toggle
+			if (keyMap.map["toggleRenderWindow"].contains(ksym))
 			{
-				// If the button was just pressed, fire one bullet half way through
-				weapon->setLastFireTime(m_lastOnSimulationRealTime + rdt * 0.5f);
-				numShots = 1;
+				m_renderControls->setVisible(!m_renderControls->visible());
+				foundKey = true;
 			}
-			// Add on bullets until the frame time
-			int newShots = weapon->numShotsUntil(currentRealTime);
-			numShots += newShots;
-			newLastFireTime = weapon->lastFireTime() + (float)(newShots)*weapon->config()->firePeriod;
-			// This copies the above default, but are here for clarity
-			damagePerShot = weapon->damagePerShot();
-		}
-		else if (weapon->config()->isContinuous() && (!shootButtonUp || shootButtonJustReleased) && stateCanFire)
-		{
-			// Continuous weapon should have been firing continuously, but since we do sampled simulation
-			// this approximates continuous fire by releasing a single "megabullet"
-			// with power that matches the elapsed time at the current
-			numShots = 1;
-
-			// If the button was just pressed, assume the duration should begin half way through
-			if (shootButtonJustPressed)
+			else if (keyMap.map["togglePlayerWindow"].contains(ksym))
 			{
-				weapon->setLastFireTime(m_lastOnSimulationRealTime + rdt * 0.5f);
+				m_playerControls->setVisible(!m_playerControls->visible());
+				foundKey = true;
 			}
-			// If the shoot button just released, assume the fire ended half way through
-			newLastFireTime = shootButtonJustReleased ? m_lastOnSimulationRealTime + rdt * 0.5f : currentRealTime;
-			RealTime fireDuration = weapon->fireDurationUntil(newLastFireTime);
-			damagePerShot = (float)fireDuration * weapon->config()->damagePerSecond;
+			else if (keyMap.map["toggleWeaponWindow"].contains(ksym))
+			{
+				m_weaponControls->setVisible(!m_weaponControls->visible());
+				foundKey = true;
+			}
+			else if (keyMap.map["reloadConfigs"].contains(ksym))
+			{
+				loadConfigs(startupConfig.experimentList[experimentIdx]); // (Re)load the configs
+				// Update session from the reloaded configs
+				m_userSettingsWindow->updateSessionDropDown();
+				updateSession(m_userSettingsWindow->selectedSession());
+				// Do not set foundKey = true to allow shader reloading from GApp::onEvent()
+			}
+			// Waypoint editor only keys
+			else if (notNull(waypointManager))
+			{
+				if (keyMap.map["toggleWaypointWindow"].contains(ksym))
+				{
+					waypointManager->toggleWaypointWindow();
+					foundKey = true;
+				}
+				else if (keyMap.map["toggleRecording"].contains(ksym))
+				{
+					waypointManager->recordMotion = !waypointManager->recordMotion;
+					foundKey = true;
+				}
+				// Waypoint movement controls
+				else if (keyMap.map["dropWaypoint"].contains(ksym))
+				{
+					waypointManager->dropWaypoint();
+					foundKey = true;
+				}
+				else if (keyMap.map["moveWaypointUp"].contains(ksym))
+				{
+					waypointManager->moveMask += Vector3(0.0f, 1.0f, 0.0f);
+					foundKey = true;
+				}
+				else if (keyMap.map["moveWaypointDown"].contains(ksym))
+				{
+					waypointManager->moveMask += Vector3(0.0f, -1.0f, 0.0f);
+					foundKey = true;
+				}
+				else if (keyMap.map["moveWaypointIn"].contains(ksym))
+				{
+					waypointManager->moveMask += Vector3(0.0f, 0.0f, 1.0f);
+					foundKey = true;
+				}
+				else if (keyMap.map["moveWaypointOut"].contains(ksym))
+				{
+					waypointManager->moveMask += Vector3(0.0f, 0.0f, -1.0f);
+					foundKey = true;
+				}
+				else if (keyMap.map["moveWaypointRight"].contains(ksym))
+				{
+					waypointManager->moveMask += Vector3(1.0f, 0.0f, 0.0f);
+					foundKey = true;
+				}
+				else if (keyMap.map["moveWaypointLeft"].contains(ksym))
+				{
+					waypointManager->moveMask += Vector3(-1.0f, 0.0f, 0.0f);
+					foundKey = true;
+				}
+			}
 		}
+		else if (event.type == GEventType::KEY_UP)
+		{
+			if (notNull(waypointManager))
+			{
+				if (keyMap.map["moveWaypointUp"].contains(ksym))
+				{
+					waypointManager->moveMask -= Vector3(0.0f, 1.0f, 0.0f);
+					foundKey = true;
+				}
+				else if (keyMap.map["moveWaypointDown"].contains(ksym))
+				{
+					waypointManager->moveMask -= Vector3(0.0f, -1.0f, 0.0f);
+					foundKey = true;
+				}
+				else if (keyMap.map["moveWaypointIn"].contains(ksym))
+				{
+					waypointManager->moveMask -= Vector3(0.0f, 0.0f, 1.0f);
+					foundKey = true;
+				}
+				else if (keyMap.map["moveWaypointOut"].contains(ksym))
+				{
+					waypointManager->moveMask -= Vector3(0.0f, 0.0f, -1.0f);
+					foundKey = true;
+				}
+				else if (keyMap.map["moveWaypointRight"].contains(ksym))
+				{
+					waypointManager->moveMask -= Vector3(1.0f, 0.0f, 0.0f);
+					foundKey = true;
+				}
+				else if (keyMap.map["moveWaypointLeft"].contains(ksym))
+				{
+					waypointManager->moveMask -= Vector3(-1.0f, 0.0f, 0.0f);
+					foundKey = true;
+				}
+			}
+		}
+	}
+	// Handle key strokes explicitly for non-developer mode
+	else
+	{
+		if (event.type == GEventType::KEY_DOWN)
+		{
+			// Remove F8 as it isn't masked by useDeveloperTools = False
+			const Array<GKey> player_masked = { GKey::F8 };
+			if (player_masked.contains(ksym))
+			{
+				foundKey = true;
+			}
+		}
+	}
 
-		// Actually shoot here
-		m_currentWeaponDamage = damagePerShot; // pass this to the callback where weapon damage is applied
-		bool shotFired = false;
-		for (int shotId = 0; shotId < numShots; shotId++)
+	// Handle normal keypresses
+	if (event.type == GEventType::KEY_DOWN)
+	{
+		if (keyMap.map["openMenu"].contains(ksym))
+		{
+			toggleUserSettingsMenu();
+			foundKey = true;
+		}
+		else if (keyMap.map["quit"].contains(ksym))
+		{
+			quitRequest();
+			return true;
+		}
+		else if (notNull(dialog) && !dialog->complete)
+		{ // If we have an open, incomplete dialog, check for key bound question responses
+			// Handle key presses to redirect towards dialog
+			for (int i = 0; i < currentQuestion.optionKeys.length(); i++)
+			{
+				if (currentQuestion.optionKeys[i] == ksym)
+				{
+					dialog->result = currentQuestion.options[i];
+					dialog->complete = true;
+					dialog->setVisible(false);
+					foundKey = true;
+				}
+			}
+		}
+		else if (activeCamera() == playerCamera && !foundKey)
+		{
+			// Override 'q', 'z', 'c', and 'e' keys (unused)
+			// THIS IS A PROBLEM IF THESE ARE KEY MAPPED!!!
+			const Array<GKey> unused = { (GKey)'e', (GKey)'z', (GKey)'c', (GKey)'q' };
+			if (unused.contains(ksym))
+			{
+				foundKey = true;
+			}
+			else if (keyMap.map["crouch"].contains(ksym))
+			{
+				scene()->typedEntity<PlayerEntity>("player")->setCrouched(true);
+				foundKey = true;
+			}
+			else if (keyMap.map["jump"].contains(ksym))
+			{
+				scene()->typedEntity<PlayerEntity>("player")->setJumpPressed(true);
+				foundKey = true;
+			}
+			else if (keyMap.map["sprint"].contains(ksym)) {
+				scene()->typedEntity<PlayerEntity>("player")->setSprintPressed(true);
+				foundKey = true;
+			}
+		}
+	}
+	else if ((event.type == GEventType::KEY_UP))
+	{
+		if (activeCamera() == playerCamera)
+		{
+			if (keyMap.map["crouch"].contains(ksym))
+			{
+				scene()->typedEntity<PlayerEntity>("player")->setCrouched(false);
+				foundKey = true;
+			}
+			else if (keyMap.map["sprint"].contains(ksym)) {
+				scene()->typedEntity<PlayerEntity>("player")->setSprintPressed(false);
+				foundKey = true;
+			}
+		}
+	}
+	if (foundKey)
+	{
+		return true;
+	}
+
+	// Handle window resize here
+	if (event.type == GEventType::VIDEO_RESIZE)
+	{
+		moveToCenter(m_userSettingsWindow);
+	}
+
+	// Handle window-based close ("X" button)
+	if (event.type == GEventType::QUIT)
+	{
+		quitRequest();
+		return true;
+	}
+
+	// Handle resize event here
+	if (event.type == GEventType::VIDEO_RESIZE)
+	{
+		// Resize the shader buffers here
+		updateShaderBuffers();
+	}
+
+	// Handle super-class events
+	return GApp::onEvent(event);
+}
+
+void FPSciApp::onAfterEvents() {
+	if (updateUserMenu)
+	{
+		// Remove the old settings window
+		removeWidget(m_userSettingsWindow);
+
+		// Re-create the settings window
+		String selSess = m_userSettingsWindow->selectedSession();
+		m_userSettingsWindow = UserMenu::create(this, userTable, userStatusTable, sessConfig->menu, theme, Rect2D::xywh(0.0f, 0.0f, 10.0f, 10.0f));
+		m_userSettingsWindow->setSelectedSession(selSess);
+		moveToCenter(m_userSettingsWindow);
+		m_userSettingsWindow->setVisible(m_showUserMenu);
+		setMouseInputMode(m_showUserMenu ? MouseInputMode::MOUSE_CURSOR : MouseInputMode::MOUSE_FPM);
+
+		// Add the new settings window and clear the semaphore
+		addWidget(m_userSettingsWindow);
+		updateUserMenu = false;
+	}
+
+	if (reinitExperiment)
+	{ // Check for experiment reinitialization (developer-mode only)
+		m_widgetManager->clear();
+		addWidget(debugWindow);
+		addWidget(developerWindow);
+		initExperiment();
+		reinitExperiment = false;
+	}
+
+	GApp::onAfterEvents();
+}
+
+Vector2 FPSciApp::currentTurnScale() {
+	const shared_ptr<UserConfig> user = currentUser();
+	Vector2 baseTurnScale = sessConfig->player.turnScale * user->turnScale;
+	// Apply y-invert here
+	if (user->invertY)
+		baseTurnScale.y = -baseTurnScale.y;
+	// If we're not scoped just return the normal user turn scale
+	if (!weapon || !weapon->scoped())
+		return baseTurnScale;
+	// Otherwise create scaled turn scale for the scoped state
+	if (user->scopeTurnScale.length() > 0)
+	{
+		// User scoped turn scale specified, don't perform default scaling
+		return baseTurnScale * user->scopeTurnScale;
+	}
+	else
+	{
+		// Otherwise scale the scope turn scalue using the ratio of FoV
+		return playerCamera->fieldOfViewAngleDegrees() / sessConfig->render.hFoV * baseTurnScale;
+	}
+}
+
+void FPSciApp::setScopeView(bool scoped) {
+	// Get player entity and calculate scope FoV
+	const shared_ptr<PlayerEntity>& player = scene()->typedEntity<PlayerEntity>("player");
+	const float scopeFoV = sessConfig->weapon.scopeFoV > 0 ? sessConfig->weapon.scopeFoV : sessConfig->render.hFoV;
+	weapon->setScoped(scoped);													 // Update the weapon state
+	const float FoV = (scoped ? scopeFoV : sessConfig->render.hFoV);			 // Get new FoV in degrees (depending on scope state)
+	playerCamera->setFieldOfView(FoV * pif() / 180.f, FOVDirection::HORIZONTAL); // Set the camera FoV
+	player->turnScale = currentTurnScale();										 // Scale sensitivity based on the field of view change here
+}
+
+void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
+	// Damage the target
+	float damage = m_currentWeaponDamage;
+	target->doDamage(damage);
+	target->playHitSound();
+
+	debugPrintf("HIT TARGET: %s\n", target->name().c_str());
+	if (experimentConfig.isNetworked) {
+		if (sess->currentState != PresentationState::networkedSessionRoundFeedback && sess->currentState != PresentationState::networkedSessionRoundTimeout && sess->currentState != PresentationState::initialNetworkedState && sess->currentState != PresentationState::networkedSessionRoundOver) {
+			shared_ptr<ReportHitPacket> outPacket = GenericPacket::createReliable<ReportHitPacket>(m_serverPeer);
+			outPacket->populate(m_networkFrameNum, GUniqueID::fromString16(target->name().c_str()), m_playerGUID);
+			NetworkUtils::send(outPacket);
+		}
+		return;
+	}
+
+	// Check if we need to add combat text for this damage
+	if (sessConfig->targetView.showCombatText)
+	{
+		m_combatTextList.append(FloatingCombatText::create(
+			format("%2.0f", 100.f * damage),
+			m_combatFont,
+			sessConfig->targetView.combatTextSize,
+			sessConfig->targetView.combatTextColor,
+			sessConfig->targetView.combatTextOutline,
+			sessConfig->targetView.combatTextOffset,
+			sessConfig->targetView.combatTextVelocity,
+			sessConfig->targetView.combatTextFade,
+			sessConfig->targetView.combatTextTimeout));
+		m_combatTextList.last()->setFrame(target->frame());
+	}
+
+	// Check for "kill" condition
+	bool respawned = false;
+	bool destroyedTarget = false;
+	if (target->name() == "reference")
+	{
+		// Handle reference target here
+		sess->destroyTarget(target);
+		if (notNull(m_refTargetHitSound))
+		{
+			m_refTargetHitSound->play(sessConfig->audio.refTargetHitSoundVol);
+		}
+		destroyedTarget = true;
+		sess->accumulatePlayerAction(PlayerActionType::Destroy, target->name());
+	}
+	else if (target->health() <= 0)
+	{
+		// Position explosion
+		CFrame explosionFrame = target->frame();
+		explosionFrame.rotation = playerCamera->frame().rotation;
+		// Create the explosion
+		const shared_ptr<VisibleEntity> newExplosion = VisibleEntity::create(
+			format("explosion%d", m_explosionIdx),
+			scene().get(),
+			m_explosionModels.get(target->id())[target->scaleIndex()],
+			explosionFrame);
+		m_explosionIdx++;
+		m_explosionIdx %= m_maxExplosions;
+		scene()->insert(newExplosion);
+		m_explosions.push(newExplosion);
+		m_explosionRemainingTimes.push(experimentConfig.getTargetConfigById(target->id())->destroyDecalDuration); // Schedule end of explosion
+		target->playDestroySound();
+
+		sess->countDestroy();
+		respawned = target->tryRespawn();
+		// check for respawn
+		if (!respawned)
+		{
+			// This is the final respawn
+			// destroyTarget(hitIdx);
+			sess->destroyTarget(target);
+			destroyedTarget = true;
+		}
+		// Target eliminated, must be 'destroy'.
+		sess->accumulatePlayerAction(PlayerActionType::Destroy, target->name());
+	}
+	else
+	{
+		// Target 'hit', but still alive.
+		sess->accumulatePlayerAction(PlayerActionType::Hit, target->name());
+	}
+	if (!destroyedTarget || respawned)
+	{
+		if (respawned)
+		{
+			sess->randomizePosition(target);
+		}
+		// Update the target color based on it's health
+		updateTargetColor(target);
+	}
+}
+
+void FPSciApp::updateTargetColor(const shared_ptr<TargetEntity>& target) {
+	BEGIN_PROFILER_EVENT("updateTargetColor/changeColor");
+	BEGIN_PROFILER_EVENT("updateTargetColor/clone");
+	shared_ptr<ArticulatedModel::Pose> pose = dynamic_pointer_cast<ArticulatedModel::Pose>(target->pose()->clone());
+	END_PROFILER_EVENT();
+	BEGIN_PROFILER_EVENT("updateTargetColor/materialSet");
+	shared_ptr<UniversalMaterial> mat = materials[target->id()][min((int)(target->health() * matTableSize), matTableSize - 1)];
+	pose->materialTable.set("core/icosahedron_default", mat);
+	END_PROFILER_EVENT();
+	BEGIN_PROFILER_EVENT("updateTargetColor/setPose");
+	target->setPose(pose);
+	END_PROFILER_EVENT();
+	END_PROFILER_EVENT();
+}
+
+void FPSciApp::missEvent() {
+	if (sess)
+	{
+		sess->accumulatePlayerAction(PlayerActionType::Miss); // Declare this shot a miss here
+
+		// If this is a networked experiment send this miss data to the server
+		if (experimentConfig.isNetworked && m_socketConnected) {
+			shared_ptr<PlayerInteractPacket> outPacket = GenericPacket::createUnreliable<PlayerInteractPacket>(&m_unreliableSocket, &m_unreliableServerAddress);
+			outPacket->populate(m_networkFrameNum, PlayerActionType::Miss, m_playerGUID);
+			NetworkUtils::send(outPacket);
+			//outPacket->send();
+		}
+	}
+}
+
+/** Handle user input here */
+void FPSciApp::onUserInput(UserInput* ui) {
+	BEGIN_PROFILER_EVENT("onUserInput");
+
+	GApp::onUserInput(ui);
+
+	const shared_ptr<PlayerEntity>& player = scene()->typedEntity<PlayerEntity>("player");
+	if (m_mouseInputMode == MouseInputMode::MOUSE_FPM && activeCamera() == playerCamera && notNull(player))
+	{
+		player->updateFromInput(ui); // Only update the player if the mouse input mode is FPM and the active camera is the player view camera
+	}
+	else if (notNull(player))
+	{ // Zero the player velocity and rotation when in the setting menu
+		player->setDesiredOSVelocity(Vector3::zero());
+		player->setDesiredAngularVelocity(0.0, 0.0);
+	}
+
+	// Handle scope behavior
+	for (GKey scopeButton : keyMap.map["scope"])
+	{
+		if (ui->keyPressed(scopeButton))
+		{
+			// Are we using scope toggling?
+			if (sessConfig->weapon.scopeToggle)
+			{
+				setScopeView(!weapon->scoped());
+			}
+			// Otherwise just set scope based on the state of the scope button
+			else
+			{
+				setScopeView(true);
+			}
+		}
+		if (ui->keyReleased(scopeButton) && !sessConfig->weapon.scopeToggle)
+		{
+			setScopeView(false);
+		}
+	}
+
+	// Record button state changes
+	// These will be evaluated and reset on the next onSimulation()
+	for (GKey shootButton : keyMap.map["shoot"])
+	{
+		if (ui->keyReleased(shootButton))
+		{
+			shootButtonJustReleased = true;
+			shootButtonUp = true;
+		}
+		if (ui->keyPressed(shootButton))
+		{
+			shootButtonJustPressed = true;
+		}
+		if (ui->keyDown(shootButton))
+		{
+			shootButtonUp = false;
+		}
+	}
+
+	for (GKey selectButton : keyMap.map["selectWaypoint"])
+	{
+		// Check for developer mode editing here, if so set selected waypoint using the camera
+		if (ui->keyDown(selectButton) && notNull(waypointManager))
+		{
+			waypointManager->aimSelectWaypoint(activeCamera());
+		}
+	}
+
+	for (GKey dummyShoot : keyMap.map["dummyShoot"])
+	{
+		if (ui->keyPressed(dummyShoot) && (sess->currentState == PresentationState::trialFeedback) && !m_userSettingsWindow->visible())
 		{
 			Array<shared_ptr<Entity>> dontHit;
 			dontHit.append(m_explosions);
@@ -1317,954 +1913,357 @@ void FPSciApp::onNetwork() {
 			Model::HitInfo info;
 			float hitDist = finf();
 			int hitIdx = -1;
-
-			shared_ptr<TargetEntity> target = weapon->fire(sess->hittableTargets(), hitIdx, hitDist, info, dontHit, false); // Fire the weapon
-			if (isNull(target))																								// Miss case
-			{
-				// Play scene hit sound
-				if (!weapon->config()->isContinuous() && notNull(m_sceneHitSound))
-				{
-					m_sceneHitSound->play(sessConfig->audio.sceneHitSoundVol);
-				}
+			shared_ptr<TargetEntity> target = weapon->fire(sess->hittableTargets(), hitIdx, hitDist, info, dontHit, true); // Fire the weapon
+			if (sessConfig->audio.refTargetPlayFireSound && !sessConfig->weapon.loopAudio())
+			{									// Only play shot sounds for non-looped weapon audio (continuous/automatic fire not allowed)
+				weapon->playSound(true, false); // Play audio here for reference target
 			}
-			shotFired = true;
-		}
-		if (shotFired)
-		{
-			weapon->setLastFireTime(newLastFireTime);
-		}
-		weapon->playSound(shotFired, shootButtonUp);
-
-		// TODO (or NOTTODO): The following can be cleared at the cost of one more level of inheritance.
-		sess->onSimulation(rdt, sdt, idt);
-
-		// These are all we need from GApp::onSimulation() for walk mode
-		m_widgetManager->onSimulation(rdt, sdt, idt);
-		if (scene())
-		{
-			scene()->onSimulation(sdt);
-		}
-
-		// make sure mouse sensitivity is set right
-		if (m_userSettingsWindow->visible())
-		{
-			updateMouseSensitivity();
-		}
-
-		// Simulate the projectiles
-		weapon->simulateProjectiles(sdt, sess->hittableTargets());
-
-		// explosion animation
-		for (int i = 0; i < m_explosions.size(); i++)
-		{
-			shared_ptr<VisibleEntity> explosion = m_explosions[i];
-			m_explosionRemainingTimes[i] -= sdt;
-			if (m_explosionRemainingTimes[i] <= 0)
-			{
-				scene()->remove(explosion);
-				m_explosions.fastRemove(i);
-				m_explosionRemainingTimes.fastRemove(i);
-				i--;
-			}
-			else
-			{
-				// could update animation here...
-			}
-		}
-
-		// Move the player
-		const shared_ptr<PlayerEntity>& p = scene()->typedEntity<PlayerEntity>("player");
-		playerCamera->setFrame(p->getCameraFrame());
-
-		// Handle developer mode features here
-		if (startupConfig.developerMode)
-		{
-			// If the debug camera is selected, update it's position from the FPM
-			if (activeCamera() == m_debugCamera)
-			{
-				m_debugCamera->setFrame(m_cameraManipulator->frame());
-			}
-
-			// Handle frame rate/delay updates here
-			if (sessConfig->render.frameRate != lastSetFrameRate || displayLagFrames != sessConfig->render.frameDelay)
-			{
-				updateParameters(sessConfig->render.frameDelay, sessConfig->render.frameRate);
-			}
-
-			if (notNull(waypointManager))
-			{
-				// Handle highlighting for selected target
-				waypointManager->updateSelected();
-				// Handle player motion recording here
-				waypointManager->updatePlayerPosition(p->getCameraFrame().translation);
-			}
-
-			// Example GUI dynamic layout code.  Resize the debugWindow to fill
-			// the screen horizontally.
-			debugWindow->setRect(Rect2D::xywh(0.0f, 0.0f, (float)window()->width(), debugWindow->rect().height()));
-		}
-
-		// Check for completed session
-		if (sess->moveOn)
-		{
-			// Get the next session for the current user
-			updateSession(userStatusTable.getNextSession());
-		}
-		// Update time at which this simulation finished
-		m_lastOnSimulationRealTime = m_lastOnSimulationRealTime + rdt;
-		m_lastOnSimulationSimTime = m_lastOnSimulationSimTime + sdt;
-		m_lastOnSimulationIdealSimTime = m_lastOnSimulationIdealSimTime + idt;
-
-		// Clear button press state
-		shootButtonJustPressed = false;
-		shootButtonJustReleased = false;
-	}
-
-	bool FPSciApp::onEvent(const GEvent& event) {
-		GKey ksym = event.key.keysym.sym;
-		bool foundKey = false;
-
-		// Handle developer mode key-bound shortcuts here...
-		if (startupConfig.developerMode)
-		{
-			if (event.type == GEventType::KEY_DOWN)
-			{
-				// Window display toggle
-				if (keyMap.map["toggleRenderWindow"].contains(ksym))
-				{
-					m_renderControls->setVisible(!m_renderControls->visible());
-					foundKey = true;
-				}
-				else if (keyMap.map["togglePlayerWindow"].contains(ksym))
-				{
-					m_playerControls->setVisible(!m_playerControls->visible());
-					foundKey = true;
-				}
-				else if (keyMap.map["toggleWeaponWindow"].contains(ksym))
-				{
-					m_weaponControls->setVisible(!m_weaponControls->visible());
-					foundKey = true;
-				}
-				else if (keyMap.map["reloadConfigs"].contains(ksym))
-				{
-					loadConfigs(startupConfig.experimentList[experimentIdx]); // (Re)load the configs
-					// Update session from the reloaded configs
-					m_userSettingsWindow->updateSessionDropDown();
-					updateSession(m_userSettingsWindow->selectedSession());
-					// Do not set foundKey = true to allow shader reloading from GApp::onEvent()
-				}
-				// Waypoint editor only keys
-				else if (notNull(waypointManager))
-				{
-					if (keyMap.map["toggleWaypointWindow"].contains(ksym))
-					{
-						waypointManager->toggleWaypointWindow();
-						foundKey = true;
-					}
-					else if (keyMap.map["toggleRecording"].contains(ksym))
-					{
-						waypointManager->recordMotion = !waypointManager->recordMotion;
-						foundKey = true;
-					}
-					// Waypoint movement controls
-					else if (keyMap.map["dropWaypoint"].contains(ksym))
-					{
-						waypointManager->dropWaypoint();
-						foundKey = true;
-					}
-					else if (keyMap.map["moveWaypointUp"].contains(ksym))
-					{
-						waypointManager->moveMask += Vector3(0.0f, 1.0f, 0.0f);
-						foundKey = true;
-					}
-					else if (keyMap.map["moveWaypointDown"].contains(ksym))
-					{
-						waypointManager->moveMask += Vector3(0.0f, -1.0f, 0.0f);
-						foundKey = true;
-					}
-					else if (keyMap.map["moveWaypointIn"].contains(ksym))
-					{
-						waypointManager->moveMask += Vector3(0.0f, 0.0f, 1.0f);
-						foundKey = true;
-					}
-					else if (keyMap.map["moveWaypointOut"].contains(ksym))
-					{
-						waypointManager->moveMask += Vector3(0.0f, 0.0f, -1.0f);
-						foundKey = true;
-					}
-					else if (keyMap.map["moveWaypointRight"].contains(ksym))
-					{
-						waypointManager->moveMask += Vector3(1.0f, 0.0f, 0.0f);
-						foundKey = true;
-					}
-					else if (keyMap.map["moveWaypointLeft"].contains(ksym))
-					{
-						waypointManager->moveMask += Vector3(-1.0f, 0.0f, 0.0f);
-						foundKey = true;
-					}
-				}
-			}
-			else if (event.type == GEventType::KEY_UP)
-			{
-				if (notNull(waypointManager))
-				{
-					if (keyMap.map["moveWaypointUp"].contains(ksym))
-					{
-						waypointManager->moveMask -= Vector3(0.0f, 1.0f, 0.0f);
-						foundKey = true;
-					}
-					else if (keyMap.map["moveWaypointDown"].contains(ksym))
-					{
-						waypointManager->moveMask -= Vector3(0.0f, -1.0f, 0.0f);
-						foundKey = true;
-					}
-					else if (keyMap.map["moveWaypointIn"].contains(ksym))
-					{
-						waypointManager->moveMask -= Vector3(0.0f, 0.0f, 1.0f);
-						foundKey = true;
-					}
-					else if (keyMap.map["moveWaypointOut"].contains(ksym))
-					{
-						waypointManager->moveMask -= Vector3(0.0f, 0.0f, -1.0f);
-						foundKey = true;
-					}
-					else if (keyMap.map["moveWaypointRight"].contains(ksym))
-					{
-						waypointManager->moveMask -= Vector3(1.0f, 0.0f, 0.0f);
-						foundKey = true;
-					}
-					else if (keyMap.map["moveWaypointLeft"].contains(ksym))
-					{
-						waypointManager->moveMask -= Vector3(-1.0f, 0.0f, 0.0f);
-						foundKey = true;
-					}
-				}
-			}
-		}
-		// Handle key strokes explicitly for non-developer mode
-		else
-		{
-			if (event.type == GEventType::KEY_DOWN)
-			{
-				// Remove F8 as it isn't masked by useDeveloperTools = False
-				const Array<GKey> player_masked = { GKey::F8 };
-				if (player_masked.contains(ksym))
-				{
-					foundKey = true;
-				}
-			}
-		}
-
-		// Handle normal keypresses
-		if (event.type == GEventType::KEY_DOWN)
-		{
-			if (keyMap.map["openMenu"].contains(ksym))
-			{
-				toggleUserSettingsMenu();
-				foundKey = true;
-			}
-			else if (keyMap.map["quit"].contains(ksym))
-			{
-				quitRequest();
-				return true;
-			}
-			else if (notNull(dialog) && !dialog->complete)
-			{ // If we have an open, incomplete dialog, check for key bound question responses
-				// Handle key presses to redirect towards dialog
-				for (int i = 0; i < currentQuestion.optionKeys.length(); i++)
-				{
-					if (currentQuestion.optionKeys[i] == ksym)
-					{
-						dialog->result = currentQuestion.options[i];
-						dialog->complete = true;
-						dialog->setVisible(false);
-						foundKey = true;
-					}
-				}
-			}
-			else if (activeCamera() == playerCamera && !foundKey)
-			{
-				// Override 'q', 'z', 'c', and 'e' keys (unused)
-				// THIS IS A PROBLEM IF THESE ARE KEY MAPPED!!!
-				const Array<GKey> unused = { (GKey)'e', (GKey)'z', (GKey)'c', (GKey)'q' };
-				if (unused.contains(ksym))
-				{
-					foundKey = true;
-				}
-				else if (keyMap.map["crouch"].contains(ksym))
-				{
-					scene()->typedEntity<PlayerEntity>("player")->setCrouched(true);
-					foundKey = true;
-				}
-				else if (keyMap.map["jump"].contains(ksym))
-				{
-					scene()->typedEntity<PlayerEntity>("player")->setJumpPressed(true);
-					foundKey = true;
-				}
-				else if (keyMap.map["sprint"].contains(ksym)) {
-					scene()->typedEntity<PlayerEntity>("player")->setSprintPressed(true);
-					foundKey = true;
-				}
-			}
-		}
-		else if ((event.type == GEventType::KEY_UP))
-		{
-			if (activeCamera() == playerCamera)
-			{
-				if (keyMap.map["crouch"].contains(ksym))
-				{
-					scene()->typedEntity<PlayerEntity>("player")->setCrouched(false);
-					foundKey = true;
-				}
-				else if (keyMap.map["sprint"].contains(ksym)) {
-					scene()->typedEntity<PlayerEntity>("player")->setSprintPressed(false);
-					foundKey = true;
-				}
-			}
-		}
-		if (foundKey)
-		{
-			return true;
-		}
-
-		// Handle window resize here
-		if (event.type == GEventType::VIDEO_RESIZE)
-		{
-			moveToCenter(m_userSettingsWindow);
-		}
-
-		// Handle window-based close ("X" button)
-		if (event.type == GEventType::QUIT)
-		{
-			quitRequest();
-			return true;
-		}
-
-		// Handle resize event here
-		if (event.type == GEventType::VIDEO_RESIZE)
-		{
-			// Resize the shader buffers here
-			updateShaderBuffers();
-		}
-
-		// Handle super-class events
-		return GApp::onEvent(event);
-	}
-
-	void FPSciApp::onAfterEvents() {
-		if (updateUserMenu)
-		{
-			// Remove the old settings window
-			removeWidget(m_userSettingsWindow);
-
-			// Re-create the settings window
-			String selSess = m_userSettingsWindow->selectedSession();
-			m_userSettingsWindow = UserMenu::create(this, userTable, userStatusTable, sessConfig->menu, theme, Rect2D::xywh(0.0f, 0.0f, 10.0f, 10.0f));
-			m_userSettingsWindow->setSelectedSession(selSess);
-			moveToCenter(m_userSettingsWindow);
-			m_userSettingsWindow->setVisible(m_showUserMenu);
-			setMouseInputMode(m_showUserMenu ? MouseInputMode::MOUSE_CURSOR : MouseInputMode::MOUSE_FPM);
-
-			// Add the new settings window and clear the semaphore
-			addWidget(m_userSettingsWindow);
-			updateUserMenu = false;
-		}
-
-		if (reinitExperiment)
-		{ // Check for experiment reinitialization (developer-mode only)
-			m_widgetManager->clear();
-			addWidget(debugWindow);
-			addWidget(developerWindow);
-			initExperiment();
-			reinitExperiment = false;
-		}
-
-		GApp::onAfterEvents();
-	}
-
-	Vector2 FPSciApp::currentTurnScale() {
-		const shared_ptr<UserConfig> user = currentUser();
-		Vector2 baseTurnScale = sessConfig->player.turnScale * user->turnScale;
-		// Apply y-invert here
-		if (user->invertY)
-			baseTurnScale.y = -baseTurnScale.y;
-		// If we're not scoped just return the normal user turn scale
-		if (!weapon || !weapon->scoped())
-			return baseTurnScale;
-		// Otherwise create scaled turn scale for the scoped state
-		if (user->scopeTurnScale.length() > 0)
-		{
-			// User scoped turn scale specified, don't perform default scaling
-			return baseTurnScale * user->scopeTurnScale;
-		}
-		else
-		{
-			// Otherwise scale the scope turn scalue using the ratio of FoV
-			return playerCamera->fieldOfViewAngleDegrees() / sessConfig->render.hFoV * baseTurnScale;
 		}
 	}
 
-	void FPSciApp::setScopeView(bool scoped) {
-		// Get player entity and calculate scope FoV
-		const shared_ptr<PlayerEntity>& player = scene()->typedEntity<PlayerEntity>("player");
-		const float scopeFoV = sessConfig->weapon.scopeFoV > 0 ? sessConfig->weapon.scopeFoV : sessConfig->render.hFoV;
-		weapon->setScoped(scoped);													 // Update the weapon state
-		const float FoV = (scoped ? scopeFoV : sessConfig->render.hFoV);			 // Get new FoV in degrees (depending on scope state)
-		playerCamera->setFieldOfView(FoV * pif() / 180.f, FOVDirection::HORIZONTAL); // Set the camera FoV
-		player->turnScale = currentTurnScale();										 // Scale sensitivity based on the field of view change here
-	}
-
-	void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
-		// Damage the target
-		float damage = m_currentWeaponDamage;
-		target->doDamage(damage);
-		target->playHitSound();
-
-		debugPrintf("HIT TARGET: %s\n", target->name().c_str());
-		if (experimentConfig.isNetworked) {
-			if (sess->currentState != PresentationState::networkedSessionRoundFeedback && sess->currentState != PresentationState::networkedSessionRoundTimeout && sess->currentState != PresentationState::initialNetworkedState && sess->currentState != PresentationState::networkedSessionRoundOver) {
-				shared_ptr<ReportHitPacket> outPacket = GenericPacket::createReliable<ReportHitPacket>(m_serverPeer);
-				outPacket->populate(m_networkFrameNum, GUniqueID::fromString16(target->name().c_str()), m_playerGUID);
-				NetworkUtils::send(outPacket);
-			}
-			return;
-		}
-
-		// Check if we need to add combat text for this damage
-		if (sessConfig->targetView.showCombatText)
-		{
-			m_combatTextList.append(FloatingCombatText::create(
-				format("%2.0f", 100.f * damage),
-				m_combatFont,
-				sessConfig->targetView.combatTextSize,
-				sessConfig->targetView.combatTextColor,
-				sessConfig->targetView.combatTextOutline,
-				sessConfig->targetView.combatTextOffset,
-				sessConfig->targetView.combatTextVelocity,
-				sessConfig->targetView.combatTextFade,
-				sessConfig->targetView.combatTextTimeout));
-			m_combatTextList.last()->setFrame(target->frame());
-		}
-
-		// Check for "kill" condition
-		bool respawned = false;
-		bool destroyedTarget = false;
-		if (target->name() == "reference")
-		{
-			// Handle reference target here
-			sess->destroyTarget(target);
-			if (notNull(m_refTargetHitSound))
-			{
-				m_refTargetHitSound->play(sessConfig->audio.refTargetHitSoundVol);
-			}
-			destroyedTarget = true;
-			sess->accumulatePlayerAction(PlayerActionType::Destroy, target->name());
-		}
-		else if (target->health() <= 0)
-		{
-			// Position explosion
-			CFrame explosionFrame = target->frame();
-			explosionFrame.rotation = playerCamera->frame().rotation;
-			// Create the explosion
-			const shared_ptr<VisibleEntity> newExplosion = VisibleEntity::create(
-				format("explosion%d", m_explosionIdx),
-				scene().get(),
-				m_explosionModels.get(target->id())[target->scaleIndex()],
-				explosionFrame);
-			m_explosionIdx++;
-			m_explosionIdx %= m_maxExplosions;
-			scene()->insert(newExplosion);
-			m_explosions.push(newExplosion);
-			m_explosionRemainingTimes.push(experimentConfig.getTargetConfigById(target->id())->destroyDecalDuration); // Schedule end of explosion
-			target->playDestroySound();
-
-			sess->countDestroy();
-			respawned = target->tryRespawn();
-			// check for respawn
-			if (!respawned)
-			{
-				// This is the final respawn
-				// destroyTarget(hitIdx);
-				sess->destroyTarget(target);
-				destroyedTarget = true;
-			}
-			// Target eliminated, must be 'destroy'.
-			sess->accumulatePlayerAction(PlayerActionType::Destroy, target->name());
-		}
-		else
-		{
-			// Target 'hit', but still alive.
-			sess->accumulatePlayerAction(PlayerActionType::Hit, target->name());
-		}
-		if (!destroyedTarget || respawned)
-		{
-			if (respawned)
-			{
-				sess->randomizePosition(target);
-			}
-			// Update the target color based on it's health
-			updateTargetColor(target);
-		}
-	}
-
-	void FPSciApp::updateTargetColor(const shared_ptr<TargetEntity>& target) {
-		BEGIN_PROFILER_EVENT("updateTargetColor/changeColor");
-		BEGIN_PROFILER_EVENT("updateTargetColor/clone");
-		shared_ptr<ArticulatedModel::Pose> pose = dynamic_pointer_cast<ArticulatedModel::Pose>(target->pose()->clone());
-		END_PROFILER_EVENT();
-		BEGIN_PROFILER_EVENT("updateTargetColor/materialSet");
-		shared_ptr<UniversalMaterial> mat = materials[target->id()][min((int)(target->health() * matTableSize), matTableSize - 1)];
-		pose->materialTable.set("core/icosahedron_default", mat);
-		END_PROFILER_EVENT();
-		BEGIN_PROFILER_EVENT("updateTargetColor/setPose");
-		target->setPose(pose);
-		END_PROFILER_EVENT();
-		END_PROFILER_EVENT();
-	}
-
-	void FPSciApp::missEvent() {
-		if (sess)
-		{
-			sess->accumulatePlayerAction(PlayerActionType::Miss); // Declare this shot a miss here
-
-			// If this is a networked experiment send this miss data to the server
-			if (experimentConfig.isNetworked && m_socketConnected) {
-				shared_ptr<PlayerInteractPacket> outPacket = GenericPacket::createUnreliable<PlayerInteractPacket>(&m_unreliableSocket, &m_unreliableServerAddress);
-				outPacket->populate(m_networkFrameNum, PlayerActionType::Miss, m_playerGUID);
+	for (GKey selectButton : keyMap.map["readyUp"])
+	{
+		// Send Ready Up Message from here
+		if (ui->keyDown(selectButton) && m_serverPeer != nullptr && m_enetConnected) {
+			if (!player->getPlayerReady()) {
+				player->setPlayerReady(true);
+				shared_ptr<ReadyUpClientPacket> outPacket = GenericPacket::createReliable<ReadyUpClientPacket>(m_serverPeer);
 				NetworkUtils::send(outPacket);
 				//outPacket->send();
 			}
 		}
 	}
 
-	/** Handle user input here */
-	void FPSciApp::onUserInput(UserInput* ui) {
-		BEGIN_PROFILER_EVENT("onUserInput");
+	if (m_lastReticleLoaded != currentUser()->reticle.index || m_userSettingsWindow->visible())
+	{
+		// Slider was used to change the reticle
+		if (!sessConfig->reticle.indexSpecified)
+		{ // Only allow reticle change if it isn't specified in experiment config
+			setReticle(currentUser()->reticle.index);
+			m_userSettingsWindow->updateReticlePreview();
+		}
+	}
 
-		GApp::onUserInput(ui);
+	playerCamera->filmSettings().setSensitivity(sceneBrightness);
+	END_PROFILER_EVENT();
+}
 
-		const shared_ptr<PlayerEntity>& player = scene()->typedEntity<PlayerEntity>("player");
-		if (m_mouseInputMode == MouseInputMode::MOUSE_FPM && activeCamera() == playerCamera && notNull(player))
+void FPSciApp::onPose(Array<shared_ptr<Surface>>& surface, Array<shared_ptr<Surface2D>>& surface2D) {
+	GApp::onPose(surface, surface2D);
+
+	typedScene<PhysicsScene>()->poseExceptExcluded(surface, "player");
+
+	if (weapon)
+	{
+		weapon->onPose(surface);
+	}
+}
+
+/** Set the currently reticle by index */
+void FPSciApp::setReticle(const int r) {
+	int idx = clamp(0, r, numReticles);
+	if (idx == m_lastReticleLoaded)
+		return; // Nothing to do here, setting current reticle
+	if (r < numReticles)
+	{
+		reticleTexture = Texture::fromFile(System::findDataFile(format("gui/reticle/reticle-%03d.png", idx)));
+	}
+	else
+	{
+		// This special case is added to allow a custom reticle not in the gui/reticle/reticle-[x].png format
+		reticleTexture = Texture::fromFile(System::findDataFile("gui/reticle.png"));
+	}
+	m_lastReticleLoaded = idx;
+}
+
+void FPSciApp::onCleanup() {
+	// Called after the application loop ends.  Place a majority of cleanup code
+	// here instead of in the constructor so that exceptions can be caught.
+}
+
+/** Overridden (optimized) oneFrame() function to improve latency */
+void FPSciApp::oneFrame() {
+	// Count this frame (for shaders)
+	m_frameNumber++;
+
+	// Target frame time (only call this method once per one frame!)
+	RealTime targetFrameTime = sess->targetFrameTime();
+
+	// Wait
+	// Note: we might end up spending all of our time inside of
+	// RenderDevice::beginFrame.  Waiting here isn't double waiting,
+	// though, because while we're sleeping the CPU the GPU is working
+	// to catch up.
+	if ((submitToDisplayMode() == SubmitToDisplayMode::MINIMIZE_LATENCY))
+	{
+		BEGIN_PROFILER_EVENT("Wait");
+		m_waitWatch.tick();
 		{
-			player->updateFromInput(ui); // Only update the player if the mouse input mode is FPM and the active camera is the player view camera
-		}
-		else if (notNull(player))
-		{ // Zero the player velocity and rotation when in the setting menu
-			player->setDesiredOSVelocity(Vector3::zero());
-			player->setDesiredAngularVelocity(0.0, 0.0);
-		}
+			RealTime nowAfterLoop = System::time();
 
-		// Handle scope behavior
-		for (GKey scopeButton : keyMap.map["scope"])
-		{
-			if (ui->keyPressed(scopeButton))
+			// Compute accumulated time
+			RealTime cumulativeTime = nowAfterLoop - m_lastWaitTime;
+
+			debugAssert(m_wallClockTargetDuration < finf());
+			// Perform wait for target time needed
+			RealTime duration = targetFrameTime;
+			if (!window()->hasFocus() && m_lowerFrameRateInBackground)
 			{
-				// Are we using scope toggling?
-				if (sessConfig->weapon.scopeToggle)
-				{
-					setScopeView(!weapon->scoped());
-				}
-				// Otherwise just set scope based on the state of the scope button
-				else
-				{
-					setScopeView(true);
-				}
+				// Lower frame rate to 4fps
+				duration = 1.0 / 4.0;
 			}
-			if (ui->keyReleased(scopeButton) && !sessConfig->weapon.scopeToggle)
+			RealTime desiredWaitTime = max(0.0, duration - cumulativeTime);
+			onWait(max(0.0, desiredWaitTime - m_lastFrameOverWait) * 0.97);
+
+			// Update wait timers
+			m_lastWaitTime = System::time();
+			RealTime actualWaitTime = m_lastWaitTime - nowAfterLoop;
+
+			// Learn how much onWait appears to overshoot by and compensate
+			double thisOverWait = actualWaitTime - desiredWaitTime;
+			if (G3D::abs(thisOverWait - m_lastFrameOverWait) / max(G3D::abs(m_lastFrameOverWait), G3D::abs(thisOverWait)) > 0.4)
 			{
-				setScopeView(false);
+				// Abruptly change our estimate
+				m_lastFrameOverWait = thisOverWait;
+			}
+			else
+			{
+				// Smoothly change our estimate
+				m_lastFrameOverWait = lerp(m_lastFrameOverWait, thisOverWait, 0.1);
 			}
 		}
-
-		// Record button state changes
-		// These will be evaluated and reset on the next onSimulation()
-		for (GKey shootButton : keyMap.map["shoot"])
-		{
-			if (ui->keyReleased(shootButton))
-			{
-				shootButtonJustReleased = true;
-				shootButtonUp = true;
-			}
-			if (ui->keyPressed(shootButton))
-			{
-				shootButtonJustPressed = true;
-			}
-			if (ui->keyDown(shootButton))
-			{
-				shootButtonUp = false;
-			}
-		}
-
-		for (GKey selectButton : keyMap.map["selectWaypoint"])
-		{
-			// Check for developer mode editing here, if so set selected waypoint using the camera
-			if (ui->keyDown(selectButton) && notNull(waypointManager))
-			{
-				waypointManager->aimSelectWaypoint(activeCamera());
-			}
-		}
-
-		for (GKey dummyShoot : keyMap.map["dummyShoot"])
-		{
-			if (ui->keyPressed(dummyShoot) && (sess->currentState == PresentationState::trialFeedback) && !m_userSettingsWindow->visible())
-			{
-				Array<shared_ptr<Entity>> dontHit;
-				dontHit.append(m_explosions);
-				dontHit.append(sess->unhittableTargets());
-				Model::HitInfo info;
-				float hitDist = finf();
-				int hitIdx = -1;
-				shared_ptr<TargetEntity> target = weapon->fire(sess->hittableTargets(), hitIdx, hitDist, info, dontHit, true); // Fire the weapon
-				if (sessConfig->audio.refTargetPlayFireSound && !sessConfig->weapon.loopAudio())
-				{									// Only play shot sounds for non-looped weapon audio (continuous/automatic fire not allowed)
-					weapon->playSound(true, false); // Play audio here for reference target
-				}
-			}
-		}
-
-		for (GKey selectButton : keyMap.map["readyUp"])
-		{
-			// Send Ready Up Message from here
-			if (ui->keyDown(selectButton) && m_serverPeer != nullptr && m_enetConnected) {
-				if (!player->getPlayerReady()) {
-					player->setPlayerReady(true);
-					shared_ptr<ReadyUpClientPacket> outPacket = GenericPacket::createReliable<ReadyUpClientPacket>(m_serverPeer);
-					NetworkUtils::send(outPacket);
-					//outPacket->send();
-				}
-			}
-		}
-
-		if (m_lastReticleLoaded != currentUser()->reticle.index || m_userSettingsWindow->visible())
-		{
-			// Slider was used to change the reticle
-			if (!sessConfig->reticle.indexSpecified)
-			{ // Only allow reticle change if it isn't specified in experiment config
-				setReticle(currentUser()->reticle.index);
-				m_userSettingsWindow->updateReticlePreview();
-			}
-		}
-
-		playerCamera->filmSettings().setSensitivity(sceneBrightness);
+		m_waitWatch.tock();
 		END_PROFILER_EVENT();
 	}
 
-	void FPSciApp::onPose(Array<shared_ptr<Surface>>& surface, Array<shared_ptr<Surface2D>>& surface2D) {
-		GApp::onPose(surface, surface2D);
+	for (int repeat = 0; repeat < max(1, m_renderPeriod); ++repeat)
+	{
+		Profiler::nextFrame();
+		m_lastTime = m_now;
+		m_now = System::time();
+		RealTime timeStep = m_now - m_lastTime;
 
-		typedScene<PhysicsScene>()->poseExceptExcluded(surface, "player");
-
-		if (weapon)
+		// User input
+		m_userInputWatch.tick();
+		if (manageUserInput)
 		{
-			weapon->onPose(surface);
+			processGEventQueue();
 		}
-	}
+		onAfterEvents();
+		onUserInput(userInput);
+		m_userInputWatch.tock();
 
-	/** Set the currently reticle by index */
-	void FPSciApp::setReticle(const int r) {
-		int idx = clamp(0, r, numReticles);
-		if (idx == m_lastReticleLoaded)
-			return; // Nothing to do here, setting current reticle
-		if (r < numReticles)
-		{
-			reticleTexture = Texture::fromFile(System::findDataFile(format("gui/reticle/reticle-%03d.png", idx)));
+		// Network
+		BEGIN_PROFILER_EVENT("GApp::onNetwork");
+		m_networkWatch.tick();
+		if (experimentConfig.isNetworked) {
+			onNetwork();
 		}
-		else
-		{
-			// This special case is added to allow a custom reticle not in the gui/reticle/reticle-[x].png format
-			reticleTexture = Texture::fromFile(System::findDataFile("gui/reticle.png"));
-		}
-		m_lastReticleLoaded = idx;
-	}
-
-	void FPSciApp::onCleanup() {
-		// Called after the application loop ends.  Place a majority of cleanup code
-		// here instead of in the constructor so that exceptions can be caught.
-	}
-
-	/** Overridden (optimized) oneFrame() function to improve latency */
-	void FPSciApp::oneFrame() {
-		// Count this frame (for shaders)
-		m_frameNumber++;
-
-		// Target frame time (only call this method once per one frame!)
-		RealTime targetFrameTime = sess->targetFrameTime();
-
-		// Wait
-		// Note: we might end up spending all of our time inside of
-		// RenderDevice::beginFrame.  Waiting here isn't double waiting,
-		// though, because while we're sleeping the CPU the GPU is working
-		// to catch up.
-		if ((submitToDisplayMode() == SubmitToDisplayMode::MINIMIZE_LATENCY))
-		{
-			BEGIN_PROFILER_EVENT("Wait");
-			m_waitWatch.tick();
-			{
-				RealTime nowAfterLoop = System::time();
-
-				// Compute accumulated time
-				RealTime cumulativeTime = nowAfterLoop - m_lastWaitTime;
-
-				debugAssert(m_wallClockTargetDuration < finf());
-				// Perform wait for target time needed
-				RealTime duration = targetFrameTime;
-				if (!window()->hasFocus() && m_lowerFrameRateInBackground)
-				{
-					// Lower frame rate to 4fps
-					duration = 1.0 / 4.0;
-				}
-				RealTime desiredWaitTime = max(0.0, duration - cumulativeTime);
-				onWait(max(0.0, desiredWaitTime - m_lastFrameOverWait) * 0.97);
-
-				// Update wait timers
-				m_lastWaitTime = System::time();
-				RealTime actualWaitTime = m_lastWaitTime - nowAfterLoop;
-
-				// Learn how much onWait appears to overshoot by and compensate
-				double thisOverWait = actualWaitTime - desiredWaitTime;
-				if (G3D::abs(thisOverWait - m_lastFrameOverWait) / max(G3D::abs(m_lastFrameOverWait), G3D::abs(thisOverWait)) > 0.4)
-				{
-					// Abruptly change our estimate
-					m_lastFrameOverWait = thisOverWait;
-				}
-				else
-				{
-					// Smoothly change our estimate
-					m_lastFrameOverWait = lerp(m_lastFrameOverWait, thisOverWait, 0.1);
-				}
-			}
-			m_waitWatch.tock();
-			END_PROFILER_EVENT();
-		}
-
-		for (int repeat = 0; repeat < max(1, m_renderPeriod); ++repeat)
-		{
-			Profiler::nextFrame();
-			m_lastTime = m_now;
-			m_now = System::time();
-			RealTime timeStep = m_now - m_lastTime;
-
-			// User input
-			m_userInputWatch.tick();
-			if (manageUserInput)
-			{
-				processGEventQueue();
-			}
-			onAfterEvents();
-			onUserInput(userInput);
-			m_userInputWatch.tock();
-
-			// Network
-			BEGIN_PROFILER_EVENT("GApp::onNetwork");
-			m_networkWatch.tick();
-			if (experimentConfig.isNetworked) {
-				onNetwork();
-			}
-			m_networkWatch.tock();
-			END_PROFILER_EVENT();
-
-			// Logic
-			m_logicWatch.tick();
-			{
-				onAI();
-			}
-			m_logicWatch.tock();
-
-			// Simulation
-			m_simulationWatch.tick();
-			BEGIN_PROFILER_EVENT("Simulation");
-			{
-				RealTime rdt = timeStep;
-
-				SimTime sdt = m_simTimeStep;
-				if (sdt == MATCH_REAL_TIME_TARGET)
-				{
-					sdt = (SimTime)targetFrameTime;
-				}
-				else if (sdt == REAL_TIME)
-				{
-					sdt = float(timeStep);
-				}
-				sdt *= m_simTimeScale;
-
-				SimTime idt = (SimTime)targetFrameTime;
-
-				onBeforeSimulation(rdt, sdt, idt);
-				onSimulation(rdt, sdt, idt);
-				onAfterSimulation(rdt, sdt, idt);
-
-				m_previousSimTimeStep = float(sdt);
-				m_previousRealTimeStep = float(rdt);
-				setRealTime(realTime() + rdt);
-				setSimTime(simTime() + sdt);
-			}
-			m_simulationWatch.tock();
-			END_PROFILER_EVENT();
-		}
-
-		// Pose
-		BEGIN_PROFILER_EVENT("Pose");
-		m_poseWatch.tick();
-		{
-			m_posed3D.fastClear();
-			m_posed2D.fastClear();
-			onPose(m_posed3D, m_posed2D);
-
-			// The debug camera is not in the scene, so we have
-			// to explicitly pose it. This actually does nothing, but
-			// it allows us to trigger the TAA code.
-			playerCamera->onPose(m_posed3D);
-		}
-		m_poseWatch.tock();
+		m_networkWatch.tock();
 		END_PROFILER_EVENT();
 
-		// Wait
-		// Note: we might end up spending all of our time inside of
-		// RenderDevice::beginFrame.  Waiting here isn't double waiting,
-		// though, because while we're sleeping the CPU the GPU is working
-		// to catch up.
-		if ((submitToDisplayMode() != SubmitToDisplayMode::MINIMIZE_LATENCY))
+		// Logic
+		m_logicWatch.tick();
 		{
-			BEGIN_PROFILER_EVENT("Wait");
-			m_waitWatch.tick();
+			onAI();
+		}
+		m_logicWatch.tock();
+
+		// Simulation
+		m_simulationWatch.tick();
+		BEGIN_PROFILER_EVENT("Simulation");
+		{
+			RealTime rdt = timeStep;
+
+			SimTime sdt = m_simTimeStep;
+			if (sdt == MATCH_REAL_TIME_TARGET)
 			{
-				RealTime nowAfterLoop = System::time();
-
-				// Compute accumulated time
-				RealTime cumulativeTime = nowAfterLoop - m_lastWaitTime;
-
-				debugAssert(m_wallClockTargetDuration < finf());
-				// Perform wait for actual time needed
-				RealTime duration = targetFrameTime;
-				if (!window()->hasFocus() && m_lowerFrameRateInBackground)
-				{
-					// Lower frame rate to 4fps
-					duration = 1.0 / 4.0;
-				}
-				RealTime desiredWaitTime = max(0.0, duration - cumulativeTime);
-				onWait(max(0.0, desiredWaitTime - m_lastFrameOverWait) * 0.97);
-
-				// Update wait timers
-				m_lastWaitTime = System::time();
-				RealTime actualWaitTime = m_lastWaitTime - nowAfterLoop;
-
-				// Learn how much onWait appears to overshoot by and compensate
-				double thisOverWait = actualWaitTime - desiredWaitTime;
-				if (G3D::abs(thisOverWait - m_lastFrameOverWait) / max(G3D::abs(m_lastFrameOverWait), G3D::abs(thisOverWait)) > 0.4)
-				{
-					// Abruptly change our estimate
-					m_lastFrameOverWait = thisOverWait;
-				}
-				else
-				{
-					// Smoothly change our estimate
-					m_lastFrameOverWait = lerp(m_lastFrameOverWait, thisOverWait, 0.1);
-				}
+				sdt = (SimTime)targetFrameTime;
 			}
-			m_waitWatch.tock();
-			END_PROFILER_EVENT();
-		}
-
-		// Graphics
-		debugAssertGLOk();
-		if ((submitToDisplayMode() == SubmitToDisplayMode::BALANCE) && (!renderDevice->swapBuffersAutomatically()))
-		{
-			swapBuffers();
-		}
-
-		if (notNull(m_gazeTracker))
-		{
-			BEGIN_PROFILER_EVENT("Gaze Tracker");
-			sampleGazeTrackerData();
-			END_PROFILER_EVENT();
-		}
-
-		BEGIN_PROFILER_EVENT("Graphics");
-		renderDevice->beginFrame();
-		m_widgetManager->onBeforeGraphics();
-		m_graphicsWatch.tick();
-		{
-			debugAssertGLOk();
-			renderDevice->pushState();
+			else if (sdt == REAL_TIME)
 			{
-				debugAssertGLOk();
-				onGraphics(renderDevice, m_posed3D, m_posed2D);
+				sdt = float(timeStep);
 			}
-			renderDevice->popState();
+			sdt *= m_simTimeScale;
+
+			SimTime idt = (SimTime)targetFrameTime;
+
+			onBeforeSimulation(rdt, sdt, idt);
+			onSimulation(rdt, sdt, idt);
+			onAfterSimulation(rdt, sdt, idt);
+
+			m_previousSimTimeStep = float(sdt);
+			m_previousRealTimeStep = float(rdt);
+			setRealTime(realTime() + rdt);
+			setSimTime(simTime() + sdt);
 		}
-		m_graphicsWatch.tock();
-		renderDevice->endFrame();
-		if ((submitToDisplayMode() == SubmitToDisplayMode::MINIMIZE_LATENCY) && (!renderDevice->swapBuffersAutomatically()))
-		{
-			swapBuffers();
-		}
+		m_simulationWatch.tock();
 		END_PROFILER_EVENT();
+	}
 
-		// Remove all expired debug shapes
-		for (int i = 0; i < debugShapeArray.size(); ++i)
-		{
-			if (debugShapeArray[i].endTime <= m_now)
-			{
-				debugShapeArray.fastRemove(i);
-				--i;
-			}
-		}
-
-		for (int i = 0; i < debugLabelArray.size(); ++i)
-		{
-			if (debugLabelArray[i].endTime <= m_now)
-			{
-				debugLabelArray.fastRemove(i);
-				--i;
-			}
-		}
-
-		debugText.fastClear();
-
+	// Pose
+	BEGIN_PROFILER_EVENT("Pose");
+	m_poseWatch.tick();
+	{
 		m_posed3D.fastClear();
 		m_posed2D.fastClear();
+		onPose(m_posed3D, m_posed2D);
 
-		if (m_endProgram && window()->requiresMainLoop())
+		// The debug camera is not in the scene, so we have
+		// to explicitly pose it. This actually does nothing, but
+		// it allows us to trigger the TAA code.
+		playerCamera->onPose(m_posed3D);
+	}
+	m_poseWatch.tock();
+	END_PROFILER_EVENT();
+
+	// Wait
+	// Note: we might end up spending all of our time inside of
+	// RenderDevice::beginFrame.  Waiting here isn't double waiting,
+	// though, because while we're sleeping the CPU the GPU is working
+	// to catch up.
+	if ((submitToDisplayMode() != SubmitToDisplayMode::MINIMIZE_LATENCY))
+	{
+		BEGIN_PROFILER_EVENT("Wait");
+		m_waitWatch.tick();
 		{
-			window()->popLoopBody();
+			RealTime nowAfterLoop = System::time();
+
+			// Compute accumulated time
+			RealTime cumulativeTime = nowAfterLoop - m_lastWaitTime;
+
+			debugAssert(m_wallClockTargetDuration < finf());
+			// Perform wait for actual time needed
+			RealTime duration = targetFrameTime;
+			if (!window()->hasFocus() && m_lowerFrameRateInBackground)
+			{
+				// Lower frame rate to 4fps
+				duration = 1.0 / 4.0;
+			}
+			RealTime desiredWaitTime = max(0.0, duration - cumulativeTime);
+			onWait(max(0.0, desiredWaitTime - m_lastFrameOverWait) * 0.97);
+
+			// Update wait timers
+			m_lastWaitTime = System::time();
+			RealTime actualWaitTime = m_lastWaitTime - nowAfterLoop;
+
+			// Learn how much onWait appears to overshoot by and compensate
+			double thisOverWait = actualWaitTime - desiredWaitTime;
+			if (G3D::abs(thisOverWait - m_lastFrameOverWait) / max(G3D::abs(m_lastFrameOverWait), G3D::abs(thisOverWait)) > 0.4)
+			{
+				// Abruptly change our estimate
+				m_lastFrameOverWait = thisOverWait;
+			}
+			else
+			{
+				// Smoothly change our estimate
+				m_lastFrameOverWait = lerp(m_lastFrameOverWait, thisOverWait, 0.1);
+			}
+		}
+		m_waitWatch.tock();
+		END_PROFILER_EVENT();
+	}
+
+	// Graphics
+	debugAssertGLOk();
+	if ((submitToDisplayMode() == SubmitToDisplayMode::BALANCE) && (!renderDevice->swapBuffersAutomatically()))
+	{
+		swapBuffers();
+	}
+
+	if (notNull(m_gazeTracker))
+	{
+		BEGIN_PROFILER_EVENT("Gaze Tracker");
+		sampleGazeTrackerData();
+		END_PROFILER_EVENT();
+	}
+
+	BEGIN_PROFILER_EVENT("Graphics");
+	renderDevice->beginFrame();
+	m_widgetManager->onBeforeGraphics();
+	m_graphicsWatch.tick();
+	{
+		debugAssertGLOk();
+		renderDevice->pushState();
+		{
+			debugAssertGLOk();
+			onGraphics(renderDevice, m_posed3D, m_posed2D);
+		}
+		renderDevice->popState();
+	}
+	m_graphicsWatch.tock();
+	renderDevice->endFrame();
+	if ((submitToDisplayMode() == SubmitToDisplayMode::MINIMIZE_LATENCY) && (!renderDevice->swapBuffersAutomatically()))
+	{
+		swapBuffers();
+	}
+	END_PROFILER_EVENT();
+
+	// Remove all expired debug shapes
+	for (int i = 0; i < debugShapeArray.size(); ++i)
+	{
+		if (debugShapeArray[i].endTime <= m_now)
+		{
+			debugShapeArray.fastRemove(i);
+			--i;
 		}
 	}
 
-	FPSciApp::Settings::Settings(const StartupConfig& startupConfig, int argc, const char* argv[]) {
-		if (startupConfig.fullscreen)
+	for (int i = 0; i < debugLabelArray.size(); ++i)
+	{
+		if (debugLabelArray[i].endTime <= m_now)
 		{
-			// Use the primary
-			window.width = (int)OSWindow::primaryDisplaySize().x;
-			window.height = (int)OSWindow::primaryDisplaySize().y;
+			debugLabelArray.fastRemove(i);
+			--i;
 		}
-		else
-		{
-			window.width = (int)startupConfig.windowSize.x;
-			window.height = (int)startupConfig.windowSize.y;
-		}
-		window.fullScreen = startupConfig.fullscreen;
-		window.resizable = !window.fullScreen;
-
-		// V-sync off always
-		window.asynchronous = true;
-		window.caption = "First Person Science";
-		window.refreshRate = -1;
-		window.defaultIconFilename = "icon.png";
-
-		useDeveloperTools = startupConfig.developerMode;
-
-		hdrFramebuffer.depthGuardBandThickness = Vector2int16(64, 64);
-		hdrFramebuffer.colorGuardBandThickness = Vector2int16(0, 0);
-		dataDir = FileSystem::currentDirectory();
-		screenCapture.includeAppRevision = false;
-		screenCapture.includeG3DRevision = false;
-		screenCapture.outputDirectory = ""; // "../journal/"
-		screenCapture.filenamePrefix = "_";
-
-		renderer.deferredShading = true;
-		renderer.orderIndependentTransparency = false;
 	}
 
-	uint32 FPSciApp::frameNumFromID(GUniqueID id) {
-		return m_serverFrame;
+	debugText.fastClear();
+
+	m_posed3D.fastClear();
+	m_posed2D.fastClear();
+
+	if (m_endProgram && window()->requiresMainLoop())
+	{
+		window()->popLoopBody();
 	}
+}
+
+FPSciApp::Settings::Settings(const StartupConfig& startupConfig, int argc, const char* argv[]) {
+	if (startupConfig.fullscreen)
+	{
+		// Use the primary
+		window.width = (int)OSWindow::primaryDisplaySize().x;
+		window.height = (int)OSWindow::primaryDisplaySize().y;
+	}
+	else
+	{
+		window.width = (int)startupConfig.windowSize.x;
+		window.height = (int)startupConfig.windowSize.y;
+	}
+	window.fullScreen = startupConfig.fullscreen;
+	window.resizable = !window.fullScreen;
+
+	// V-sync off always
+	window.asynchronous = true;
+	window.caption = "First Person Science";
+	window.refreshRate = -1;
+	window.defaultIconFilename = "icon.png";
+
+	useDeveloperTools = startupConfig.developerMode;
+
+	hdrFramebuffer.depthGuardBandThickness = Vector2int16(64, 64);
+	hdrFramebuffer.colorGuardBandThickness = Vector2int16(0, 0);
+	dataDir = FileSystem::currentDirectory();
+	screenCapture.includeAppRevision = false;
+	screenCapture.includeG3DRevision = false;
+	screenCapture.outputDirectory = ""; // "../journal/"
+	screenCapture.filenamePrefix = "_";
+
+	renderer.deferredShading = true;
+	renderer.orderIndependentTransparency = false;
+}
+
+uint32 FPSciApp::frameNumFromID(GUniqueID id) {
+	return m_serverFrame;
+}

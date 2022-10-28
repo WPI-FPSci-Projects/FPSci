@@ -89,7 +89,6 @@ void FPSciServerApp::initExperiment() {
 void FPSciServerApp::onNetwork() {
     /* None of this is from the upsteam project */
 
-
     //if (!static_cast<NetworkedSession*>(sess.get())->currentState == PresentationState::networkedSessionRoundStart) {
         m_networkFrameNum++;
     //}

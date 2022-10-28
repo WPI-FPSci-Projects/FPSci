@@ -514,7 +514,7 @@ void FPSciApp::drawHUD(RenderDevice *rd, Vector2 resolution) {
 		float prog = sess->getProgress();
 		String prog_string = "";
 		if (!isnan(prog)) {
-			prog_string = format("%d", (int)G3D::round(100.0f * prog)) + "%";
+			prog_string = format("%d", (int)G3D::round(100.0f*prog)) + "%";
 		}
 
 		const double score = sess->getScore();
