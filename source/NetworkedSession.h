@@ -102,7 +102,8 @@ struct NetworkedClient {
 class NetworkedSession : public Session {
 protected:
 
-	bool sessionStarted = false;			///Checks if the session has started or not
+	bool m_sessionStarted = false;			///< Checks if the session has started or not
+	bool m_roundOver = false;				///< Checks if the round is over or not
 
 	NetworkedSession(FPSciApp* app) : Session(app) {}
 	NetworkedSession(FPSciApp* app, shared_ptr<SessionConfig> config) : Session(app, config) {}
@@ -118,11 +119,13 @@ public:
 	void addHittableTarget(shared_ptr<TargetEntity> target);
 	void onSimulation(RealTime rdt, SimTime sdt, SimTime idt) override;
 	void onInit(String filename, String description) override;
+	void updateNetworkedPresentationState();
+	void startRound();
+	void resetRound();
+	void roundTimeout();
+	void feedbackStart();
+	void endSession();
 	void accumulateFrameInfo(RealTime t, float sdt, float idt) override;
-	void updatePresentationState();
-	void startSession();
-	void resetSession();
-
 	void logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame, PlayerActionType action);
 	void logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame);
 };

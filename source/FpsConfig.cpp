@@ -183,6 +183,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("headBobAmplitude", headBobAmplitude);
 		reader.getIfPresent("headBobFrequency", headBobFrequency);
 		reader.getIfPresent("respawnPos", respawnPos);
+		reader.getIfPresent("respawnHeading", respawnHeading);
 		reader.getIfPresent("accelerationEnabled", accelerationEnabled);
 		reader.getIfPresent("movementAcceleration", movementAcceleration);
 		reader.getIfPresent("movementDeceleration", movementDeceleration);
@@ -198,6 +199,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("resetPlayerPositionBetweenTrials", resetPositionPerTrial);
 		reader.getIfPresent("movementRestrictionX", movementRestrictionX);
 		reader.getIfPresent("movementRestrictionZ", movementRestrictionZ);
+		reader.getIfPresent("restrictionBoxAngle", restrictionBoxAngle);
 		reader.getIfPresent("restrictedMovementEnabled", restrictedMovementEnabled);
 		reader.getIfPresent("counterStrafing", counterStrafing);
 		reader.getIfPresent("propagatePlayerConfigs", propagatePlayerConfigsToAll);
@@ -213,6 +215,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client1headBobAmplitude", clientPlayerConfigs[0].headBobAmplitude);
 		reader.getIfPresent("Client1headBobFrequency", clientPlayerConfigs[0].headBobFrequency);
 		reader.getIfPresent("Client1respawnPos", clientPlayerConfigs[0].respawnPos);
+		reader.getIfPresent("Client1respawnHeading", clientPlayerConfigs[0].respawnHeading);
 		reader.getIfPresent("Client1accelerationEnabled", clientPlayerConfigs[0].accelerationEnabled);
 		reader.getIfPresent("Client1movementAcceleration", clientPlayerConfigs[0].movementAcceleration);
 		reader.getIfPresent("Client1movementDeceleration", clientPlayerConfigs[0].movementDeceleration);
@@ -228,6 +231,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client1resetPlayerPositionBetweenTrials", clientPlayerConfigs[0].resetPositionPerTrial);
 		reader.getIfPresent("Client1movementRestrictionX", clientPlayerConfigs[0].movementRestrictionX);
 		reader.getIfPresent("Client1movementRestrictionZ", clientPlayerConfigs[0].movementRestrictionZ);
+		reader.getIfPresent("Client1restrictionBoxAngle", clientPlayerConfigs[0].restrictionBoxAngle);
 		reader.getIfPresent("Client1restrictedMovementEnabled", clientPlayerConfigs[0].restrictedMovementEnabled);
 		reader.getIfPresent("Client1counterStrafing", clientPlayerConfigs[0].counterStrafing);
 		reader.getIfPresent("Client1propagatePlayerConfigs", clientPlayerConfigs[0].propagatePlayerConfigsToAll);
@@ -240,6 +244,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client2headBobAmplitude", clientPlayerConfigs[1].headBobAmplitude);
 		reader.getIfPresent("Client2headBobFrequency", clientPlayerConfigs[1].headBobFrequency);
 		reader.getIfPresent("Client2respawnPos", clientPlayerConfigs[1].respawnPos);
+		reader.getIfPresent("Client2respawnHeading", clientPlayerConfigs[1].respawnHeading);
 		reader.getIfPresent("Client2accelerationEnabled", clientPlayerConfigs[1].accelerationEnabled);
 		reader.getIfPresent("Client2movementAcceleration", clientPlayerConfigs[1].movementAcceleration);
 		reader.getIfPresent("Client2movementDeceleration", clientPlayerConfigs[1].movementDeceleration);
@@ -255,11 +260,19 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client2resetPlayerPositionBetweenTrials", clientPlayerConfigs[1].resetPositionPerTrial);
 		reader.getIfPresent("Client2movementRestrictionX", clientPlayerConfigs[1].movementRestrictionX);
 		reader.getIfPresent("Client2movementRestrictionZ", clientPlayerConfigs[1].movementRestrictionZ);
+		reader.getIfPresent("Client2restrictionBoxAngle", clientPlayerConfigs[0].restrictionBoxAngle);
 		reader.getIfPresent("Client2restrictedMovementEnabled", clientPlayerConfigs[1].restrictedMovementEnabled);
 		reader.getIfPresent("Client2counterStrafing", clientPlayerConfigs[1].counterStrafing);
 		reader.getIfPresent("Client2propagatePlayerConfigs", clientPlayerConfigs[1].propagatePlayerConfigsToAll);
 
-		//TODO: CHECK FOR TYPOS
+		reader.getIfPresent("respawnPosArray", respawnPosArray);
+		reader.getIfPresent("respawnHeadingArray", respawnHeadingArray);
+		reader.getIfPresent("movementRestrictionXArray", movementRestrictionXArray);
+		reader.getIfPresent("movementRestrictionZArray", movementRestrictionZArray);
+		reader.getIfPresent("restrictedMovementEnabledArray", restrictedMovementEnabledArray);
+		reader.getIfPresent("restrictionBoxAngleArray", restrictionBoxAngleArray);
+
+		reader.getIfPresent("clientLatencyArray", clientLatencyArray);
 
 		break;
 	default:

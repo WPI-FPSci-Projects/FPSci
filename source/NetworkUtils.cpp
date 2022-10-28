@@ -71,6 +71,24 @@ shared_ptr<GenericPacket> NetworkUtils::createTypedPacket(PacketType type, ENetA
 	case PacketType::SEND_PLAYER_CONFIG:
 		return GenericPacket::createReceive<SendPlayerConfigPacket>(srcAddr, inBuffer);
 		break;
+	case PacketType::ADD_POINTS:
+		return GenericPacket::createReceive<AddPointPacket>(srcAddr, inBuffer);
+		break;
+	case PacketType::RESET_CLIENT_ROUND:
+		return GenericPacket::createReceive<ResetClientRoundPacket>(srcAddr, inBuffer);
+		break;
+	case PacketType::CLIENT_FEEDBACK_START:
+		return GenericPacket::createReceive<ClientFeedbackStartPacket>(srcAddr, inBuffer);
+		break;
+	case PacketType::CLIENT_SESSION_END:
+		return GenericPacket::createReceive<ClientSessionEndPacket>(srcAddr, inBuffer);
+		break;
+	case PacketType::CLIENT_ROUND_TIMEOUT:
+		return GenericPacket::createReceive<ClientRoundTimeoutPacket>(srcAddr, inBuffer);
+		break;
+	case PacketType::CLIENT_FEEDBACK_SUBMITTED:
+		return GenericPacket::createReceive<ClientFeedbackSubmittedPacket>(srcAddr, inBuffer);
+		break;
 	default:
 		debugPrintf("WARNING: Could not create a typed packet of for type %d. Returning GenericPacket instead\n", type);
 		return GenericPacket::createReceive<GenericPacket>(srcAddr, inBuffer);

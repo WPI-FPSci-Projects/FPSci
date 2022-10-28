@@ -30,6 +30,12 @@ enum PacketType {
 	PLAYER_INTERACT,
 
 	SEND_PLAYER_CONFIG,
+	ADD_POINTS,
+	RESET_CLIENT_ROUND,
+	CLIENT_FEEDBACK_START,
+	CLIENT_SESSION_END,
+	CLIENT_ROUND_TIMEOUT,
+	CLIENT_FEEDBACK_SUBMITTED,
 
 	RELIABLE_CONNECT,			///< Packet type to represent an enet event type connect
 	RELIABLE_DISCONNECT			///< Packet type to represent an enet event type disconnect
@@ -37,16 +43,16 @@ enum PacketType {
 
 /** A Generic Packet type that contains only the type of packet and basic information for sending/receiving a packet
 *
-* This class serves as the base class for all more specific typed packets and 
-* provides basic functionality such as the packet type, source/desitnation 
-* information, sending a packet over the network, and creating more 
+* This class serves as the base class for all more specific typed packets and
+* provides basic functionality such as the packet type, source/desitnation
+* information, sending a packet over the network, and creating more
 * specifically typed packets.
-* 
-* In order to add a new packet you will need to add the 4 constructors (no 
-* args, srcAddr and inBuffer, destPeer, and srcSocket and destAddr), a type 
+*
+* In order to add a new packet you will need to add the 4 constructors (no
+* args, srcAddr and inBuffer, destPeer, and srcSocket and destAddr), a type
 * method a getTypedPacket method, a populate method (and memeber variables),
-* and a serialize/deserialize method. Existing packets can be used as an 
-* example for how to implement these functions and what they need for 
+* and a serialize/deserialize method. Existing packets can be used as an
+* example for how to implement these functions and what they need for
 * implementation.
 */
 
@@ -59,49 +65,49 @@ protected:
 	/** Constructor for creating a packet wtithout reading its type */
 	GenericPacket(ENetAddress srcAddr);
 	/** Constructor for receiving a packet */
-	GenericPacket(ENetAddress srcAddr, BinaryInput &inBuffer);
+	GenericPacket(ENetAddress srcAddr, BinaryInput& inBuffer);
 	/** Constructor for seinding over the reliable channel to the peer */
 	GenericPacket(ENetPeer* destPeer);
 	/** Constructor for sending over the unreliable channel to the destAddr */
 	GenericPacket(ENetSocket* srcSocket, ENetAddress* destAddr);
 
 public:
-	/** Create a packet without any destination information so it can be broadcast 
-	* 
-	* This function will also create more typed packets which can be done by 
+	/** Create a packet without any destination information so it can be broadcast
+	*
+	* This function will also create more typed packets which can be done by
 	* calling createForBroadcast<SpecificPacketClass>
 	*/
 	template <class packetType>
 	static shared_ptr<packetType> createForBroadcast() {
 		return createShared<packetType>();
 	}
-	/** Create a packet who's data is parsed from the BinaryInput 
+	/** Create a packet who's data is parsed from the BinaryInput
 	*
-	* This function will also create more typed packets which can be done by 
+	* This function will also create more typed packets which can be done by
 	* calling createReceive<SpecificPacketClass>
 	*/
 	template <class packetType>
 	static shared_ptr<packetType> createReceive(ENetAddress srcAddr, BinaryInput& inBuffer) {
 		return createShared<packetType>(srcAddr, inBuffer);
 	}
-	/** Create an empty packet to be sent over the unreliable channel 
+	/** Create an empty packet to be sent over the unreliable channel
 	*
 	* This will NOT inialize member varibales for the specificly typed packet
 	* you must call populate on the returned object before sending
-	* 
-	* This function will also create more typed packets which can be done by 
+	*
+	* This function will also create more typed packets which can be done by
 	* calling createUnreliable<SpecificPacketClass>()
 	*/
 	template <class packetType>
 	static shared_ptr<packetType> createUnreliable(ENetSocket* srcSocket, ENetAddress* destAddr) {
 		return createShared<packetType>(srcSocket, destAddr);
 	}
-	/** Create a packet to be sent over the reliable channel 
+	/** Create a packet to be sent over the reliable channel
 	*
 	* This will NOT inialize member varibales for specificly typed packets
 	* you must call populate on the returned object before sending
-	* 
-	* This function will also create more typed packets which can be done by 
+	*
+	* This function will also create more typed packets which can be done by
 	* calling createForBroadcast<SpecificPacketClass>()
 	*/
 	template <class packetType>
@@ -148,9 +154,9 @@ public:
 	bool m_reliable;									///< which channel to send/was received on; also determines which ENet fields are defined
 
 protected:
-	virtual void serialize(BinaryOutput &outBuffer);	///< serialize the data in this packet
-	virtual void deserialize(BinaryInput &inBuffer);	///< deserialize the data in this packet
-	
+	virtual void serialize(BinaryOutput& outBuffer);	///< serialize the data in this packet
+	virtual void deserialize(BinaryInput& inBuffer);	///< deserialize the data in this packet
+
 	ENetPeer* m_destPeer;								///< reliable destination
 	ENetSocket* m_srcSocket;							///< unreliable socket to send on
 	ENetAddress* m_destAddr;							///< unreliable destination for the packet
@@ -164,9 +170,9 @@ private:
 
 /** A Packet contining updates for multiple entities at once
 *
-* This packet allows the server or client to send a group of updates across the 
-* network. It also supports multiple different update types which are recorded 
-* in m_updateType. Implementation of these updates lies in the FPSciApp or 
+* This packet allows the server or client to send a group of updates across the
+* network. It also supports multiple different update types which are recorded
+* in m_updateType. Implementation of these updates lies in the FPSciApp or
 * FPSciServerApp
 */
 class BatchEntityUpdatePacket : public GenericPacket {
@@ -200,9 +206,9 @@ public:
 	void populate(uint32 frameNumber, Array<EntityUpdate> updates, NetworkUpdateType updateType);
 
 protected:
-	void serialize(BinaryOutput &outBuffer) override;
-	void deserialize(BinaryInput &inBuffer) override;
-	
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+
 
 public:
 	Array<EntityUpdate> m_updates;					///< Array of updates to be applied
@@ -211,8 +217,8 @@ public:
 };
 
 /** A Packet signaling the receiver to create a new entity
-* 
-* This packet creates a new entity on the receiver on the frame number 
+*
+* This packet creates a new entity on the receiver on the frame number
 * indicated and names it based on the GUID included in the packet
 */
 class CreateEntityPacket : public GenericPacket {
@@ -221,7 +227,7 @@ protected:
 	CreateEntityPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	CreateEntityPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	CreateEntityPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
-	
+
 public:
 	PacketType type() override { return CREATE_ENTITY; }
 	shared_ptr<GenericPacket> clone() override { return createShared<CreateEntityPacket>(*this); }
@@ -239,7 +245,7 @@ protected:
 
 /** A Packet signaling the receiver to remove an entity
 *
-* This packet removes the entity with the name of the GUID included in the 
+* This packet removes the entity with the name of the GUID included in the
 * packet
 */
 class DestroyEntityPacket : public GenericPacket {
@@ -276,7 +282,7 @@ protected:
 	RegisterClientPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
 	RegisterClientPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
 	RegisterClientPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
-	
+
 public:
 	PacketType type() override { return REGISTER_CLIENT; }
 	shared_ptr<GenericPacket> clone() override { return createShared<RegisterClientPacket>(*this); }
@@ -574,6 +580,144 @@ protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
 };
+
+/** TODO: Add comment here for packet description
+
+*/
+
+class AddPointPacket : public GenericPacket {
+protected:
+	AddPointPacket() : GenericPacket() {}
+	AddPointPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	AddPointPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	AddPointPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return ADD_POINTS; }
+	shared_ptr<GenericPacket> clone() override { return createShared<AddPointPacket>(*this); }
+
+	/** This Packet has no content and as such does not have a populate method */
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+};
+
+/** TODO: Add comment here for packet description
+
+*/
+
+class ResetClientRoundPacket : public GenericPacket {
+protected:
+	ResetClientRoundPacket() : GenericPacket() {}
+	ResetClientRoundPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	ResetClientRoundPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	ResetClientRoundPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return RESET_CLIENT_ROUND; }
+	shared_ptr<GenericPacket> clone() override { return createShared<ResetClientRoundPacket>(*this); }
+
+	/** This Packet has no content and as such does not have a populate method */
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+};
+
+
+/** TODO: Add comment here for packet description
+
+*/
+
+class ClientFeedbackStartPacket : public GenericPacket {
+protected:
+	ClientFeedbackStartPacket() : GenericPacket() {}
+	ClientFeedbackStartPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	ClientFeedbackStartPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	ClientFeedbackStartPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return CLIENT_FEEDBACK_START; }
+	shared_ptr<GenericPacket> clone() override { return createShared<ClientFeedbackStartPacket>(*this); }
+
+	/** This Packet has no content and as such does not have a populate method */
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+};
+
+
+/** TODO: Add comment here for packet description
+
+*/
+
+class ClientSessionEndPacket : public GenericPacket {
+protected:
+	ClientSessionEndPacket() : GenericPacket() {}
+	ClientSessionEndPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	ClientSessionEndPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	ClientSessionEndPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return CLIENT_SESSION_END; }
+	shared_ptr<GenericPacket> clone() override { return createShared<ClientSessionEndPacket>(*this); }
+
+	/** This Packet has no content and as such does not have a populate method */
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+};
+
+
+/** TODO: Add comment here for packet description
+
+*/
+
+class ClientRoundTimeoutPacket : public GenericPacket {
+protected:
+	ClientRoundTimeoutPacket() : GenericPacket() {}
+	ClientRoundTimeoutPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	ClientRoundTimeoutPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	ClientRoundTimeoutPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return CLIENT_ROUND_TIMEOUT; }
+	shared_ptr<GenericPacket> clone() override { return createShared<ClientRoundTimeoutPacket>(*this); }
+
+	/** This Packet has no content and as such does not have a populate method */
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+};
+
+
+/** TODO: Add comment here for packet description
+
+*/
+
+class ClientFeedbackSubmittedPacket : public GenericPacket {
+protected:
+	ClientFeedbackSubmittedPacket() : GenericPacket() {}
+	ClientFeedbackSubmittedPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	ClientFeedbackSubmittedPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	ClientFeedbackSubmittedPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return CLIENT_FEEDBACK_SUBMITTED; }
+	shared_ptr<GenericPacket> clone() override { return createShared<ClientFeedbackSubmittedPacket>(*this); }
+
+	/** This Packet has no content and as such does not have a populate method */
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+};
+
+
 
 /** A Packet representing an incoming connection on the reliable channel
 *
