@@ -19,7 +19,7 @@ protected:
     uint8 m_historicalPlayerCount = 0;
     ///> Number of players that have ever connected to the server, used for assigning playerIDs
 
-    DataHandler* m_dataHandler = new DataHandler();
+    ServerDataHandler* m_dataHandler = new ServerDataHandler();
 
 
 public:

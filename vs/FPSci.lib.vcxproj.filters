@@ -102,7 +102,7 @@
     <ClInclude Include="..\source\NetworkedSession.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\source\InputHandler.h">
+    <ClInclude Include="..\source\DataHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -176,7 +176,7 @@
     <ClCompile Include="..\source\NetworkedSession.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\InputHandler.cpp">
+    <ClCompile Include="..\source\DataHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -3,7 +3,7 @@
 #include <enet/enet.h>
 #include "TargetEntity.h"
 #include "PlayerEntity.h"
-#include "InputHandler.h"
+#include "DataHandler.h"
 #include "Weapon.h"
 
 
@@ -167,13 +167,10 @@ public:
 	static void serverBatchEntityUpdate(Array<shared_ptr<NetworkedEntity>> entities, Array<ConnectedClient> clients, ENetSocket sendSocket, uint16 frameNum);
 	static int sendSetSpawnPos(G3D::Point3 position, float heading, ENetPeer* peer);
 	static void handleSetSpawnPos(shared_ptr<PlayerEntity> player, BinaryInput& inBuffer);
-	static void handleFireReport(BinaryInput& inBuffer, DataHandler* networkHandler, uint16 frameNum);
+	static void handleFireReport(BinaryInput& inBuffer, ServerDataHandler* networkHandler, uint16 frameNum);
 	static int sendRespawnClient(ENetPeer* peer, uint16 frameNum);
 	static void broadcastRespawn(ENetHost* serverHost, uint16 frameNum);
 	
 	static int sendReadyUpMessage(ENetPeer* serverPeer);
 	static void broadcastStartSession(ENetHost* serverHost);
-
-	static void deserializeUserInput(G3D::BinaryInput* bi, InputHandler* inputHandler);
-	static void serializeUserInput(ENetSocket socket, ENetAddress address, G3D::UserInput* ui, int frame, uint8 playerID);
 };
