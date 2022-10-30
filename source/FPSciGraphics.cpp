@@ -512,13 +512,15 @@ void FPSciApp::drawHUD(RenderDevice *rd, Vector2 resolution) {
 		String time_string = time < 10000.f ? format("%0.1f", time) : "---";		// Only allow up to 3 digit time strings
 
 		float prog = sess->getProgress();
-		String prog_string = "";
+		String prog_string = "0%";
+
 		if (!isnan(prog) && (sessConfig->isNetworked == nullptr || !(*sessConfig->isNetworked))) {
 			prog_string = format("%d", (int)G3D::round(100.0f*prog)) + "%";
 		}
 		else if(sessConfig->isNetworked != nullptr && *sessConfig->isNetworked) {
 			prog_string = format("%d", (int)G3D::round(100.0f*(sessConfig->networkedSessionProgress)))+ "%";
 		}
+
 		const double score = sess->getScore();
 		String score_string;
 		if (score < 1e3) {

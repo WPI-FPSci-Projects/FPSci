@@ -159,7 +159,7 @@ public:
 	int					hitsToKill = 1;
 	int					networkLatency = 0;				///< Amount of latenecy to add to all network packets
 	int					numberOfRoundsPlayed = 0;		///< Tracks the number of rounds played by the clients
-	float				networkedSessionProgress;		///< Keeps track of the progress of a networked session
+	float				networkedSessionProgress = 0;	///< Keeps track of the progress of a networked session
 
 
 	SessionConfig() : FpsConfig(defaultConfig()) {}
