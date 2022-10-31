@@ -463,9 +463,9 @@ void FPSciServerApp::onNetwork() {
                 debugPrintf("WARNING: unhandled packet receved on the reliable channel of type: %d\n", inPacket->type());
                 break;
             }
-
-            inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
         }
+
+        inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
     }
 
     /* Now we send the position of all entities to all connected clients */
