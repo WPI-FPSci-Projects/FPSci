@@ -104,11 +104,11 @@ void FPSciServerApp::initExperiment() {
         }
 
         // Initialize lambdas and threads for listening for pings
-        auto s2cPing = [](ENetSocket socket) {
+        auto s2cPing = [](ENetSocket socket, ENetHost* dummyHost) {
 
             while (true) {
-                // Ping sent via unreliable channel, host not needed
-                shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePacket(nullptr, &socket);
+                // Ping sent via unreliable channel, host technically not needed but prevents crash    
+                shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePacket(dummyHost, &socket);               
                 while (inPacket != nullptr) {
                     ENetAddress srcAddr = inPacket->srcAddr();
                     char ip[16];
@@ -124,10 +124,10 @@ void FPSciServerApp::initExperiment() {
             }
         };
         shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
-        player->setPlayerMovement(true);
+        player->setPlayerMovement(true);     
 
-        std::thread s2cPing_Th(s2cPing, m_pingSocket);
-        s2cPing_Th.detach();
+        std::thread s2cPing_Th(s2cPing, m_pingSocket, m_localHost);
+        s2cPing_Th.detach();      
 
         // Initialize dummy ping statistics
         m_pingStats.pingQueue.pushBack(0);
@@ -153,9 +153,10 @@ void FPSciServerApp::onNetwork() {
     /* First we receive on the unreliable connection */
 
     shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
-        char ip[16];
+    while (inPacket != nullptr) {
+        char ip[16];        
         ENetAddress srcAddr = inPacket->srcAddr();
-        enet_address_get_host_ip(&srcAddr, ip, 16);
+        enet_address_get_host_ip(&srcAddr, ip, 16);       
         NetworkUtils::ConnectedClient* client = getClientFromAddress(inPacket->srcAddr());
         if (!inPacket->isReliable()) {
             switch (inPacket->type()) {
@@ -208,8 +209,8 @@ void FPSciServerApp::onNetwork() {
                 uint16 cappedMinRTT = pingDataPacket->m_minRTT;
                 uint16 cappedMaxRTT = pingDataPacket->m_maxRTT;
                 Array<uint16> rttStatsArray = { cappedRTT, cappedSMARTT, cappedMinRTT, cappedMaxRTT };
-
                 m_clientRTTStatistics.set(inPacket->srcAddr().host, rttStatsArray);
+                break;
             }
             default:
                 debugPrintf("WARNING: unhandled packet receved on the unreliable channel of type: %d\n", inPacket->type());
@@ -237,7 +238,7 @@ void FPSciServerApp::onNetwork() {
                         m_connectedClients.remove(i, 1);
                     }
                 }
-                
+
                 shared_ptr<DestroyEntityPacket> outPacket = GenericPacket::createForBroadcast<DestroyEntityPacket>();
                 outPacket->populate(m_networkFrameNum, client->guid);
                 NetworkUtils::broadcastReliable(outPacket, m_localHost);
@@ -246,18 +247,18 @@ void FPSciServerApp::onNetwork() {
                 break;
             }
             case REGISTER_CLIENT: {
-                RegisterClientPacket* typedPacket = static_cast<RegisterClientPacket*> (inPacket.get());          
+                RegisterClientPacket* typedPacket = static_cast<RegisterClientPacket*> (inPacket.get());
                 debugPrintf("Registering client...\n");
                 NetworkUtils::ConnectedClient* newClient = NetworkUtils::registerClient(typedPacket);   // TODO: Decide if this should be in NetworkUtils or not
                 m_connectedClients.append(newClient);
                 /* Reply to the registration */
                 shared_ptr<RegistrationReplyPacket> registrationReply = GenericPacket::createReliable<RegistrationReplyPacket>(newClient->peer);
                 registrationReply->populate(newClient->guid, 0);
-                NetworkUtils::send(registrationReply);
+                NetworkUtils::send(registrationReply);                
                 ENetAddress addr = typedPacket->srcAddr();
                 addr.port = typedPacket->m_portNum;
                 /* Set the amount of latency to add */
-                NetworkUtils::setAddressLatency(addr, sessConfig->networkLatency);
+                NetworkUtils::setAddressLatency(addr, sessConfig->networkLatency);                
                 NetworkUtils::setAddressLatency(typedPacket->srcAddr(), sessConfig->networkLatency);
                 //registrationReply->send();
                 debugPrintf("\tRegistered client: %s\n", newClient->guid.toString16());
@@ -426,7 +427,7 @@ void FPSciServerApp::onNetwork() {
             }
             case CLIENT_ROUND_TIMEOUT: {
                 m_clientsTimedOut++;
-                
+
                 if (m_clientsTimedOut >= experimentConfig.numPlayers)
                 {
                     sessConfig->numberOfRoundsPlayed++;
@@ -461,9 +462,10 @@ void FPSciServerApp::onNetwork() {
             default:
                 debugPrintf("WARNING: unhandled packet receved on the reliable channel of type: %d\n", inPacket->type());
                 break;
+            }
+
+            inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
         }
-        
-        inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
     }
 
     /* Now we send the position of all entities to all connected clients */

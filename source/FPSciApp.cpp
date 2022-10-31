@@ -1064,10 +1064,10 @@ void FPSciApp::onNetwork() {
 					}
 				};
 
-				auto pingAck = [](ENetSocket socket, NetworkUtils::PingStatistics& stats, bool& pinging) {				
+				auto pingAck = [](ENetSocket socket, ENetHost* dummyHost, NetworkUtils::PingStatistics& stats, bool& pinging) {
 					while (pinging) {
-						// Ping sent via unreliable channel, host not needed
-						shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePacket(nullptr, &socket);
+						// Ping sent via unreliable channel, host technically not needed but prevents crash  
+						shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePacket(dummyHost, &socket);
 						while (inPacket != nullptr) {
 							ENetAddress srcAddr = inPacket->srcAddr();
 							char ip[16];
@@ -1110,7 +1110,7 @@ void FPSciApp::onNetwork() {
 				std::thread c2sPing_Th(c2sPing, m_pingSocket, m_pingServerAddress, m_pingInterval, std::ref(m_pinging));
 				c2sPing_Th.detach();
 
-				std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_pingStats), std::ref(m_pinging));
+				std::thread pingAck_Th(pingAck, m_pingSocket, m_localHost, std::ref(m_pingStats), std::ref(m_pinging));
 				pingAck_Th.detach();
 
 				debugPrintf("Initialized ping threads\n");
