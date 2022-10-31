@@ -103,7 +103,9 @@ bool G3D::DataHandler::CheckFrameAcceptable(int frameNum)
 }
 
 
-/*ServerDataHandler*/
+/**********************ServerDataHandler**************************/
+//TODO: unique newCurrentFrame // also clientdatahandler
+//TODO: unqiue newgetFrameInputs // also clientdatahandler
 
 void G3D::ServerDataHandler::UpdateFired(uint8 playerID, bool fired, int frameNum)
 {
@@ -145,12 +147,24 @@ G3D::ServerDataHandler::~ServerDataHandler() {}
 
 
 /********************************ClientsDataHandler************************************/
-G3D::ClientDataHandler::ClientDataHandler() {}
+//TODO: unique updateCFrame 
+//TODO: do back propagation instead of future propagation
+//			on frame 10 predict 11. need frame 9 dont have frame 9 predict it need frame 8 dont have it predict it need frame 7 etc.
+//TODO: update on demand
+//TODO: 
+
+G3D::ClientDataHandler::ClientDataHandler()
+{
+	for (int i = 0; i < m_pastFrames + m_futureFrames + 1; i++) {
+		m_DataInputs->append(new Array<ClientDataInput>);
+	}
+}
+
 G3D::ClientDataHandler::~ClientDataHandler() {}
 
 void G3D::ClientDataHandler::UpdateEvents(int frameNum, uint8 playerID, CoordinateFrame cframe){
 	//Loop to front of list or till next given cframe
-	///[14,12,10,8,5,5]
+	///[23,19,R15,11,R8,R5,R5]
 	UpdateCframe(playerID, cframe, frameNum);
 	for (int i = frameNum; i > m_currentFrame - frameNum + m_futureFrames; i--) {
 		if (!m_DataInputs[0][i][0][playerID].m_givenCframe){
@@ -197,9 +211,12 @@ ClientDataInput* G3D::ClientDataHandler::PredictFrameLinear(int frameNum, uint8 
 	return prediction;//prediction;
 }
 ClientDataInput* G3D::ClientDataHandler::PredictFrameQuadratic(int frameNum, uint8 playerID) {
+	//BUG TODO: accelerates to infinity if no new frame is found add max speed to calculations
+	//BUG TODO: If near end of list function throws out of bounds exception
+
 	//frame number is the frame you wish to predict
 	//p_new = p_current+(t_current-t_old)(p_current-p_old)
-	//p_new = p_current + (t_current - t_old)(p_current - p_old) + ½ * ((p_current - p_old) - (p_old - p_old2) / old) * (t_current - t_old) ^ 2
+	//p_new = p_current + (t_current - t_old)(p_current - p_old) + ½ * ((p_current - p_old) - (p_old - p_old2) / (t_current - t_old)) * (t_old - t_old2) ^ 2
 	Point3 p1 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 1][0][playerID].GetCFrame().translation;
 	Point3 p2 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 2][0][playerID].GetCFrame().translation;
 	Point3 p3 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 3][0][playerID].GetCFrame().translation;
