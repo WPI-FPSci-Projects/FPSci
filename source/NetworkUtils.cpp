@@ -147,6 +147,28 @@ shared_ptr<GenericPacket> NetworkUtils::receivePacket(ENetHost* host, ENetSocket
 	return nullptr;
 }
 
+shared_ptr<GenericPacket> NetworkUtils::receivePing(ENetSocket* pingSocket) {
+	ENetAddress srcAddr;
+	ENetBuffer buff;
+	void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
+	buff.data = data;
+	buff.dataLength = ENET_HOST_DEFAULT_MTU;
+	shared_ptr<GenericPacket> packet = nullptr;
+	if (enet_socket_receive(*pingSocket, &srcAddr, &buff, 1)) {
+		BinaryInput inBuffer((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
+		packet = GenericPacket::createReceive<GenericPacket>(srcAddr, inBuffer); // Create a generic packet that reads just the type
+		inBuffer.setPosition(0);
+		packet = NetworkUtils::createTypedPacket(packet->type(), srcAddr, inBuffer); // Create a typed packet that reads all data based on type
+		packet->m_reliable = false;
+		free(data);
+		return packet; // Return here so we only read from the socket and dont drop packets
+	}
+	else {
+		free(data);
+		return nullptr;
+	}
+}
+
 void NetworkUtils::broadcastReliable(shared_ptr<GenericPacket> packet, ENetHost* localHost) {
 	for (int i = 0; i < localHost->peerCount; i ++) {
 		/* 

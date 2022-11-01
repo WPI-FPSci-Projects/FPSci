@@ -104,21 +104,22 @@ void FPSciServerApp::initExperiment() {
         }
 
         // Initialize lambdas and threads for listening for pings
-        auto s2cPing = [](ENetSocket socket, ENetHost* dummyHost) {
+        auto s2cPing = [](ENetSocket socket) {
 
             while (true) {
                 // Ping sent via unreliable channel, host technically not needed but prevents crash    
-                shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePacket(dummyHost, &socket);               
-                while (inPacket != nullptr) {
+                shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePing(&socket);               
+                while (inPacket != nullptr) {                   
                     ENetAddress srcAddr = inPacket->srcAddr();
                     char ip[16];
                     enet_address_get_host_ip(&srcAddr, ip, 16);
-                    if (!inPacket->isReliable() && inPacket->type() == PacketType::PING_DATA) {
+                    if (inPacket->type() == PacketType::PING) {                       
                         PingPacket* c2sPacket = static_cast<PingPacket*>(inPacket.get());
                         shared_ptr<PingPacket> outPacket = GenericPacket::createUnreliable<PingPacket>(&socket, &srcAddr);
                         outPacket->populate(c2sPacket->m_rttStart);
                         NetworkUtils::send(outPacket);
                     }
+                    inPacket = NetworkUtils::receivePing(&socket);
                 }
 
             }
@@ -126,7 +127,7 @@ void FPSciServerApp::initExperiment() {
         shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
         player->setPlayerMovement(true);     
 
-        std::thread s2cPing_Th(s2cPing, m_pingSocket, m_localHost);
+        std::thread s2cPing_Th(s2cPing, m_pingSocket);
         s2cPing_Th.detach();      
 
         // Initialize dummy ping statistics

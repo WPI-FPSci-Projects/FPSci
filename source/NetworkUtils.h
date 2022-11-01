@@ -149,6 +149,7 @@ public:
 
 	static shared_ptr<GenericPacket> createTypedPacket(PacketType type, ENetAddress srcAddr, BinaryInput& inBuffer, ENetEvent* event = NULL);
 	static shared_ptr<GenericPacket> receivePacket(ENetHost* host, ENetSocket* socket);
+	static shared_ptr<GenericPacket> receivePing(ENetSocket* pingSocket);
 
 	static void broadcastReliable(shared_ptr<GenericPacket> packet, ENetHost* localHost);
 	static void broadcastUnreliable(shared_ptr<GenericPacket> packet, ENetSocket* srcSocket, Array<ENetAddress*> addresses);
