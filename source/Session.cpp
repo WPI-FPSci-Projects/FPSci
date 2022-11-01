@@ -466,10 +466,9 @@ void Session::updatePresentationState()
 						else if (!m_app->dialog->visible()) {														// Check for whether dialog is closed (otherwise we are waiting for input)
 							if (m_app->dialog->complete) {															// Has this dialog box been completed? (or was it closed without an answer?)
 								m_config->questionArray[m_currQuestionIdx].result = m_app->dialog->result;			// Store response w/ quesiton
-								//TODO Fix logging for mutex lock
-								//if (m_config->logger.enable) {
-									//logger->addQuestion(m_config->questionArray[m_currQuestionIdx], m_config->id, m_app->dialog);	// Log the question and its answer
-								//}
+								if (m_config->logger.enable) {
+									logger->addQuestion(m_config->questionArray[m_currQuestionIdx], m_config->id, m_app->dialog);	// Log the question and its answer
+								}
 								m_currQuestionIdx++;																
 								if (m_currQuestionIdx < m_config->questionArray.size()) {							// Double check we have a next question before launching the next question
 									m_app->presentQuestion(m_config->questionArray[m_currQuestionIdx]);				// Present the next question (if there is one)
