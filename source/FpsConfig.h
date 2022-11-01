@@ -91,6 +91,8 @@ public:
 	bool			propagatePlayerConfigsToSelectedClient = false; ///< If true, all players config from the server will be sent to selected client
 	bool			readFromFile = false;						///< Read client configs from file or not
 	int				selectedClientIdx = 0;						///< Indicates the index of the client that player configs will be propagated to
+	String			playerType = "";							///< Indicates what type of player it is (Peeker/Defender/Other)
+	float			clientLatency = 0.0f;						///< Clients latency over the network
 	Array <PlayerConfig>  clientPlayerConfigs;					///< Player config for all the clients
 
 	// For peekers and defenders per round config settings

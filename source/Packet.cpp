@@ -354,8 +354,9 @@ void PlayerInteractPacket::deserialize(BinaryInput& inBuffer) {
  *Send Player Config Packet *
  ****************************/
 
-void SendPlayerConfigPacket::populate(PlayerConfig playerConfig) {
+void SendPlayerConfigPacket::populate(PlayerConfig playerConfig, float sessionProgress) {
 	m_playerConfig = createShared<PlayerConfig>(playerConfig);
+	m_networkedSessionProgress = sessionProgress;
 }
 
 void SendPlayerConfigPacket::serialize(BinaryOutput& outBuffer) {
@@ -400,6 +401,10 @@ void SendPlayerConfigPacket::serialize(BinaryOutput& outBuffer) {
 	outBuffer.writeFloat32(selectedConfig.restrictionBoxAngle);
 
 	outBuffer.writeBool8(selectedConfig.counterStrafing);
+
+	outBuffer.writeString(selectedConfig.playerType);
+
+	outBuffer.writeFloat32(m_networkedSessionProgress);
 }
 
 void SendPlayerConfigPacket::deserialize(BinaryInput& inBuffer) {
@@ -440,6 +445,9 @@ void SendPlayerConfigPacket::deserialize(BinaryInput& inBuffer) {
 	m_playerConfig->restrictionBoxAngle = inBuffer.readFloat32();
 
 	m_playerConfig->counterStrafing = inBuffer.readBool8();
+	m_playerConfig->playerType = inBuffer.readString();
+
+	m_networkedSessionProgress = inBuffer.readFloat32();
 }
 
 

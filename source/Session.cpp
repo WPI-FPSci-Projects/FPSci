@@ -726,7 +726,7 @@ float Session::getProgress() {
 }
 
 double Session::getScore() {
-	if (m_config->isNetworked)
+	if (m_config->isNetworked != nullptr && *m_config->isNetworked )
 		return (float)m_config->clientScore;
 	return 100.0 * m_totalRemainingTime;
 }
