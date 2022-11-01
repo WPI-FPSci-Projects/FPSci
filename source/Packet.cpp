@@ -550,10 +550,6 @@ void PingPacket::deserialize(BinaryInput& inBuffer) {
  *******************/
 
 void PingDataPacket::populate(uint16 rttStats[]) {
-	auto truncateToUInt16 = [](long long val) {
-		return val >= UINT16_MAX ? UINT16_MAX : (uint16)val;
-	};
-
 	m_latestRTT = rttStats[0];
 	m_smaRTT = rttStats[1];
 	m_minRTT = rttStats[2];
