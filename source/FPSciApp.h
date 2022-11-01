@@ -73,6 +73,24 @@ static String presentationStateToString(const PresentationState& state) {
 	case complete:
 		stateStr = "complete";
 		break;
+	case initialNetworkedState:
+		stateStr = "initialNetworkedState";
+		break;
+	case networkedSessionRoundStart:
+		stateStr = "networkedSessionRoundStart";
+		break;
+	case networkedSessionRoundTimeout:
+		stateStr = "networkedSessionRoundTimeout";
+		break;
+	case networkedSessionRoundFeedback:
+		stateStr = "networkedSessionRoundFeedback";
+		break;
+	case networkedSessionRoundOver:
+		stateStr = "networkedSessionRoundOver";
+		break;
+	case networkedSessionComplete:
+		stateStr = "networkedSessionComplete";
+		break;
 	}
 	return stateStr;
 }
