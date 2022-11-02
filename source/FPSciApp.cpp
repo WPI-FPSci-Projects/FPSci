@@ -74,6 +74,11 @@ void FPSciApp::initExperiment() {
 	showRenderingStats = false;
 	makeGUI();
 
+	//datahandler
+	m_dataHandler->SetParameters(experimentConfig.pastFrame, experimentConfig.futureFrame);
+	m_dataHandler->type = static_cast<ClientDataHandler::predictionType>(experimentConfig.extrapolationType);
+
+
 	updateMouseSensitivity();													  // Update (apply) mouse sensitivity
 	const Array<String> sessions = m_userSettingsWindow->updateSessionDropDown(); // Update the session drop down to remove already completed sessions
 	updateSession(sessions[0], true);											  // Update session to create results file/start collection
@@ -1326,6 +1331,18 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 	// Move the player
 	const shared_ptr<PlayerEntity>& p = scene()->typedEntity<PlayerEntity>("player");
 	playerCamera->setFrame(p->getCameraFrame());
+
+	//predict and move all networked entities that have not been updated this frame
+	if (experimentConfig.extrapolationEnabled) {
+		Array<shared_ptr<NetworkedEntity>> entityArray;
+		scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
+		for (shared_ptr<NetworkedEntity> ne : entityArray) {
+			ClientDataInput* prediction = m_dataHandler->PredictEntity(m_networkFrameNum, ne->getPlayerID());
+			if (prediction->m_exists) {
+				ne->setFrame(prediction->GetCFrame());
+			}
+		}
+	}
 
 	// Handle developer mode features here
 	if (startupConfig.developerMode)

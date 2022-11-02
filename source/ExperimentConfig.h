@@ -20,6 +20,8 @@ public:
 	bool isAuthoritativeServer;							///< Checks if using authoritative server; false if using client
 	int pastFrame = 10;
 	int futureFrame = 2;
+	bool extrapolationEnabled = false;
+	int extrapolationType = 1;							///< Type of extrapolation to perform. 0 None, 1 linear, 2 quadratic
 
 	ExperimentConfig() { init(); }
 	ExperimentConfig(const Any& any);

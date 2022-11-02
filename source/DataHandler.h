@@ -36,7 +36,7 @@ namespace G3D {
 
 	class ClientDataInput : public DataInput {
 	public:
-		bool m_givenCframe;
+		bool m_exists;
 	public:
 		ClientDataInput();
 		ClientDataInput(uint8 playerID, CoordinateFrame cframe, bool givenCFrame);
@@ -76,13 +76,14 @@ namespace G3D {
 		void UpdateFired(uint8 playerID, bool fired, int frameNum);
 		Array<ServerDataInput>* GetFrameBuffer();
 		void FlushBuffer();
+		void NewCurrentFrame(int frameNum, int clientsConnected);
 		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum);
 	};
 
 
-	class ClientDataHandler : DataHandler {
+	class ClientDataHandler : public DataHandler {
 	public:
-		enum predictionType
+		enum class predictionType
 		{
 			NONE,
 			LINEAR,
@@ -93,10 +94,12 @@ namespace G3D {
 		Array<Array<ClientDataInput>*>* m_DataInputs = new Array<Array<ClientDataInput>*>;
 	public:
 		ClientDataHandler();
+		void NewCurrentFrame(int frameNum, int clientsConnected);
 		~ClientDataHandler();
-		void UpdateEvents(int frameNum, uint8 playerID, CoordinateFrame cframe);
+		ClientDataInput* PredictEntity(int frameNum, uint8 playerID);
 		ClientDataInput* PredictFrameLinear(int frameNum, uint8 playerID);
 		ClientDataInput* PredictFrameQuadratic(int frameNum, uint8 playerID);
+		bool DataPointExists(int frameNum, uint8 playerID);
 	};
 };
 

@@ -164,6 +164,7 @@ protected:
 	ENetAddress m_unreliableServerAddress;				///< Address of server for unreliable traffic
 	GUniqueID m_playerGUID;								///< GUID for the player (used to identify the player in the network)
 	uint16 m_networkFrameNum;							///< The current frame (used to sync remote actions)
+	ClientDataHandler* m_dataHandler = new ClientDataHandler();
 	bool m_enetConnected;
 	bool m_socketConnected;
 
