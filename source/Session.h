@@ -56,12 +56,43 @@ public:
 	FILETIME time;
 	//float idt = 0.0f;
 	float sdt = 0.0f;
+	uint16 latest_RTT = 0;
+	uint16 sma_RTT = 0;
+	uint16 min_RTT = 0;
+	uint16 max_RTT = 0;
+	uint32 local_frame = 0;
+	uint32 remote_frame = 0;
+	String guid = "";
 
 	FrameInfo() {};
 
 	FrameInfo(FILETIME t, float simDeltaTime) {
 		time = t;
 		sdt = simDeltaTime;
+	}
+
+	FrameInfo(FILETIME t, float simDeltaTime, Array<uint16> rttStats, uint32 localFrameNum, uint32 remoteFrameNum, GUniqueID clientGUID) {
+		time = t;
+		sdt = simDeltaTime;
+		latest_RTT = rttStats[0];
+		sma_RTT = rttStats[1];
+		min_RTT = rttStats[2];
+		max_RTT = rttStats[3];
+		local_frame = localFrameNum;
+		remote_frame = remoteFrameNum;
+		guid = clientGUID.toString16();
+	}
+
+	FrameInfo(FILETIME t, float simDeltaTime, uint32 localFrameNum, uint32 remoteFrameNum, GUniqueID clientGUID) {
+		time = t;
+		sdt = simDeltaTime;
+		latest_RTT = 0;
+		sma_RTT = 0;
+		min_RTT = 0;
+		max_RTT = 0;
+		local_frame = localFrameNum;
+		remote_frame = remoteFrameNum;
+		guid = clientGUID.toString16();
 	}
 };
 
@@ -91,7 +122,8 @@ enum PlayerActionType{
 	FireCooldown,
 	Miss,
 	Hit,
-	Destroy
+	Destroy,
+	Move
 };
 
 struct PlayerAction {
@@ -140,7 +172,13 @@ public:
 	int					blockCount = 1;					///< Default to just 1 block per session
 	Array<TrialCount>	trials;							///< Array of trials (and their counts) to be performed
 	bool				closeOnComplete = false;		///< Close application on session completed?
-	bool				isNetworked = false;			///< Checks if its a networked session or not
+	bool*				isNetworked = nullptr;			///< Checks if its a networked session or not
+	int					clientScore = 0;				///< Keeps track of clients score
+	int					hitsToKill = 1;
+	int					networkLatency = 0;				///< Amount of latenecy to add to all network packets
+	int					numberOfRoundsPlayed = 0;		///< Tracks the number of rounds played by the clients
+	float				networkedSessionProgress = 0;	///< Keeps track of the progress of a networked session
+
 
 	SessionConfig() : FpsConfig(defaultConfig()) {}
 	SessionConfig(const Any& any);
@@ -156,6 +194,16 @@ public:
 	Any toAny(const bool forceAll = false) const;
 	float getTrialsPerBlock(void) const;			// Get the total number of trials in this session
 	Array<String> getUniqueTargetIds() const;
+
+	void respawnPlayer() { player.respawnToPos = true; }
+	void propagatePlayerControlsToAllFromGUI() { propagatePlayerControlsToClient(true, false); }
+	void propagatePlayerControlsToSelectedClientFromFile() { propagatePlayerControlsToClient(false, true); }
+	void propagatePlayerControlsToSelectedClientFromGUI() { propagatePlayerControlsToClient(false, false); }
+	void propagatePlayerControlsToClient(bool sendToAll, bool sendFromFile){ 
+		player.propagatePlayerConfigsToSelectedClient = !sendToAll; 
+		player.readFromFile = sendFromFile; 
+		player.propagatePlayerConfigsToAll = sendToAll;
+	}
 };
 
 class Session : public ReferenceCountedObject {
@@ -409,7 +457,7 @@ public:
 	void processResponse();
 	void recordTrialResponse(int destroyedTargets, int totalTargets);
 	void accumulateTrajectories();
-	void accumulateFrameInfo(RealTime rdt, float sdt, float idt);
+	virtual void accumulateFrameInfo(RealTime rdt, float sdt, float idt);
 
 	void countDestroy() {
 		m_destroyedTargets++;

@@ -1,5 +1,6 @@
 #include "Logger.h"
 #include "Session.h"
+#include "NetworkedSession.h"
 #include "FPSciApp.h"
 
 // TODO: Replace with the G3D timestamp uses.
@@ -59,9 +60,12 @@ void FPSciLogger::initResultsFile(const String& filename,
 		createTrialsTable();
 		createTargetTrajectoryTable();
 		createPlayerActionTable();
+		createRemotePlayerActionTable();
 		createFrameInfoTable();
 		createQuestionsTable();
 		createUsersTable();
+		createNetworkedClientTable();
+		createPingStatisticsTable();
 	}
 
 	// Add the session info to the sessions table
@@ -291,6 +295,7 @@ void FPSciLogger::recordPlayerActions(const Array<PlayerAction>& actions) {
 			case Miss: actionStr = "miss"; break;
 			case Hit: actionStr = "hit"; break;
 			case Destroy: actionStr = "destroy"; break;
+			case Move: actionStr = "move"; break;
 		}
 
 		Array<String> playerActionValues = {
@@ -309,12 +314,69 @@ void FPSciLogger::recordPlayerActions(const Array<PlayerAction>& actions) {
 	insertRowsIntoDB(m_db, "Player_Action", rows);
 }
 
+void FPSciLogger::createRemotePlayerActionTable() {
+	// Player_Action table
+	Columns viewTrajectoryColumns = {
+		{ "time", "text" },
+		{ "position_az", "real" },
+		{ "position_el", "real" },
+		{ "position_x", "real"},
+		{ "position_y", "real"},
+		{ "position_z", "real"},
+		{ "state", "text"},
+		{ "event", "text" },
+		{ "actor_id", "text" },
+		{ "affected_id", "text"},
+	};
+	createTableInDB(m_db, "Remote_Player_Action", viewTrajectoryColumns);
+}
+
+void FPSciLogger::recordRemotePlayerActions(const Array<RemotePlayerAction>& actions) {
+	Array<RowEntry> rows;
+	for (RemotePlayerAction action : actions) {
+		String stateStr = presentationStateToString(action.state);
+
+		String actionStr = "";
+		switch (action.action) {
+		case FireCooldown: actionStr = "fireCooldown"; break;
+		case Aim: actionStr = "aim"; break;
+		case Miss: actionStr = "miss"; break;
+		case Hit: actionStr = "hit"; break;
+		case Destroy: actionStr = "destroy"; break;
+		case Move: actionStr = "move"; break;
+		}
+
+		Array<String> playerActionValues = {
+		"'" + FPSciLogger::formatFileTime(action.time) + "'",
+		String(std::to_string(action.viewDirection.x)),
+		String(std::to_string(action.viewDirection.y)),
+		String(std::to_string(action.position.x)),
+		String(std::to_string(action.position.y)),
+		String(std::to_string(action.position.z)),
+		"'" + stateStr + "'",
+		"'" + actionStr + "'",
+		"'" + action.actorID + "'",
+		"'" + action.affectedID + "'",
+		};
+		rows.append(playerActionValues);
+	}
+	insertRowsIntoDB(m_db, "Remote_Player_Action", rows);
+}
+
+
 void FPSciLogger::createFrameInfoTable() {
 	// Frame_Info table
 	Columns frameInfoColumns = {
 		{"time", "text"},
 		//{"idt", "real"},
 		{"sdt", "real"},
+		{"latest_RTT", "real"},
+		{"sma_RTT", "real"},
+		{"min_RTT", "real"},
+		{"max_RTT", "real"},
+		{"local_frame", "real"},
+		{"remote_frame", "real"},
+		{"client_guid", "text"},
 	};
 	createTableInDB(m_db, "Frame_Info", frameInfoColumns);
 }
@@ -325,7 +387,14 @@ void FPSciLogger::recordFrameInfo(const Array<FrameInfo>& frameInfo) {
 		Array<String> frameValues = {
 			"'" + FPSciLogger::formatFileTime(info.time) + "'",
 			//String(std::to_string(info.idt)),
-			String(std::to_string(info.sdt))
+			String(std::to_string(info.sdt)),
+			String(std::to_string(info.latest_RTT)),
+			String(std::to_string(info.sma_RTT)),
+			String(std::to_string(info.min_RTT)),
+			String(std::to_string(info.max_RTT)),
+			String(std::to_string(info.local_frame)),
+			String(std::to_string(info.remote_frame)),
+			"'" + info.guid + "'"
 		};
 		rows.append(frameValues);
 	}
@@ -422,6 +491,85 @@ void FPSciLogger::logUserConfig(const UserConfig& user, const String& sessId, co
 	m_users.append(row);
 }
 
+void FPSciLogger::createNetworkedClientTable() {
+	// Player_Action table
+	Columns clientColumns = {
+		{ "time", "text" },
+		{ "local_frame", "real"},
+		{ "remote_frame", "real"},
+		{ "position_az", "real" },
+		{ "position_el", "real" },
+		{ "position_x", "real"},
+		{ "position_y", "real"},
+		{ "position_z", "real"},
+		{ "event", "text" },
+		{ "state", "text" },
+		{ "player_id", "text" },
+	};
+	createTableInDB(m_db, "Client_States", clientColumns);
+}
+
+void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) {
+	Array<RowEntry> rows;
+	for (const NetworkedClient client : clients) {
+
+		String stateStr = presentationStateToString(client.state);
+
+		String actionStr = "";
+		switch (client.action) {
+		case FireCooldown: actionStr = "fireCooldown"; break;
+		case Aim: actionStr = "aim"; break;
+		case Miss: actionStr = "miss"; break;
+		case Hit: actionStr = "hit"; break;
+		case Destroy: actionStr = "destroy"; break;
+		case Move: actionStr = "move"; break;
+		}
+
+		Array<String> networkedClientValues = {
+		"'" + FPSciLogger::formatFileTime(client.time) + "'",
+		String(std::to_string(client.localFrame)),
+		String(std::to_string(client.remoteFrame)),
+		String(std::to_string(client.viewDirection.x)),
+		String(std::to_string(client.viewDirection.y)),
+		String(std::to_string(client.position.x)),
+		String(std::to_string(client.position.y)),
+		String(std::to_string(client.position.z)),
+		"'" + actionStr + "'",
+		"'" + stateStr + "'",
+		"'" + client.playerID.toString16() + "'",
+		};
+		rows.append(networkedClientValues);
+	}
+	insertRowsIntoDB(m_db, "Client_States", rows);
+}
+
+void FPSciLogger::createPingStatisticsTable() {
+	Columns clientPingColumns = {
+		{"time", "text"},
+		{"latest_RTT", "real"},
+		{"sma_RTT", "real"},
+		{"min_RTT", "real"},
+		{"max_RTT", "real"}
+	};
+	createTableInDB(m_db, "Client_Ping_Statistics", clientPingColumns);
+}
+
+void FPSciLogger::recordPingStatistics(const Array<LoggedPingStatistics>& pingStats) {
+	Array<RowEntry> rows;
+	for (LoggedPingStatistics pingStat : pingStats) {
+		const String time = genUniqueTimestamp();
+		Array<String> pingValues = {
+			"'" + time + "'",
+			String(std::to_string(pingStat.pingQueue.last())),
+			String(std::to_string(pingStat.smaPing)),
+			String(std::to_string(pingStat.minPing)),
+			String(std::to_string(pingStat.maxPing))
+		};
+		rows.append(pingValues);
+	}
+	insertRowsIntoDB(m_db, "Client_Ping_Statistics", rows);
+}
+
 void FPSciLogger::loggerThreadEntry()
 {
 	std::unique_lock<std::mutex> lk(m_queueMutex);
@@ -441,6 +589,10 @@ void FPSciLogger::loggerThreadEntry()
 		decltype(m_playerActions) playerActions;
 		playerActions.swap(m_playerActions, playerActions);
 		m_playerActions.reserve(playerActions.size() * 2);
+
+		decltype(m_remotePlayerActions) remotePlayerActions;
+		remotePlayerActions.swap(m_remotePlayerActions, remotePlayerActions);
+		m_remotePlayerActions.reserve(remotePlayerActions.size() * 2);
 
 		decltype(m_questions) questions;
 		questions.swap(m_questions, questions);
@@ -462,12 +614,26 @@ void FPSciLogger::loggerThreadEntry()
 		users.swap(m_users, users);
 		m_users.reserve(users.size() * 2);
 
+		decltype(m_networkedClients) networkedClients;
+		networkedClients.swap(m_networkedClients, networkedClients);
+		m_networkedClients.reserve(networkedClients.size() * 2);
+
+		decltype(m_pingStatistics) pingStats;
+		pingStats.swap(m_pingStatistics, pingStats);
+		m_pingStatistics.reserve(pingStats.size() * 2);
+
+
 		// Unlock all the now-empty queues and write out our temporary copies
 		lk.unlock();
 
 		recordFrameInfo(frameInfo);
 		recordPlayerActions(playerActions);
+		recordRemotePlayerActions(remotePlayerActions);
 		recordTargetLocations(targetLocations);
+
+		recordNetworkedClients(networkedClients);
+
+		recordPingStatistics(pingStats);
 
 		insertRowsIntoDB(m_db, "Questions", questions);
 		insertRowsIntoDB(m_db, "Targets", targets);
@@ -488,6 +654,10 @@ FPSciLogger::FPSciLogger(const String& filename,
 	// Reserve some space in these arrays here
 	m_playerActions.reserve(5000);
 	m_targetLocations.reserve(5000);
+
+	m_networkedClients.reserve(5000);
+
+	m_pingStatistics.reserve(5000);
 	
 	// Create the results file
 	initResultsFile(filename, subjectID, expConfigFilename, sessConfig, description);

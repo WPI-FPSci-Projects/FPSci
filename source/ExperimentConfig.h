@@ -15,6 +15,8 @@ public:
 	String serverAddress = "";							///< Address for server
 	int serverPort = 12345;								///< Port for server to listen to
 	int clientPort = 12350;								///< Port for the client to listen to
+	int pingPort = 12355;								///< Port for sending and receiving ping packets
+	int pingSMASize = 5;								///< Sample size used for calculating SMA for ping
 	int numPlayers = 2;									///< Number of connections to wait for before starting the game
 	bool isNetworked;									///< Checks if the experiment is networked or not
 	bool isAuthoritativeServer;							///< Checks if using authoritative server; false if using client

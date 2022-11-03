@@ -150,9 +150,11 @@
     <ClInclude Include="..\source\FpsConfig.h" />
     <ClInclude Include="..\source\DataHandler.h" />
     <ClInclude Include="..\source\KeyMapping.h" />
+    <ClInclude Include="..\source\LatentNetwork.h" />
     <ClInclude Include="..\source\NetworkedSession.h" />
     <ClInclude Include="..\source\NetworkUtils.h" />
     <ClInclude Include="..\source\NoWindow.h" />
+    <ClInclude Include="..\source\Packet.h" />
     <ClInclude Include="..\source\Session.h" />
     <ClInclude Include="..\source\ExperimentConfig.h" />
     <ClInclude Include="..\source\Logger.h" />
@@ -179,9 +181,11 @@
     <ClCompile Include="..\source\FpsConfig.cpp" />
     <ClCompile Include="..\source\DataHandler.cpp" />
     <ClCompile Include="..\source\KeyMapping.cpp" />
+    <ClCompile Include="..\source\LatentNetwork.cpp" />
     <ClCompile Include="..\source\NetworkedSession.cpp" />
     <ClCompile Include="..\source\NetworkUtils.cpp" />
     <ClCompile Include="..\source\NoWindow.cpp" />
+    <ClCompile Include="..\source\Packet.cpp" />
     <ClCompile Include="..\source\Session.cpp" />
     <ClCompile Include="..\source\Logger.cpp" />
     <ClCompile Include="..\source\PhysicsScene.cpp" />

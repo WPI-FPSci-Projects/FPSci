@@ -21,6 +21,7 @@ FPSciApp::FPSciApp(const GApp::Settings& settings, OSWindow* window, RenderDevic
 
 /** Initialize the app */
 void FPSciApp::onInit() {
+	this->setLowerFrameRateInBackground(startupConfig.lowerFrameRateInBackground);
 	// Seed random based on the time
 	Random::common().reset(uint32(time(0)));
 
@@ -112,6 +113,30 @@ void FPSciApp::initExperiment() {
 		m_unreliableSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
 		enet_socket_set_option(m_unreliableSocket, ENET_SOCKOPT_NONBLOCK, 1); //Set socket to non-blocking
 
+		// If we are pinging
+		if (startupConfig.pingEnabled) {
+
+			// Ping socket setup
+			enet_address_set_host(&m_pingServerAddress, experimentConfig.serverAddress.c_str());
+			// Check if the ping port is not already used
+			if (experimentConfig.pingPort != experimentConfig.serverPort &&
+				experimentConfig.pingPort != experimentConfig.serverPort + 1) {
+				m_pingServerAddress.port = experimentConfig.pingPort;
+			}
+			else {
+				experimentConfig.pingPort == experimentConfig.serverPort + 1 ?
+					m_pingServerAddress.port = experimentConfig.pingPort + 1 :
+					m_pingServerAddress.port = experimentConfig.pingPort + 2;
+				logPrintf("Ping: port %d is already in use, using port %d for pinging\n", experimentConfig.pingPort, m_pingServerAddress.port);
+			}
+			m_pingSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+			enet_socket_set_option(m_pingSocket, ENET_SOCKOPT_NONBLOCK, 1);
+
+			// Initialize ping statistics
+			m_pingStats.pingQueue.pushBack(0);
+			experimentConfig.pingSMASize > 0 ? m_pingStats.smaRTTSize = experimentConfig.pingSMASize : m_pingStats.smaRTTSize = 5;
+		}
+
 		try {
 			m_playerGUID = GUniqueID::create();
 		}
@@ -124,6 +149,7 @@ void FPSciApp::initExperiment() {
 		m_enetConnected = false;
 		m_socketConnected = false;
 	}
+	sessConfig->isNetworked = &experimentConfig.isNetworked;
 }
 
 void FPSciApp::toggleUserSettingsMenu() {
@@ -456,7 +482,7 @@ void FPSciApp::updateControls(bool firstSession) {
 		rect = m_renderControls->rect();
 		removeWidget(m_renderControls);
 	}
-	m_renderControls = RenderControls::create(this, *sessConfig, renderFPS, numReticles, sceneBrightness, theme, MAX_HISTORY_TIMING_FRAMES);
+	m_renderControls = RenderControls::create(this, *sessConfig, renderFPS, renderPing, numReticles, sceneBrightness, theme, MAX_HISTORY_TIMING_FRAMES);
 	m_renderControls->setVisible(visible);
 	if (!rect.isEmpty())
 		m_renderControls->setRect(rect);
@@ -734,6 +760,7 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->headBobFrequency = &sessConfig->player.headBobFrequency;
 	player->respawnPos = &sessConfig->player.respawnPos;
 	player->respawnToPos = &sessConfig->player.respawnToPos;
+	player->respawnHeading = &sessConfig->player.respawnHeading;
 	player->accelerationEnabled = &sessConfig->player.accelerationEnabled;
 	player->movementAcceleration = &sessConfig->player.movementAcceleration;
 	player->movementDeceleration = &sessConfig->player.movementDeceleration;
@@ -747,8 +774,13 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->movementRestrictionX = &sessConfig->player.movementRestrictionX;
 	player->movementRestrictionZ = &sessConfig->player.movementRestrictionZ;
 	player->restrictedMovementEnabled = &sessConfig->player.restrictedMovementEnabled;
+	player->restrictionBoxAngle = &sessConfig->player.restrictionBoxAngle;
 	player->counterStrafing = &sessConfig->player.counterStrafing;
-
+	player->propagatePlayerConfigsToAll = &sessConfig->player.propagatePlayerConfigsToAll;
+	player->propagatePlayerConfigsToSelectedClient = &sessConfig->player.propagatePlayerConfigsToSelectedClient;
+	player->readFromFile = &sessConfig->player.readFromFile;
+	player->selectedClientIdx = &sessConfig->player.selectedClientIdx;
+	player->clientPlayerConfigs = &sessConfig->player.clientPlayerConfigs;
 	// Respawn player
 	player->respawn();
 	updateMouseSensitivity();
@@ -769,7 +801,8 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 		m_userSettingsWindow->setSelectedSession(id);
 		// Create the session based on the loaded config
 		if (experimentConfig.isNetworked) {
-			sess = NetworkedSession::create(this, sessConfig);
+			netSess = NetworkedSession::create(this, sessConfig);
+			sess = (shared_ptr<Session>)netSess;
 		}
 		else {
 			sess = Session::create(this, sessConfig);
@@ -779,7 +812,8 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 	{
 		// Create an empty session
 		sessConfig = SessionConfig::create();
-		sess = NetworkedSession::create(this);
+		netSess = NetworkedSession::create(this);
+		sess = (shared_ptr<Session>)netSess;
 	}
 
 	// Update reticle
@@ -931,6 +965,12 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 	{
 		m_firstSession = false;
 	}
+
+	if (experimentConfig.isNetworked) {
+		/* Set the latency to be what the new latency */
+		NetworkUtils::setAddressLatency(m_reliableServerAddress, sessConfig->networkLatency);
+		NetworkUtils::setAddressLatency(m_unreliableServerAddress, sessConfig->networkLatency);
+	}
 }
 
 void FPSciApp::quitRequest() {
@@ -945,6 +985,10 @@ void FPSciApp::quitRequest() {
 		m_pyLogger->mergeLogToDb(true);
 	}
 	if (experimentConfig.isNetworked && m_serverPeer != nullptr) { // disconnect from the server if we're running in Network mode
+		m_pinging = false;
+		m_pingStats.smaPing = 0;
+		m_pingStats.pingQueue.clear();
+		m_pingStats.pingQueue.pushBack(0);
 		enet_peer_disconnect(m_serverPeer, 0);
 	}
 	setExitCode(0);
@@ -987,120 +1031,216 @@ void FPSciApp::onAI() {
 void FPSciApp::onNetwork() {
 	GApp::onNetwork();
 
-	if (experimentConfig.isNetworked ){//&& sess->currentState == NetworkedPresentationState::networkedSessionStart) {
-		m_networkFrameNum++;
-	}
 
-	BinaryOutput output;
-	output.setEndian(G3D_BIG_ENDIAN);
+	//if (experimentConfig.isNetworked && sess->currentState == PresentationState::networkedSessionRoundStart) {
+		m_networkFrameNum++;
+	//}
+
 
 	if (!m_socketConnected) {
-		NetworkUtils::sendHandshake(m_unreliableSocket, m_unreliableServerAddress);
+		shared_ptr<HandshakePacket> handshake = GenericPacket::createUnreliable<HandshakePacket>(&m_unreliableSocket, &m_unreliableServerAddress);
+		shared_ptr<HandshakePacket> ping_handshake = GenericPacket::createUnreliable<HandshakePacket>(&m_pingSocket, &m_pingServerAddress);
+		NetworkUtils::send(handshake);
+		NetworkUtils::send(ping_handshake);
+		//handshake->send();
 	}
 
 	// wait to send updates until we're sure we're connected
 	if (m_socketConnected && m_enetConnected) {
 		// Get and serialize the players frame
-		// TODO: refactor this to move ENet code into NetworkUtils
-		output.writeUInt8(NetworkUtils::MessageType::BATCH_ENTITY_UPDATE);
-		output.writeUInt16(m_networkFrameNum);
-		output.writeUInt8(1);				// Only update the player
-		//TODO: allow for non-player entities (i.e. projectiles)?
-		NetworkUtils::createFrameUpdate(m_playerGUID, scene()->entity("player"), output, m_networkFrameNum);
-		ENetBuffer enet_buff;
-		enet_buff.data = (void*)output.getCArray();
-		enet_buff.dataLength = output.length();
-		// Send the serialized frame to the server
-		if (enet_socket_send(m_unreliableSocket, &m_unreliableServerAddress, &enet_buff, 1) <= 0) {
-			logPrintf("Failed to send a packet to the server\n");
+		// If we are pinging
+		if (startupConfig.pingEnabled) {
+
+			// Begin pinging once connected
+			if (!m_startedPinging) {
+				m_pinging = true;
+
+				if (startupConfig.pingInterval > 0) {
+					m_pingInterval = startupConfig.pingInterval;
+				}
+
+				// Initialize lambdas and threads for sending and recieving pings
+				auto c2sPing = [](ENetSocket socket, ENetAddress address, int i, bool& pinging) {
+					while (pinging) {
+						shared_ptr<PingPacket> pingPacket = GenericPacket::createUnreliable<PingPacket>(&socket, &address);
+						pingPacket->populate(std::chrono::steady_clock::now());
+						NetworkUtils::send(pingPacket);
+						std::this_thread::sleep_for(std::chrono::milliseconds(i));
+					}
+				};
+
+				auto pingAck = [](ENetSocket socket, NetworkUtils::PingStatistics& stats, bool& pinging) {
+					while (pinging) {
+						// Ping sent via unreliable channel, host technically not needed but prevents crash  
+						shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePing(&socket);
+						while (inPacket != nullptr) {
+							ENetAddress srcAddr = inPacket->srcAddr();
+							char ip[16];
+							enet_address_get_host_ip(&srcAddr, ip, 16);
+							if (inPacket->type() == PacketType::PING) {
+								PingPacket* pingPacket = static_cast<PingPacket*>(inPacket.get());
+								long long rtt = pingPacket->m_RTT;
+
+								stats.pingQueue.pushBack(rtt);
+
+								// Update the simple moving average for RTT
+								if (stats.pingQueue.length() > stats.smaRTTSize) {
+									stats.pingQueue.popFront();
+								}
+
+								long long sum = 0;
+								for (int i = 0; i < stats.pingQueue.length(); i++) {
+									sum += stats.pingQueue[i];
+								}
+
+								if (stats.pingQueue.length() == stats.smaRTTSize) {
+									stats.smaPing = sum / stats.smaRTTSize;
+								}
+
+								// Check the minimum and maximum recorded RTT values
+								if (stats.minPing == -1 || rtt < stats.minPing) {
+									stats.minPing = rtt;
+								}
+								if (rtt > stats.maxPing) {
+									stats.maxPing = rtt;
+								}
+							}
+							else {
+								logPrintf("WARNING: recieved a non-ping packet via sockets dedicated for ping.");
+							}
+							inPacket = NetworkUtils::receivePing(&socket);
+						}
+					}
+				};
+
+				std::thread c2sPing_Th(c2sPing, m_pingSocket, m_pingServerAddress, m_pingInterval, std::ref(m_pinging));
+				c2sPing_Th.detach();
+
+				std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_pingStats), std::ref(m_pinging));
+				pingAck_Th.detach();
+
+				debugPrintf("Initialized ping threads\n");
+				m_startedPinging = true;
+			}
+
+			// Send current ping data to the server, due to packet size send every 30 frames to reduce network traffic
+			if (m_frameNumber % 30 == 0) {
+				shared_ptr<PingDataPacket> pingDataPacket = GenericPacket::createUnreliable<PingDataPacket>(&m_unreliableSocket, &m_unreliableServerAddress);
+
+				auto truncateToUInt16 = [](long long val) {
+					return val >= UINT16_MAX ? UINT16_MAX : (uint16)val;
+				};
+
+				uint16 rttStats[4];
+				rttStats[0] = truncateToUInt16(m_pingStats.pingQueue.last());
+				rttStats[1] = truncateToUInt16(m_pingStats.smaPing);
+				rttStats[2] = truncateToUInt16(m_pingStats.minPing);
+				rttStats[3] = truncateToUInt16(m_pingStats.maxPing);
+
+				pingDataPacket->populate(rttStats);
+				NetworkUtils::send(pingDataPacket);
+			}
 		}
+		shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createUnreliable<BatchEntityUpdatePacket>(&m_unreliableSocket, &m_unreliableServerAddress);
+		Array<BatchEntityUpdatePacket::EntityUpdate> updates;
+		updates.append(BatchEntityUpdatePacket::EntityUpdate(scene()->entity("player")->frame(), m_playerGUID.toString16()));
+		updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
+		NetworkUtils::send(updatePacket);
+		//updatePacket->send();
 	}
 
-	ENetAddress addr_from;
-	ENetBuffer buff;
-	void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
-	buff.data = data;
-	buff.dataLength = ENET_HOST_DEFAULT_MTU;
-
-	while (enet_socket_receive(m_unreliableSocket, &addr_from, &buff, 1)) {
+	/* Recevie and handle any packets */
+	shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
+	while (inPacket != nullptr) {
+		ENetAddress srcAddr = inPacket->srcAddr();
 		char ip[16];
-		enet_address_get_host_ip(&addr_from, ip, 16);
-		BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
-		NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
-		uint16 frameNum = packet_contents.readUInt16();
+		enet_address_get_host_ip(&srcAddr, ip, 16);
+		/* Handle Unreliable packets here */
+		if (!inPacket->isReliable()) {
+			switch (inPacket->type()) {
+			case BATCH_ENTITY_UPDATE: {
+				/* Take a set of entity updates from the server and apply them to local entities */
+				BatchEntityUpdatePacket* typedPacket = static_cast<BatchEntityUpdatePacket*>(inPacket.get());
+				//TODO: refactor this out into some other place, maybe NetworkUtils??
+					for (BatchEntityUpdatePacket::EntityUpdate e : typedPacket->m_updates) {
+						if (e.name != m_playerGUID.toString16() || experimentConfig.isAuthoritativeServer) { // Don't listen to updates for this client
+							shared_ptr<Entity> entity;
+							if (e.name != m_playerGUID.toString16())
+							{
+								entity = (*scene()).typedEntity<PlayerEntity>("player");
 
-		/* Take a set of entity updates from the server and apply them to local entities */
-		if (type == NetworkUtils::MessageType::BATCH_ENTITY_UPDATE) {
-			//debugPrintf("Got entity update...\n");
-			//TODO: move to NetworkUtil
-			int num_packet_members = packet_contents.readUInt8(); // get # of frames in this packet
-
-			if (experimentConfig.isAuthoritativeServer)
-			{ // server overwrites client location
-				for (int i = 0; i < num_packet_members; i++)
-				{
-					// get new frames and update objects
-					NetworkUtils::updateEntity(m_playerGUID, scene(), packet_contents, nullptr);
+							} else
+							{
+								entity = (*scene()).typedEntity<NetworkedEntity>(e.name);
+							}
+							if (entity == nullptr) {
+								debugPrintf("Recieved update for entity %s, but it doesn't exist\n", e.name.c_str());
+							}
+							else {
+								switch (typedPacket->m_updateType) {
+								case BatchEntityUpdatePacket::NetworkUpdateType::NOOP:
+									// Do nothing (No-Op)
+									break;
+								case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
+									entity->setFrame(e.frame);
+									if (m_dataHandler != nullptr) {
+										// TODO:: convert GUID to playerID for e.name
+										m_dataHandler->UpdateCframe(e.name, e.frame, typedPacket->m_frameNumber);
+									}
+									break;
+								}
+							}
+						}
+					}
+				break;
+			}
+			case HANDSHAKE_REPLY: {
+				m_socketConnected = true;
+				debugPrintf("Received HANDSHAKE_REPLY from server\n");
+				break;
+			}
+			case PLAYER_INTERACT: {
+				PlayerInteractPacket* typedPacket = static_cast<PlayerInteractPacket*> (inPacket.get());
+				if (typedPacket->m_actorID != m_playerGUID) {
+					// Only log actions that happen on another machine
+					const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_actorID.toString16());
+					RemotePlayerAction rpa = RemotePlayerAction();
+					rpa.time = sess->logger->getFileTime();
+					rpa.viewDirection = clientEntity->getLookAzEl();
+					rpa.position = clientEntity->frame().translation;
+					rpa.state = sess->currentState;
+					rpa.action = (PlayerActionType)typedPacket->m_remoteAction;
+					rpa.actorID = typedPacket->m_actorID.toString16();
+					sess->logger->logRemotePlayerAction(rpa);
 				}
+				break;
 			}
-			else
-			{ // don't let the server update our location if we're not under authoritative server mode
-				Array<GUniqueID> ignore;
-				ignore.append(m_playerGUID);
-				for (int i = 0; i < num_packet_members; i++)
-				{
-					// get new frames and update objects
-					NetworkUtils::updateEntity(ignore, scene(), packet_contents, nullptr);
-				}
+			default:
+				debugPrintf("WARNING: Unhandled packet received on unreliable channel of type %d\n", inPacket->type());
 			}
 		}
-		/* check for reply to a handshake*/
-		else if (type == NetworkUtils::MessageType::HANDSHAKE_REPLY) {
-			m_socketConnected = true;
-			debugPrintf("Received HANDSHAKE_REPLY from server\n");
-		}
-	}
-	free(data);
-
-	/* Poll the reliable connection and process inbound traffic.  enet_host_service also transmits the outbound queues when called*/
-	ENetEvent event;
-	while (enet_host_service(m_localHost, &event, 0) > 0)
-	{
-		char ip[16];
-		enet_address_get_host_ip(&event.peer->address, ip, 16);
-
-		/* connection to server confirmed by ENet */
-		if (event.type == ENET_EVENT_TYPE_CONNECT) {
-			// Send the server a control message with the players GUID so it knows to add this address as a peer
-			ENetAddress localAddress;
-			enet_socket_get_address(m_unreliableSocket, &localAddress);
-			char ipStr[16];
-			enet_address_get_host_ip(&localAddress, ipStr, 16);
-			debugPrintf("Registering client...\n");
-			debugPrintf("\tPort: %i\n", localAddress.port);
-			debugPrintf("\tHost: %s\n", ipStr);
-			NetworkUtils::sendRegisterClient(m_playerGUID, localAddress.port, m_serverPeer);
-		}
-		/* Handle traffic from the server over the reliable channel*/
-		if (event.type == ENET_EVENT_TYPE_RECEIVE) {
-			// Pull data out of packet
-			BinaryInput packet_contents(event.packet->data, event.packet->dataLength, G3D_BIG_ENDIAN);
-			NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
-			uint16 frameNum = packet_contents.readUInt16();
-
-			/* for now, batch updates on the reliable channel are ignored.*/
-			if (type == NetworkUtils::MessageType::BATCH_ENTITY_UPDATE) {
-				debugPrintf("MALFORMED REQUEST: Batch entity update on reliable channel (ignoring)\n");
+		else {
+			switch (inPacket->type()) {
+				/* Handle Reliable packets here */
+			case RELIABLE_CONNECT: {
+				ENetAddress localAddress;
+				enet_socket_get_address(m_unreliableSocket, &localAddress);
+				char ipStr[16];
+				enet_address_get_host_ip(&localAddress, ipStr, 16);
+				debugPrintf("Registering client...\n");
+				debugPrintf("\tPort: %i\n", localAddress.port);
+				debugPrintf("\tHost: %s\n", ipStr);
+				shared_ptr<RegisterClientPacket> registrationPacket = GenericPacket::createReliable<RegisterClientPacket>(m_serverPeer);
+				registrationPacket->populate(m_serverPeer, m_playerGUID, localAddress.port);
+				NetworkUtils::send(registrationPacket);
+				//registrationPacket->send();
+				break;
 			}
-			/* create an entity in the scene when told to */
-			else if (type == NetworkUtils::MessageType::CREATE_ENTITY) {
-				// create entity and add it to the entity storage (read GUID and then create an entity with that ID)
-				//TODO move GUID read into NetworkUtils?
-				GUniqueID entity_id;
-				entity_id.deserialize(packet_contents);
-				if (entity_id != m_playerGUID) {
+			case CREATE_ENTITY: {
+				CreateEntityPacket* typedPacket = static_cast<CreateEntityPacket*> (inPacket.get());
+				if (typedPacket->m_guid != m_playerGUID) {
 					// ignores if server tells us to create ourself
-					debugPrintf("Created entity with ID %s\n", entity_id.toString16());
+					debugPrintf("Created entity with ID %s\n", typedPacket->m_guid.toString16());
 
 					Any modelSpec = PARSE_ANY(ArticulatedModel::Specification{			///< Basic model spec for target
 						filename = "model/target/mid_poly_sphere_no_outline.obj";
@@ -1116,82 +1256,151 @@ void FPSciApp::onNetwork() {
 						});
 					shared_ptr<Model> model = ArticulatedModel::create(modelSpec);
 
-					const shared_ptr<NetworkedEntity>& target = NetworkedEntity::create(entity_id.toString16(), &(*scene()), model, CFrame());
+					const shared_ptr<NetworkedEntity>& target = NetworkedEntity::create(typedPacket->m_guid.toString16(), &(*scene()), model, CFrame());
 					//target->setFrame(position);
 					target->setWorldSpace(true);
 					//target->setHitSound(config->hitSound, m_app->soundTable, config->hitSoundVol);
 					//target->setDestoyedSound(config->destroyedSound, m_app->soundTable, config->destroyedSoundVol);
 					target->setColor(G3D::Color3(20.0, 20.0, 200.0));
-					target->setPlayerID(packet_contents.readUInt8());
+					// TODO::PID target->setPlayerID(packet_contents.readUInt8());
 
 					(*scene()).insert(target);
-					static_cast<NetworkedSession*>(sess.get())->addHittableTarget(target);
+					netSess->addHittableTarget(target);
 				}
 				else
 				{
 					// when we're told to create ourself, update our playerID to match what the server gives us
-					uint8 playerID = packet_contents.readUInt8();
+					// TODO::PID uint8 playerID = packet_contents.readUInt8();
 					debugPrintf("Updated playerID from %i to %i after server told us to create ourself\n", m_playerID,
-					            playerID);
+								playerID);
 					m_playerID = playerID;
 				}
+				break;
 			}
-
-			/* receive confirmation of registration from server */
-			else if (type == NetworkUtils::MessageType::CLIENT_REGISTRATION_REPLY) {
-				// create entity and add it to the entity storage
-				//TODO: move network IO to NetworkUtils?
+			case CLIENT_REGISTRATION_REPLY: {
+				RegistrationReplyPacket* typedPacket = static_cast<RegistrationReplyPacket*>(inPacket.get());
 				debugPrintf("INFO: Received registration reply...\n");
-				GUniqueID clientGUID;
-				clientGUID.deserialize(packet_contents);
-				if (clientGUID == m_playerGUID) {
-					uint8 playerID = packet_contents.readUInt8();
+					if (typedPacket->m_guid == m_playerGUID) {
+					// TODO::PID uint8 playerID = packet_contents.readUInt8();
 					int status = packet_contents.readUInt8();
-					if (status == 0) {
+						if (typedPacket->m_status == 0) {
 						m_enetConnected = true;
 						debugPrintf("INFO: Received registration from server\n");
-						m_playerID = playerID;
-						debugPrintf("INFO: Got assigned playerID %i\n", m_playerID);
+							// TODO::PID m_playerID = playerID;
+							// TODO::PID debugPrintf("INFO: Got assigned playerID %i\n", m_playerID);
+
+						/* Set the amount of latency to add */
+						NetworkUtils::setAddressLatency(m_unreliableServerAddress, sessConfig->networkLatency);
+						NetworkUtils::setAddressLatency(typedPacket->srcAddr(), sessConfig->networkLatency);
 					}
 					else {
-						debugPrintf("WARN: Server connection refused (%i)", status);
+						debugPrintf("WARN: Server connection refused (%i)", typedPacket->m_status);
 					}
 				}
+				break;
 			}
-			/* force the client to a new position */
-			else if (type == NetworkUtils::MessageType::MOVE_CLIENT) {
-				//updates the players cframe with what the server says it should be
+			case MOVE_CLIENT: {
+				MoveClientPacket* typedPacket = static_cast<MoveClientPacket*> (inPacket.get());
 				shared_ptr<PlayerEntity> entity = scene()->typedEntity<PlayerEntity>("player");
-				NetworkUtils::updateEntity(entity, packet_contents, nullptr, m_playerGUID);
+				entity->setFrame(typedPacket->m_newPosition);
+				break;
 			}
-			/* remove a networked entity */
-			else if (type == NetworkUtils::MessageType::DESTROY_ENTITY) {
-				debugPrintf("Recieved destroy entity request\n");
-				NetworkUtils::handleDestroyEntity(scene(), packet_contents);
+			case DESTROY_ENTITY: {
+				DestroyEntityPacket* typedPacket = static_cast<DestroyEntityPacket*>(inPacket.get());
+				debugPrintf("Recieved destroy entity request for: %s\n", typedPacket->m_guid.toString16());
+				shared_ptr<NetworkedEntity> entity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_guid.toString16());
+				scene()->remove(entity);
+				break;
 			}
-
-			/* set the spawn position for this player */
-			else if (type == NetworkUtils::MessageType::SET_SPAWN_LOCATION) {
+			case SET_SPAWN_LOCATION: {
+				SetSpawnPacket* typedPacket = static_cast<SetSpawnPacket*> (inPacket.get());
 				debugPrintf("Recieved an updated spawn position\n");
 				shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
-				NetworkUtils::handleSetSpawnPos(player, packet_contents);
+				player->setRespawnPosition(typedPacket->m_spawnPositionTranslation);
+				player->setRespawnHeadingDegrees(typedPacket->m_spawnHeading);
+				break;
 			}
-			
-			/* force the client to respawn */
-			else if (type == NetworkUtils::MessageType::RESPAWN_CLIENT) {
+			case RESPAWN_CLIENT: {
 				debugPrintf("Recieved a request to respawn\n");
 				scene()->typedEntity<PlayerEntity>("player")->respawn();
-				static_cast<NetworkedSession*>(sess.get())->resetSession();
-
+				//netSess->resetSession();
+				break;
 			}
-			else if (type == NetworkUtils::MessageType::START_NETWORKED_SESSION) {
-				static_cast<NetworkedSession*>(sess.get())->startSession();
-				m_networkFrameNum = frameNum; // Set the frame number to sync with the server
+			case START_NETWORKED_SESSION: {
+				StartSessionPacket* typedPacket = static_cast<StartSessionPacket*> (inPacket.get());
+				netSess->startRound();
+				m_networkFrameNum = typedPacket->m_frameNumber; // Set the frame number to sync with the server
 				debugPrintf("Recieved a request to start session.\n");
+				break;
 			}
-			
-			enet_packet_destroy(event.packet);
+			case SEND_PLAYER_CONFIG: {
+				//TODO: Decide if we can just replace the the local player config and do that instead
+				SendPlayerConfigPacket* typedPacket = static_cast<SendPlayerConfigPacket*> (inPacket.get());
+				sessConfig->player.moveRate = typedPacket->m_playerConfig->moveRate;
+				sessConfig->player.moveScale = typedPacket->m_playerConfig->moveScale;
+
+				(sessConfig->player.axisLock)[0] = typedPacket->m_playerConfig->axisLock[0];
+				(sessConfig->player.axisLock)[1] = typedPacket->m_playerConfig->axisLock[1];
+				(sessConfig->player.axisLock)[2] = typedPacket->m_playerConfig->axisLock[2];
+
+				sessConfig->player.accelerationEnabled = typedPacket->m_playerConfig->accelerationEnabled;
+				sessConfig->player.movementAcceleration = typedPacket->m_playerConfig->movementAcceleration;
+				sessConfig->player.movementDeceleration = typedPacket->m_playerConfig->movementDeceleration;
+
+				sessConfig->player.sprintMultiplier = typedPacket->m_playerConfig->sprintMultiplier;
+
+				sessConfig->player.jumpVelocity = typedPacket->m_playerConfig->jumpVelocity;
+				sessConfig->player.jumpInterval = typedPacket->m_playerConfig->jumpInterval;
+				sessConfig->player.jumpTouch = typedPacket->m_playerConfig->jumpTouch;
+
+				sessConfig->player.height = typedPacket->m_playerConfig->height;
+				sessConfig->player.crouchHeight = typedPacket->m_playerConfig->crouchHeight;
+
+				sessConfig->player.headBobEnabled = typedPacket->m_playerConfig->headBobEnabled;
+				sessConfig->player.headBobAmplitude = typedPacket->m_playerConfig->headBobAmplitude;
+				sessConfig->player.headBobFrequency = typedPacket->m_playerConfig->headBobFrequency;
+
+				sessConfig->player.respawnPos = typedPacket->m_playerConfig->respawnPos;
+				sessConfig->player.respawnToPos = typedPacket->m_playerConfig->respawnToPos;
+				sessConfig->player.respawnHeading = typedPacket->m_playerConfig->respawnHeading;
+
+				sessConfig->player.movementRestrictionX = typedPacket->m_playerConfig->movementRestrictionX;
+				sessConfig->player.movementRestrictionZ = typedPacket->m_playerConfig->movementRestrictionZ;
+				sessConfig->player.restrictedMovementEnabled = typedPacket->m_playerConfig->restrictedMovementEnabled;
+				sessConfig->player.restrictionBoxAngle = typedPacket->m_playerConfig->restrictionBoxAngle;
+
+				sessConfig->player.counterStrafing = typedPacket->m_playerConfig->counterStrafing;
+
+				sessConfig->player.playerType = typedPacket->m_playerConfig->playerType;
+
+				sessConfig->networkedSessionProgress = typedPacket->m_networkedSessionProgress;
+				break;
+			}
+			case ADD_POINTS: {
+				sessConfig->clientScore++;
+				debugPrintf("Enemy Hit! Points Added!\n");
+				scene()->typedEntity<PlayerEntity>("player")->respawn();
+				break;
+			}
+			case RESET_CLIENT_ROUND: {
+				netSess.get()->resetRound();
+				scene()->typedEntity<PlayerEntity>("player")->respawn();
+				sessConfig->clientScore = 0;
+				break;
+			}
+			case CLIENT_FEEDBACK_START: {
+				netSess.get()->feedbackStart();
+				break;
+			}
+			case CLIENT_SESSION_END: {
+				netSess->endSession();
+				break;
+			}
+			default:
+				debugPrintf("WARNING: unhandled packet received on reliable channel of type: %d\n", inPacket->type());
+			}
 		}
+		inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
 	}
 }
 
@@ -1378,7 +1587,6 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 		// Get the next session for the current user
 		updateSession(userStatusTable.getNextSession());
 	}
-
 	// Update time at which this simulation finished
 	m_lastOnSimulationRealTime = m_lastOnSimulationRealTime + rdt;
 	m_lastOnSimulationSimTime = m_lastOnSimulationSimTime + sdt;
@@ -1690,12 +1898,16 @@ void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
 	target->playHitSound();
 
 	debugPrintf("HIT TARGET: %s\n", target->name().c_str());
-	if (experimentConfig.isNetworked && !experimentConfig.isAuthoritativeServer) { // TODO DON'T SEND IF NOT NETWORKED
-		NetworkUtils::sendHitReport(GUniqueID::fromString16(target->name().c_str()), m_playerGUID, m_serverPeer, m_networkFrameNum);
-		return;
-	}
-	else if (experimentConfig.isNetworked && experimentConfig.isAuthoritativeServer) {
-		NetworkUtils::sendFireReport(m_playerGUID, m_playerID, m_serverPeer, m_networkFrameNum);
+	if (experimentConfig.isNetworked && !experimentConfig.isAuthoritativeServer) {
+		if (sess->currentState == PresentationState::networkedSessionRoundStart) {
+			shared_ptr<ReportHitPacket> outPacket = GenericPacket::createReliable<ReportHitPacket>(m_serverPeer);
+			outPacket->populate(m_networkFrameNum, GUniqueID::fromString16(target->name().c_str()), m_playerGUID);
+			NetworkUtils::send(outPacket);
+		} // TODO::FIRE and include `if (sess->currentState == PresentationState::networkedSessionRoundStart)`
+		// else if (experimentConfig.isNetworked && experimentConfig.isAuthoritativeServer) {
+		// 	NetworkUtils::sendFireReport(m_playerGUID, m_playerID, m_serverPeer, m_networkFrameNum);
+		// 	return;
+		// }
 		return;
 	}
 
@@ -1795,6 +2007,14 @@ void FPSciApp::missEvent() {
 	if (sess)
 	{
 		sess->accumulatePlayerAction(PlayerActionType::Miss); // Declare this shot a miss here
+
+		// If this is a networked experiment send this miss data to the server
+		if (experimentConfig.isNetworked && m_socketConnected) {
+			shared_ptr<PlayerInteractPacket> outPacket = GenericPacket::createUnreliable<PlayerInteractPacket>(&m_unreliableSocket, &m_unreliableServerAddress);
+			outPacket->populate(m_networkFrameNum, PlayerActionType::Miss, m_playerGUID);
+			NetworkUtils::send(outPacket);
+			//outPacket->send();
+		}
 	}
 }
 
@@ -1889,7 +2109,9 @@ void FPSciApp::onUserInput(UserInput* ui) {
 		if (ui->keyDown(selectButton) && m_serverPeer != nullptr && m_enetConnected) {
 			if (!player->getPlayerReady()) {
 				player->setPlayerReady(true);
-				NetworkUtils::sendReadyUpMessage(m_serverPeer);
+				shared_ptr<ReadyUpClientPacket> outPacket = GenericPacket::createReliable<ReadyUpClientPacket>(m_serverPeer);
+				NetworkUtils::send(outPacket);
+				//outPacket->send();
 			}
 		}
 	}
@@ -2222,4 +2444,8 @@ FPSciApp::Settings::Settings(const StartupConfig& startupConfig, int argc, const
 
 	renderer.deferredShading = true;
 	renderer.orderIndependentTransparency = false;
+}
+
+uint32 FPSciApp::frameNumFromID(GUniqueID id) {
+	return m_serverFrame;
 }

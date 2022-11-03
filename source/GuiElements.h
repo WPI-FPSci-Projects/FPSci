@@ -106,8 +106,17 @@ public:
 
 class PlayerControls : public GuiWindow {
 protected:
+	
+	int	m_connectedClientIdx = 0;
+
+	const Array<String> m_connectedClients = { "Client 1", "Client 2" };
+
+	SessionConfig& m_sessionConfig;
+
 	PlayerControls(SessionConfig& config, std::function<void()> exportCallback,
 		const shared_ptr<GuiTheme>& theme, float width = 400.0f, float height = 10.0f);
+
+	void setConnectedClients(void);
 
 public:
 	static shared_ptr<PlayerControls> create(SessionConfig& config, std::function<void()> exportCallback,
@@ -125,12 +134,12 @@ protected:
 
 	void updateUserMenu(void);
 
-	RenderControls(FPSciApp* app, SessionConfig& config, bool& drawFps, const int numReticles, float& brightness,
+	RenderControls(FPSciApp* app, SessionConfig& config, bool& drawFps, bool& drawPing, const int numReticles, float& brightness,
 		const shared_ptr<GuiTheme>& theme, const int maxFrameDelay = 360, const float minFrameRate = 1.0f, const float maxFrameRate=1000.0f, float width=400.0f, float height=10.0f);
 public:
-	static shared_ptr<RenderControls> create(FPSciApp* app, SessionConfig& config, bool& drawFps, const int numReticles, float& brightness,
+	static shared_ptr<RenderControls> create(FPSciApp* app, SessionConfig& config, bool& drawFps, bool& drawPing, const int numReticles, float& brightness,
 		const shared_ptr<GuiTheme>& theme, const int maxFrameDelay = 360, const float minFrameRate = 1.0f, const float maxFrameRate=1000.0f, float width = 400.0f, float height = 10.0f) {
-		return createShared<RenderControls>(app, config, drawFps, numReticles, brightness, theme, maxFrameDelay, minFrameRate, maxFrameRate, width, height);
+		return createShared<RenderControls>(app, config, drawFps, drawPing, numReticles, brightness, theme, maxFrameDelay, minFrameRate, maxFrameRate, width, height);
 	}
 };
 

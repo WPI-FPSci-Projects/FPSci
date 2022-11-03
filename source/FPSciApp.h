@@ -25,6 +25,7 @@
 #include "PythonLogger.h"
 #include "Weapon.h"
 #include "CombatText.h"
+#include "Logger.h"
 
 class Session;
 class DialogBase;
@@ -41,12 +42,13 @@ enum PresentationState
 	trialTask,
 	trialFeedback,
 	sessionFeedback,
-	complete
-};
-enum NetworkedPresentationState
-{
+	complete,
+
 	initialNetworkedState,
-	networkedSessionStart,
+	networkedSessionRoundStart,
+	networkedSessionRoundTimeout,
+	networkedSessionRoundFeedback,
+	networkedSessionRoundOver,
 	networkedSessionComplete
 };
 static String presentationStateToString(const PresentationState& state) {
@@ -71,6 +73,24 @@ static String presentationStateToString(const PresentationState& state) {
 	case complete:
 		stateStr = "complete";
 		break;
+	case initialNetworkedState:
+		stateStr = "initialNetworkedState";
+		break;
+	case networkedSessionRoundStart:
+		stateStr = "networkedSessionRoundStart";
+		break;
+	case networkedSessionRoundTimeout:
+		stateStr = "networkedSessionRoundTimeout";
+		break;
+	case networkedSessionRoundFeedback:
+		stateStr = "networkedSessionRoundFeedback";
+		break;
+	case networkedSessionRoundOver:
+		stateStr = "networkedSessionRoundOver";
+		break;
+	case networkedSessionComplete:
+		stateStr = "networkedSessionComplete";
+		break;
 	}
 	return stateStr;
 }
@@ -85,6 +105,8 @@ public:
 		MOUSE_CURSOR = 1,	/// Cursor-based interaction
 		MOUSE_FPM = 2,		/// First-person manipulator-based interaction
 	};
+
+	virtual uint32 frameNumFromID(GUniqueID id);
 
 protected:
 	static const int MAX_HISTORY_TIMING_FRAMES = 360; ///< Length of the history queue for m_frameDurationQueue
@@ -115,6 +137,8 @@ public:
 	RealTime m_lastOnSimulationRealTime = 0.0f;	   ///< Wall clock time last onSimulation finished
 	SimTime m_lastOnSimulationSimTime = 0.0f;	   ///< Simulation time last onSimulation finished
 	SimTime m_lastOnSimulationIdealSimTime = 0.0f; ///< Ideal simulation time last onSimulation finished
+	uint32 m_networkFrameNum = 0;							///< The current frame (used to sync remote actions)
+	GUniqueID m_playerGUID = GUniqueID::create();	///< GUID for the player (used to identify the player in the network)
 protected:
 	float m_currentWeaponDamage = 0.0f; ///< A hack to avoid passing damage through callbacks
 
@@ -153,24 +177,32 @@ protected:
 	shared_ptr<Framebuffer> m_ldrShaderCompositeOutput; ///< Buffer to use for composite shader output (if provided)
 
 	// Shader parameters
-	int m_frameNumber = 0;									  ///< Frame number (since the start of the session)
+	int m_frameNumber = 0;                                    ///< Frame number (since the start of the session) for shaders
 	RealTime m_startTime;									  ///< Start time (for the session)
 	RealTime m_last2DTime, m_last3DTime, m_lastCompositeTime; ///< Times used for iTimeDelta
 
 	ENetSocket m_unreliableSocket = NULL;				///< Socket for unreliable comunication with the server
 	ENetPeer* m_serverPeer = nullptr;					///< Peer used for server-side communication
-	ENetHost* m_localHost = nullptr;								///< Host used to allow inbound relibale connections
+	ENetHost* m_localHost = nullptr;					///< Host used to allow inbound relibale connections
 	ENetAddress m_reliableServerAddress;				///< Address of server for reliable traffic
 	ENetAddress m_unreliableServerAddress;				///< Address of server for unreliable traffic
-	GUniqueID m_playerGUID;								///< GUID for the player (used to identify the player in the network)
-	uint16 m_networkFrameNum;							///< The current frame (used to sync remote actions)
-	ClientDataHandler* m_dataHandler = new ClientDataHandler();
+	
 	bool m_enetConnected;
 	bool m_socketConnected;
 
+	ENetSocket m_pingSocket = NULL;						///< Socket for sending ping packets separated from other packets
+	ENetAddress m_pingServerAddress;					///< Address reserved for ping packets
+	bool m_startedPinging = false;						///< Boolean determining whether or not we have started pinging
+	bool m_pinging = false;								///< Boolean determining if c2s ping sending and recieving threads should continue running
+	int m_pingInterval = 1000;							///< Interval variable (in ms) during which the client sends ping packets
+	NetworkUtils::PingStatistics m_pingStats;			///< Struct containing various RTT statistics (simple moving average, etc.)
+
+	uint32 m_serverFrame;
+
 	// Authoritative Server
 	uint8 m_playerID = -1;								///< ID of the player (used to identify the player in the network)
-	
+	ClientDataHandler* m_dataHandler = new ClientDataHandler();
+
 	/** Called from onInit */
 	void makeGUI();
 	void updateControls(bool firstSession = false);
@@ -247,10 +279,12 @@ public:
 	Color4 lerpColor(Array<Color4> colors, float a);
 
 	shared_ptr<Session> sess;		 ///< Pointer to the experiment
+	shared_ptr<NetworkedSession> netSess;		 ///< Pointer to the experiment, as a NetworkedSession so we can avoid doing static_casts.  Watch out, because this only exists when a networked experiment is defined!
 	shared_ptr<Camera> playerCamera; ///< Pointer to the player camera
 	shared_ptr<Weapon> weapon;		 ///< Current weapon
 
 	bool renderFPS = false;		   ///< Control flag used to draw (or not draw) FPS information to the display
+	bool renderPing = false;	   ///< Flag that determines whether or not to display ping / packet RTT
 	int displayLagFrames = 0;	   ///< Count of frames of latency to add
 	float lastSetFrameRate = 0.0f; ///< Last set frame rate
 	const int numReticles = 55;	   ///< Total count of reticles available to choose from
@@ -265,6 +299,7 @@ public:
 	bool reinitExperiment = false; ///< Semaphore to indicate experiment needs to be reinitialized
 
 	int experimentIdx = 0; ///< Index of the current experiment
+	bool isServer = false; ///< Indicates if its running from server or not
 
 	/** Call to change the reticle. */
 	void setReticle(int r);
@@ -298,6 +333,9 @@ public:
 	// Pass throughts to user settings window (for now)
 	Array<String> updateSessionDropDown(void) { return m_userSettingsWindow->updateSessionDropDown(); }
 	shared_ptr<UserConfig> const currentUser(void) { return userTable.getUserById(userStatusTable.currentUser); }
+
+	/** Gets statistics for ping / RTT */
+	NetworkUtils::PingStatistics getPingStatistics() { return m_pingStats; }
 
 	void markSessComplete(String id);
 	/** Updates experiment state to the provided session id and updates player parameters (including mouse sensitivity) */
@@ -345,6 +383,7 @@ public:
 	virtual void drawHUD(RenderDevice* rd, Vector2 resolution);					///< Draw HUD elements
 	void drawClickIndicator(RenderDevice* rd, String mode, Vector2 resolution); ///< Draw the click-to-photon click indicator
 	void updateFPSIndicator(RenderDevice* rd, Vector2 resolution);				///< Update and draw a (custom) frame time indicator (developer mode feature)
+	void updatePingIndicator(RenderDevice* rd, Vector2 resolution);				///< Update and display the current ping or packet RTT
 	void drawFeedbackMessage(RenderDevice* rd);									///< Draw a user feedback message (at full render device resolution)
 
 	void updateShaderBuffers(); ///< Regenerate buffers (for configured shaders)
@@ -353,6 +392,9 @@ public:
 	void pushRdStateWithDelay(RenderDevice* rd, Array<shared_ptr<Framebuffer>>& delayBufferQueue, int& delayIndex, int lagFrames = 0);
 	/** calls rd->popState and advances the delayIndex. Copies the latest delay buffer into the current framebuffer */
 	void popRdStateWithDelay(RenderDevice* rd, const Array<shared_ptr<Framebuffer>>& delayBufferQueue, int& delayIndex, int lagFrames = 0);
+
+	ENetPeer* getServerPeer() { return m_serverPeer; }
+	int getFrameNumber() { return m_frameNumber; }
 };
 
 // The "old" way of animation
