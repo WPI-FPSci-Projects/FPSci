@@ -223,10 +223,8 @@ ClientDataInput* G3D::ClientDataHandler::PredictEntity(int frameNum, uint8 playe
 	return prediction;
 }
 
-
 ClientDataInput* G3D::ClientDataHandler::PredictFrameLinear(int frameNum, uint8 playerID) {
 
-	//frame number is the frame you wish to predict
 	//p_new = p_current+(t_current-t_old)(p_current-p_old)
 	//p_new = p_current + (t_current - t_old)(p_current - p_old) + ½ * ((p_current - p_old) - (p_old - p_old2) / old) * (t_current - t_old) ^ 2
 	Point3 p1 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 1][0][playerID].GetCFrame().translation;
@@ -236,7 +234,7 @@ ClientDataInput* G3D::ClientDataHandler::PredictFrameLinear(int frameNum, uint8 
 	Matrix3 m2 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 2][0][playerID].GetCFrame().rotation;
 
 
-	////form delta around framenum + 1 frame in past and framenum + 2 frames in past
+	//new data point from last two datapoints
 	Point3 p0 = 2 * p1 - p2;
 	Matrix3 m0 = 2 * m1 - m2;
 	//new cframe from calculated deltas
@@ -251,7 +249,6 @@ ClientDataInput* G3D::ClientDataHandler::PredictFrameLinear(int frameNum, uint8 
 ClientDataInput* G3D::ClientDataHandler::PredictFrameQuadratic(int frameNum, uint8 playerID) {
 	//BUG TODO: accelerates to infinity if no new frame is found add max speed to calculations
 
-	//frame number is the frame you wish to predict
 	//p_new = p_current+(t_current-t_old)(p_current-p_old)
 	//p_new = p_current + (t_current - t_old)(p_current - p_old) + ½ * ((p_current - p_old) - (p_old - p_old2) / (t_current - t_old)) * (t_old - t_old2) ^ 2
 	Point3 p1 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 1][0][playerID].GetCFrame().translation;
@@ -263,7 +260,7 @@ ClientDataInput* G3D::ClientDataHandler::PredictFrameQuadratic(int frameNum, uin
 	Matrix3 m3 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 3][0][playerID].GetCFrame().rotation;
 
 
-	////form delta around framenum + 1 frame in past and framenum + 2 frames in past
+	//form new data point from last 3 data points
 	Point3 p0 = 2 * p1 - p2 + (.5* (p1 - 2 * p2 + p3));
 	Matrix3 m0 = 2 * m1 - m2 + (.5 * (m1 - 2 * m2 + m3));
 	//new cframe from calculated deltas

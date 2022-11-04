@@ -1115,7 +1115,6 @@ void FPSciApp::onNetwork() {
 						};
 						});
 					shared_ptr<Model> model = ArticulatedModel::create(modelSpec);
-
 					const shared_ptr<NetworkedEntity>& target = NetworkedEntity::create(entity_id.toString16(), &(*scene()), model, CFrame());
 					//target->setFrame(position);
 					target->setWorldSpace(true);
@@ -1333,6 +1332,7 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 	playerCamera->setFrame(p->getCameraFrame());
 
 	//predict and move all networked entities that have not been updated this frame
+	//TODO: when to stop predicting movement?
 	if (experimentConfig.extrapolationEnabled) {
 		Array<shared_ptr<NetworkedEntity>> entityArray;
 		scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
