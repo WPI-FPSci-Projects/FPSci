@@ -255,6 +255,30 @@ void ReportHitPacket::deserialize(BinaryInput& inBuffer) {
 	m_shooterID.deserialize(inBuffer);
 }
 
+/*********************
+ * Report Fire Packet *
+ *********************/
+
+void ReportFirePacket::populate(uint32 frameNumber, bool fired, GUniqueID shooterID) {
+	m_frameNumber = frameNumber;
+	m_fired = fired;
+	m_shooterID = shooterID;
+}
+
+void ReportFirePacket::serialize(BinaryOutput& outBuffer) {
+	GenericPacket::serialize(outBuffer);	// Call the super serialize
+	outBuffer.writeUInt32(m_frameNumber);
+	outBuffer.writeBool8(m_fired);
+	m_shooterID.serialize(outBuffer);
+}
+
+void ReportFirePacket::deserialize(BinaryInput& inBuffer) {
+	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
+	m_frameNumber = inBuffer.readUInt32();
+	m_fired = inBuffer.readBool8();
+	m_shooterID.deserialize(inBuffer);
+}
+
 /********************
  * Set Spawn Packet *
  ********************/

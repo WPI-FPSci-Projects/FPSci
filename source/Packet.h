@@ -20,6 +20,7 @@ enum PacketType {
 	HANDSHAKE_REPLY,
 
 	REPORT_HIT,
+	REPORT_FIRE,
 
 	SET_SPAWN_LOCATION,
 	RESPAWN_CLIENT,
@@ -428,6 +429,33 @@ protected:
 	void deserialize(BinaryInput& inBuffer) override;
 };
 
+/** A Packet used to signal that a client has fired
+*
+* This packet tells the server that a client (m_shooterID) has shot
+*/
+class ReportFirePacket : public GenericPacket {
+protected:
+	ReportFirePacket() : GenericPacket() {}
+	ReportFirePacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	ReportFirePacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	ReportFirePacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return REPORT_FIRE; }
+	shared_ptr<GenericPacket> clone() override { return createShared<ReportFirePacket>(*this); }
+
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
+	void populate(uint32 frameNumber, bool m_fired, GUniqueID m_shooterID);
+
+	uint32 m_frameNumber;							///< Frame number that this action took place
+	bool m_fired;									///< Whether the player has fired
+	GUniqueID m_shooterID;							///< GUID of the client that fired the shot
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+};
+
 /** A Packet used to set the spawn positon of the receiving client
 *
 * This packet updates the spawn location and heading of the receiving client
@@ -556,7 +584,6 @@ protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
 };
-
 
 /** A Packet for sending the client a Player Config
 *

@@ -188,7 +188,8 @@ void FPSciServerApp::onNetwork()
                             case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
                                 entity->setFrame(e.frame);
                                 if (m_dataHandler != nullptr) {
-                                    m_dataHandler->UpdateCframe(e.name, e.frame, typedPacket->m_frameNumber);
+                                    //TODO: 
+                                    //m_dataHandler->UpdateCframe(e.name, e.frame, typedPacket->m_frameNumber);
                                 }
                                 break;
                             }
@@ -293,7 +294,7 @@ void FPSciServerApp::onNetwork()
 
                     target->setWorldSpace(true);
                     target->setColor(G3D::Color3(20.0, 20.0, 200.0));
-                    target->setPlayerID(newClient.playerID);
+                    //target->setPlayerID(newClient.playerID); // TODO: FIX THIS
 
                     /* Add the new target to the scene */
                     (*scene()).insert(target);
@@ -307,7 +308,7 @@ void FPSciServerApp::onNetwork()
 
                     /* ADD NEW CLIENT TO OTHER CLIENTS, ADD OTHER CLIENTS TO NEW CLIENT */
                     shared_ptr<CreateEntityPacket> createEntityPacket = GenericPacket::createForBroadcast<CreateEntityPacket>();
-                    createEntityPacket->populate(m_networkFrameNum, newClient->guid, newClient.playerID);
+                    //createEntityPacket->populate(m_networkFrameNum, newClient->guid, newClient.playerID); // TODO: FIX THIS
                     NetworkUtils::broadcastReliable(createEntityPacket, m_localHost);
                     debugPrintf("Sent a broadcast packet to all connected peers\n");
 
@@ -315,7 +316,7 @@ void FPSciServerApp::onNetwork()
                         // Create entitys on the new client for all other clients
                         if (newClient->guid != m_connectedClients[i]->guid) {
                             createEntityPacket = GenericPacket::createReliable<CreateEntityPacket>(newClient->peer);
-                            createEntityPacket->populate(m_networkFrameNum, m_connectedClients[i]->guid, m_connectedClients[i]->playerID);
+                            //createEntityPacket->populate(m_networkFrameNum, m_connectedClients[i]->guid, m_connectedClients[i]->playerID); // TODO: FIX THIS
                             NetworkUtils::send(createEntityPacket);
                             //createEntityPacket->send();
                             debugPrintf("Sent add to %s to add %s\n", newClient->guid.toString16(), m_connectedClients[i]->guid.toString16());
@@ -390,7 +391,8 @@ void FPSciServerApp::onNetwork()
             }
             case REPORT_FIRE:
                 {
-                    NetworkUtils::handleFireReport(packet_contents, m_dataHandler, frameNum);
+                    ReportFirePacket* typedPacket = static_cast<ReportFirePacket*> (inPacket.get());
+                    //m_dataHandler->UpdateFired(playerID, typedPacket->m_fired, typedPacket->m_frameNumber) // TODO: FIX PLAYERID
                 }
             case READY_UP_CLIENT: {
                     m_clientsReady++;

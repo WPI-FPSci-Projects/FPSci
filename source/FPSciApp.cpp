@@ -1185,7 +1185,7 @@ void FPSciApp::onNetwork() {
 									entity->setFrame(e.frame);
 									if (m_dataHandler != nullptr) {
 										// TODO:: convert GUID to playerID for e.name
-										m_dataHandler->UpdateCframe(e.name, e.frame, typedPacket->m_frameNumber);
+										// m_dataHandler->UpdateCframe(e.name, e.frame, typedPacket->m_frameNumber);
 									}
 									break;
 								}
@@ -1271,9 +1271,8 @@ void FPSciApp::onNetwork() {
 				{
 					// when we're told to create ourself, update our playerID to match what the server gives us
 					// TODO::PID uint8 playerID = packet_contents.readUInt8();
-					debugPrintf("Updated playerID from %i to %i after server told us to create ourself\n", m_playerID,
-								playerID);
-					m_playerID = playerID;
+					//debugPrintf("Updated playerID from %i to %i after server told us to create ourself\n", m_playerID, playerID);
+					//m_playerID = playerID;
 				}
 				break;
 			}
@@ -1282,7 +1281,7 @@ void FPSciApp::onNetwork() {
 				debugPrintf("INFO: Received registration reply...\n");
 					if (typedPacket->m_guid == m_playerGUID) {
 					// TODO::PID uint8 playerID = packet_contents.readUInt8();
-					int status = packet_contents.readUInt8();
+					//int status = packet_contents.readUInt8();
 						if (typedPacket->m_status == 0) {
 						m_enetConnected = true;
 						debugPrintf("INFO: Received registration from server\n");
