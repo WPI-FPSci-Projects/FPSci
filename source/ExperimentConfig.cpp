@@ -14,6 +14,8 @@ ExperimentConfig::ExperimentConfig(const Any& any) : FpsConfig(any) {
 		reader.getIfPresent("serverAddress", serverAddress);
 		reader.getIfPresent("serverPort", serverPort);
 		reader.getIfPresent("clientPort", clientPort);
+		reader.getIfPresent("pingPort", pingPort);
+		reader.getIfPresent("pingSMASize", pingSMASize);
 		reader.getIfPresent("numPlayers", numPlayers);
 		reader.getIfPresent("isNetworked", isNetworked);
 		reader.getIfPresent("isAuthoritativeServer", isAuthoritativeServer);

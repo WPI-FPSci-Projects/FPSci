@@ -72,6 +72,8 @@ SessionConfig::SessionConfig(const Any& any) : FpsConfig(any, defaultConfig()) {
 		reader.getIfPresent("description", description);
 		reader.getIfPresent("closeOnComplete", closeOnComplete);
 		reader.getIfPresent("blockCount", blockCount);
+		reader.getIfPresent("hitsToKill", hitsToKill);
+		reader.getIfPresent("networkLatency", networkLatency);
 		reader.get("trials", trials, format("Issues in the (required) \"trials\" array for session: \"%s\"", id));
 		break;
 	default:
@@ -90,6 +92,8 @@ Any SessionConfig::toAny(const bool forceAll) const {
 	a["description"] = description;
 	if (forceAll || def.closeOnComplete != closeOnComplete)	a["closeOnComplete"] = closeOnComplete;
 	if (forceAll || def.blockCount != blockCount)				a["blockCount"] = blockCount;
+	if (forceAll || def.hitsToKill != hitsToKill)			a["hitsToKill"] = hitsToKill;
+	if (forceAll || def.networkLatency != networkLatency)	a["networkLatency"] = networkLatency;
 	a["trials"] = trials;
 	return a;
 }
@@ -444,9 +448,10 @@ void Session::updatePresentationState()
 			}
 		}
 	}
-	else if (currentState == PresentationState::trialFeedback)
+	if (currentState == PresentationState::trialFeedback || currentState == PresentationState::networkedSessionRoundFeedback)
 	{
-		if ((stateElapsedTime > m_config->timing.trialFeedbackDuration) && (remainingTargets <= 0))
+		debugPrintf("QA DONE!0 state: %d\n ", currentState);
+		if ((stateElapsedTime > m_config->timing.trialFeedbackDuration) && (remainingTargets <= 0) || currentState == PresentationState::networkedSessionRoundFeedback)
 		{
 			if (blockComplete()) {
 				m_currBlock++;		// Increment the block index
@@ -479,31 +484,56 @@ void Session::updatePresentationState()
 					}
 					else {
 						// Write final session timestamp to log
-						if (notNull(logger) && m_config->logger.enable) {
+						if (notNull(logger) && m_config->logger.enable && currentState != PresentationState::networkedSessionRoundFeedback) {
 							int totalTrials = 0;
 							for (int tCount : m_completedTrials) { totalTrials += tCount; }
 							logger->updateSessionEntry((m_remainingTrials[m_currTrialIdx] == 0), totalTrials);			// Update session entry in database
 						}
-						if (m_config->logger.enable) {
+						if (m_config->logger.enable && currentState != PresentationState::networkedSessionRoundFeedback) {
 							endLogging();
 						}
-						m_app->markSessComplete(m_config->id);														// Add this session to user's completed sessions
+						if (currentState == PresentationState::networkedSessionRoundFeedback)
+						{
+							currentState = PresentationState::networkedSessionRoundOver;
+							newState = currentState;
+							m_currQuestionIdx = -1;
+						}
+						else
+						{
+							m_app->markSessComplete(m_config->id);														// Add this session to user's completed sessions
 
-						m_feedbackMessage = formatFeedback(m_config->feedback.sessComplete);						// Update the feedback message
-						m_currQuestionIdx = -1;
-						newState = PresentationState::sessionFeedback;
+							m_feedbackMessage = formatFeedback(m_config->feedback.sessComplete);						// Update the feedback message
+							m_currQuestionIdx = -1;
+
+							newState = PresentationState::sessionFeedback;
+						}
 					}
 				}
-				else {					// Block is complete but session isn't
-					m_feedbackMessage = formatFeedback(m_config->feedback.blockComplete);
-					updateBlock();
-					newState = PresentationState::initial;
+				else {				
+					if (currentState == PresentationState::networkedSessionRoundFeedback)
+					{
+						currentState = PresentationState::networkedSessionRoundOver;
+						newState = currentState;
+					}
+					else {
+						// Block is complete but session isn't
+						m_feedbackMessage = formatFeedback(m_config->feedback.blockComplete);
+						updateBlock();
+						newState = PresentationState::initial;
+					}
 				}
 			}
 			else {
-				m_feedbackMessage = "";				// Clear the feedback message
-				nextCondition();
-				newState = PresentationState::pretrial;
+				if (currentState == PresentationState::networkedSessionRoundFeedback)
+				{
+					currentState = PresentationState::networkedSessionRoundOver;
+					newState = currentState;
+				}
+				else {
+					m_feedbackMessage = "";				// Clear the feedback message
+					nextCondition();
+					newState = PresentationState::pretrial;
+				}
 			}
 		}
 	}
@@ -696,6 +726,8 @@ float Session::getProgress() {
 }
 
 double Session::getScore() {
+	if (m_config->isNetworked != nullptr && *m_config->isNetworked )
+		return (float)m_config->clientScore;
 	return 100.0 * m_totalRemainingTime;
 }
 

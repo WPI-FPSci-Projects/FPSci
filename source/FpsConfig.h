@@ -80,11 +80,30 @@ public:
 	float			movementAcceleration = 12.0f;				///< Player acceleration during movement (defaults to 12.0)
 	float			movementDeceleration = 22.0f;				///< Player deceleration while stopping (defaults to 12.0)
 	Point3			respawnPos = Point3(-46.0f, -2.3f, 0.0f);	///< Player respawn position (defualts to -46, -2.3, 0)
+	float			respawnHeading = 0.0f;						///< Players respawn heading. (Defaults to 0 degree)
 	bool			respawnToPos = false;						///< If true, player will respawn to respawnPos. (defaults to false)
 	float			movementRestrictionX = 5.0f;				///< Player's restricted movement span along X
 	float			movementRestrictionZ = 5.0f;				///< Player's restricted movement span along Z
 	bool			restrictedMovementEnabled = false;			///< If true, player's movement will be restricted along X and Z
+	float			restrictionBoxAngle = 0.0f;					///< Rotates the restriction box (degrees)
 	bool			counterStrafing = false;					///< If true, counter strafing will be enabled. (defaults to false.)
+	bool			propagatePlayerConfigsToAll = false;		///< If true, all players config from the server will be broadcast to clients
+	bool			propagatePlayerConfigsToSelectedClient = false; ///< If true, all players config from the server will be sent to selected client
+	bool			readFromFile = false;						///< Read client configs from file or not
+	int				selectedClientIdx = 0;						///< Indicates the index of the client that player configs will be propagated to
+	String			playerType = "";							///< Indicates what type of player it is (Peeker/Defender/Other)
+	float			clientLatency = 0.0f;						///< Clients latency over the network
+	Array <PlayerConfig>  clientPlayerConfigs;					///< Player config for all the clients
+
+	// For peekers and defenders per round config settings
+	Array<Point3> respawnPosArray = { Point3(-46.0f, -2.3f, 0.0f), Point3(-36.0f, -2.3f, 0.0f) }; ///< Holds Peeker's/Defender's spawn position
+	Array<float> respawnHeadingArray = { 0.0f, 90.0f };											  ///< Holds Peeker's/Defender's respawn heading
+	Array<float> movementRestrictionXArray = { 3.0f, 2.0f };									  ///< Holds Peeker's/Defender's restricted movement span along X 
+	Array<float> movementRestrictionZArray = { 3.0f, 2.0f };								      ///< Holds Peeker's/Defender's restricted movement span along Z 
+	Array<bool>	 restrictedMovementEnabledArray = {true, true};									  ///< If true, Peeker's/Defender's movement will be restricted along X and Z
+	Array<float> restrictionBoxAngleArray = { 10.0f, 0.0f };									  ///< Rotates Peeker's/Defender's the restriction box (degrees)
+
+	Array<float> clientLatencyArray = { 0, 10, 20 };											  ///< Holds Peeker's/Defender's latency settings
 
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;
@@ -192,7 +211,7 @@ public:
 	String sessComplete = "Session complete! You scored %totalTimeLeftS!";							///< Session complete feedback message
 	String allSessComplete = "All Sessions Complete!";												///< All sessions complete feedback message
 	String networkedSesstionInitial = "Press Tab to Ready Up!";										///< Initial Message for Networked Session to Prompt Players to "Ready Up"
-	String networkedSesstionWaitForOthers = "Wait for others to be ready!";							///< Message to display when not all players are ready	
+	String networkedSesstionWaitForOthers = "Wait for others to be ready and connected!";			///< Message to display when not all players are ready	
 
 	float fontSize = 20.0f;											///< Default font scale/size
 

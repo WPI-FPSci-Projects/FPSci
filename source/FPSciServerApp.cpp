@@ -10,7 +10,8 @@ FPSciServerApp::FPSciServerApp(const GApp::Settings& settings) : FPSciApp(settin
 
 
 void FPSciServerApp::initExperiment() {
-    playersReady = 0;
+    m_clientsReady = 0;
+    m_clientsTimedOut = 0;
     // Load config from files
     loadConfigs(startupConfig.experimentList[experimentIdx]);
     m_lastSavedUser = *currentUser();			// Copy over the startup user for saves
@@ -56,11 +57,11 @@ void FPSciServerApp::initExperiment() {
     const Array<String> sessions = m_userSettingsWindow->updateSessionDropDown();	// Update the session drop down to remove already completed sessions
     updateSession(sessions[0], true);		// Update session to create results file/start collection
 
+    /* This is where added code begins */
+    
     //Setup dataHandler
     m_dataHandler->SetParameters(experimentConfig.pastFrame, experimentConfig.futureFrame);
-
-    /* This is where added code begins */
-
+    
     // Setup the network and start listening for clients
     ENetAddress localAddress;
 
@@ -81,169 +82,414 @@ void FPSciServerApp::initExperiment() {
 
     debugPrintf("Began listening\n");
 
-    static_cast<NetworkedSession*>(sess.get())->startSession(); // Set player as ready for the server player.
+    // If we are pinging
+    if (startupConfig.pingEnabled) {
+
+        // Add separate socket for ping
+        m_pingSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+        enet_socket_set_option(m_pingSocket, ENET_SOCKOPT_NONBLOCK, 1);
+        // Check if the ping port is not already used
+        if (experimentConfig.pingPort != experimentConfig.serverPort &&
+            experimentConfig.pingPort != experimentConfig.serverPort + 1) {
+            localAddress.port = experimentConfig.pingPort;
+        }
+        else {
+            experimentConfig.pingPort == experimentConfig.serverPort + 1 ?
+                localAddress.port = experimentConfig.pingPort + 1 :
+                localAddress.port = experimentConfig.pingPort + 2;
+            logPrintf("Ping: port %d is already in use, opening up port %d for pinging\n", experimentConfig.pingPort, localAddress.port);
+        }
+
+        if (enet_socket_bind(m_pingSocket, &localAddress)) {
+            debugPrintf("bind failed with error: %d\n", WSAGetLastError());
+            throw std::runtime_error("Could not bind ping to the local address");
+        }
+
+        // Initialize lambdas and threads for listening for pings
+        auto s2cPing = [](ENetSocket socket) {
+
+            while (true) {
+                // Ping sent via unreliable channel, host technically not needed but prevents crash    
+                shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePing(&socket);               
+                while (inPacket != nullptr) {                   
+                    ENetAddress srcAddr = inPacket->srcAddr();
+                    char ip[16];
+                    enet_address_get_host_ip(&srcAddr, ip, 16);
+                    if (inPacket->type() == PacketType::PING) {                       
+                        PingPacket* c2sPacket = static_cast<PingPacket*>(inPacket.get());
+                        shared_ptr<PingPacket> outPacket = GenericPacket::createUnreliable<PingPacket>(&socket, &srcAddr);
+                        outPacket->populate(c2sPacket->m_rttStart);
+                        NetworkUtils::send(outPacket);
+                    }
+                    inPacket = NetworkUtils::receivePing(&socket);
+                }
+
+            }
+        };
+        shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
+        player->setPlayerMovement(true);     
+
+        std::thread s2cPing_Th(s2cPing, m_pingSocket);
+        s2cPing_Th.detach();      
+
+        // Initialize dummy ping statistics
+        m_pingStats.pingQueue.pushBack(0);
+        experimentConfig.pingSMASize > 0 ? m_pingStats.smaRTTSize = experimentConfig.pingSMASize : m_pingStats.smaRTTSize = 5;
+    }
+
+    isServer = true;
+    m_clientFirstRoundPeeker = true;
+    shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
+    player->setPlayerMovement(true);
+
+    sessConfig->numberOfRoundsPlayed = 0;
+    sessConfig->isNetworked = &experimentConfig.isNetworked;
 }
 
-void FPSciServerApp::onNetwork() {
+void FPSciServerApp::onNetwork()
+{
     /* None of this is from the upsteam project */
 
-    if (!sess->currentState == NetworkedPresentationState::networkedSessionStart) {
-        m_networkFrameNum++;
-    }
+    //if (!static_cast<NetworkedSession*>(sess.get())->currentState == PresentationState::networkedSessionRoundStart) {
+    m_networkFrameNum++;
+    //}
     
     /* First we receive on the unreliable connection */
 
-    ENetAddress addr_from;
-    ENetBuffer buff;
-    void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
-    buff.data = data;
-    buff.dataLength = ENET_HOST_DEFAULT_MTU;
-    while (enet_socket_receive(m_unreliableSocket, &addr_from, &buff, 1)) { //while there are packets to receive
-        /* Unpack the basic data from the packet */
-        char ip[16];
-        enet_address_get_host_ip(&addr_from, ip, 16);
-        BinaryInput packet_contents((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
-        NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
-        uint16 frameNum = packet_contents.readUInt16();
+    shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
+    while (inPacket != nullptr) {
+        char ip[16];        
+        ENetAddress srcAddr = inPacket->srcAddr();
+        enet_address_get_host_ip(&srcAddr, ip, 16);       
+        NetworkUtils::ConnectedClient* client = getClientFromAddress(inPacket->srcAddr());
+        if (!inPacket->isReliable()) {
+            switch (inPacket->type()) {
+            case HANDSHAKE: {
+                    shared_ptr<HandshakeReplyPacket> outPacket = GenericPacket::createUnreliable<HandshakeReplyPacket>(&m_unreliableSocket, &srcAddr);
+                    NetworkUtils::send(outPacket);
+                    /*if (outPacket->send() <= 0) {
+                        debugPrintf("Failed to send the handshke reply\n");
+                    }*/
+                    break;
+            }
+            case BATCH_ENTITY_UPDATE: {
+                    // Client currently only update self position, needs check for AS if changed
+                    BatchEntityUpdatePacket* typedPacket = static_cast<BatchEntityUpdatePacket*> (inPacket.get());
+                    for (BatchEntityUpdatePacket::EntityUpdate e : typedPacket->m_updates) {
+                        shared_ptr<NetworkedEntity> entity = (*scene()).typedEntity<NetworkedEntity>(e.name);
+                        if (entity == nullptr) {
+                            debugPrintf("Recieved update for entity %s, but it doesn't exist\n", e.name.c_str());
+                        }
+                        else {
+                            switch (typedPacket->m_updateType) {
+                            case BatchEntityUpdatePacket::NetworkUpdateType::NOOP:
+                                // Do nothing (No-Op)
+                                break;
+                            case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
+                                entity->setFrame(e.frame);
+                                if (m_dataHandler != nullptr) {
+                                    m_dataHandler->UpdateCframe(e.name, e.frame, typedPacket->m_frameNumber);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    break;
+            }
+            case PLAYER_INTERACT: {
+                    PlayerInteractPacket* typedPacket = static_cast<PlayerInteractPacket*> (inPacket.get());
+                    shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_actorID.toString16());
+                    RemotePlayerAction rpa = RemotePlayerAction();
+                    rpa.time = sess->logger->getFileTime();
+                    rpa.viewDirection = clientEntity->getLookAzEl();
+                    rpa.position = clientEntity->frame().translation;
+                    rpa.state = sess->currentState;
+                    rpa.action = (PlayerActionType)typedPacket->m_remoteAction;
+                    rpa.actorID = typedPacket->m_actorID.toString16();
+                    sess->logger->logRemotePlayerAction(rpa);
+                    break;
+            }
+            case PING_DATA: {
+                    PingDataPacket* pingDataPacket = static_cast<PingDataPacket*>(inPacket.get());
 
-        /* Respond to a handsake request */
-        if (type == NetworkUtils::MessageType::HANDSHAKE) {
-            debugPrintf("Replying to handshake...\n");
-            if (NetworkUtils::sendHandshakeReply(m_unreliableSocket, addr_from) <= 0) {
-                debugPrintf("Failed to send reply...\n");
-            };
-        }
-        /* If the client is trying to update an entity's positon on the server */
-        // Client currently only update self position, needs check for AS if changed
-        else if (type == NetworkUtils::MessageType::BATCH_ENTITY_UPDATE) {
-            //update locally entity displayed on the server: 
-            int num_packet_members = packet_contents.readUInt8(); // get # of frames in this packet
-            for (int i = 0; i < num_packet_members; i++) { // get new frames and update objects
-                NetworkUtils::updateEntity(Array<GUniqueID>(), scene(), packet_contents, m_dataHandler); // Read the data from the packet and update on the local entity
+                    uint16 cappedRTT = pingDataPacket->m_latestRTT;
+                    uint16 cappedSMARTT = pingDataPacket->m_smaRTT;
+                    uint16 cappedMinRTT = pingDataPacket->m_minRTT;
+                    uint16 cappedMaxRTT = pingDataPacket->m_maxRTT;
+                    Array<uint16> rttStatsArray = { cappedRTT, cappedSMARTT, cappedMinRTT, cappedMaxRTT };
+                    m_clientRTTStatistics.set(inPacket->srcAddr().host, rttStatsArray);
+                    break;
+            }
+            default:
+                debugPrintf("WARNING: unhandled packet receved on the unreliable channel of type: %d\n", inPacket->type());
+                break;
             }
         }
-    }
-    free(data);
-
-    /* Now we handle any incoming packets on the reliable connection */
-
-    ENetEvent event;
-    while (enet_host_service(m_localHost, &event, 0) > 0) {    // This services the host; processing all activity on a host including sending and recieving packets then a single inbound packet is returned as an event
-        /* Unpack basic data from packet */
-        debugPrintf("Processing Reliable Packet.... %i\n", event.type);
-        char ip[16];
-        enet_address_get_host_ip(&event.peer->address, ip, 16);
-        if (event.type == ENET_EVENT_TYPE_CONNECT) {
-            debugPrintf("connection recieved...\n");
-            logPrintf("made connection to %s in response to input\n", ip);
-        }
-        else if (event.type == ENET_EVENT_TYPE_DISCONNECT) {
-            debugPrintf("disconnection recieved...\n");
-            logPrintf("%s disconnected.\n", ip);
-            /* Removes the client from the list of connected clients and orders all other clients to delete that entity */
-            for (int i = 0; i < m_connectedClients.size(); i++) {
-                if (m_connectedClients[i].peer->address.host == event.peer->address.host &&
-                    m_connectedClients[i].peer->address.port == event.peer->address.port) {
-                    GUniqueID id = m_connectedClients[i].guid;
-                    shared_ptr<NetworkedEntity> entity = scene()->typedEntity<NetworkedEntity>(id.toString16());
+        // This is a reliable packet and should be handled as such
+        else {
+            switch (inPacket->type()) {
+            case RELIABLE_CONNECT: {
+                    debugPrintf("connection recieved...\n");
+                    logPrintf("made connection to %s in response to input\n", ip);
+                    break;
+            }
+            case RELIABLE_DISCONNECT: {
+                    debugPrintf("disconnection recieved...\n");
+                    logPrintf("%s disconnected.\n", ip);
+                    /* Removes the client from the list of connected clients and orders all other clients to delete that entity */
+                    shared_ptr<NetworkedEntity> entity = scene()->typedEntity<NetworkedEntity>(client->guid.toString16());
                     if (entity != nullptr) {
                         scene()->remove(entity);
                     }
-                    m_connectedClients.remove(i, 1);
-                    NetworkUtils::broadcastDestroyEntity(id, m_localHost, m_networkFrameNum);
-                }
-            }
-        }
-        else if (event.type == ENET_EVENT_TYPE_RECEIVE) {
-
-            BinaryInput packet_contents(event.packet->data, event.packet->dataLength, G3D_BIG_ENDIAN);
-            NetworkUtils::MessageType type = (NetworkUtils::MessageType)packet_contents.readUInt8();
-            uint16 frameNum = packet_contents.readUInt16();
-
-            /* Now parse the type of message we received */
-
-            if (type == NetworkUtils::MessageType::REGISTER_CLIENT) {
-                debugPrintf("Registering client...\n");
-                m_historicalPlayerCount++;
-                NetworkUtils::ConnectedClient newClient = NetworkUtils::registerClient(
-                    event, packet_contents, m_historicalPlayerCount);
-                m_connectedClients.append(newClient);
-                debugPrintf("\tRegistered client: %s\n", newClient.guid.toString16());
-                debugPrintf("\tPlayer ID: %i\n", newClient.playerID);
-
-                Any modelSpec = PARSE_ANY(ArticulatedModel::Specification{			///< Basic model spec for target
-                    filename = "model/target/mid_poly_sphere_no_outline.obj";
-                    cleanGeometrySettings = ArticulatedModel::CleanGeometrySettings{
-                    allowVertexMerging = true;
-                    forceComputeNormals = false;
-                    forceComputeTangents = false;
-                    forceVertexMerging = true;
-                    maxEdgeLength = inf;
-                    maxNormalWeldAngleDegrees = 0;
-                    maxSmoothAngleDegrees = 0;
-                    };
-                    });
-                shared_ptr<Model> model = ArticulatedModel::create(modelSpec);
-                /* Create a new entity for the client */
-                const shared_ptr<NetworkedEntity>& target = NetworkedEntity::create(newClient.guid.toString16(), &(*scene()), model, CFrame());
-                // add entity to ConnectedClient
-                m_connectedClients.last().entity = target;
-
-                target->setWorldSpace(true);
-                target->setColor(G3D::Color3(20.0, 20.0, 200.0));
-                target->setPlayerID(newClient.playerID);
-
-                /* Add the new target to the scene */
-                (*scene()).insert(target);
-
-                //add camera and weapon
-                const String* name = new String("camera" + std::to_string(m_connectedClients.size()));
-                m_connectedClients.last().camera = Camera::create(*name);
-                m_connectedClients.last().weapon = Weapon::create(&experimentConfig.weapon, scene(), m_connectedClients.last().camera);
-
-                (*scene()).insert(m_connectedClients.last().camera);
-
-                /* ADD NEW CLIENT TO OTHER CLIENTS, ADD OTHER CLIENTS TO NEW CLIENT */
-
-                NetworkUtils::broadcastCreateEntity(newClient.guid, m_localHost, m_networkFrameNum, newClient.playerID);
-                debugPrintf("Sent a broadcast packet to all connected peers\n");
-
-                for (int i = 0; i < m_connectedClients.length(); i++) {
-                    // Create entitys on the new client for all other clients
-                    if (newClient.guid != m_connectedClients[i].guid) {
-                        NetworkUtils::sendCreateEntity(m_connectedClients[i].guid, newClient.peer, m_networkFrameNum, m_connectedClients[i].playerID);
-                        debugPrintf("Sent add to %s to add %s\n", newClient.guid.toString16(), m_connectedClients[i].guid.toString16());
+                    for (int i = 0; i < m_connectedClients.length(); i++) {
+                        if (m_connectedClients[i]->guid == client->guid) {
+                            m_connectedClients.remove(i, 1);
+                        }
                     }
-                }
-                // move the client to a different location
-                // TODO: Make this smart not just some test code
-                if (m_connectedClients.length() % 2 == 0) {
-                    Point3 position = Point3(-46, -2.3, 0);
-                    float heading = 90;
-                    NetworkUtils::sendSetSpawnPos(position, heading, event.peer);
-                    //CFrame frame = CFrame::fromXYZYPRDegrees(-46, -2.3, 0, -90, -0, 0);
-                    //NetworkUtils::sendMoveClient(frame, event.peer);
-                    NetworkUtils::sendRespawnClient(event.peer, m_networkFrameNum);
-                }
+
+                    shared_ptr<DestroyEntityPacket> outPacket = GenericPacket::createForBroadcast<DestroyEntityPacket>();
+                    outPacket->populate(m_networkFrameNum, client->guid);
+                    NetworkUtils::broadcastReliable(outPacket, m_localHost);
+                    //NetworkUtils::send(outPacket);
+                    //outPacket->send();
+                    break;
             }
-            else if (type == NetworkUtils::MessageType::REPORT_HIT) {
-                NetworkUtils::handleHitReport(m_localHost, packet_contents, m_networkFrameNum);
-                playersReady = 0;
+            case REGISTER_CLIENT: {
+                    RegisterClientPacket* typedPacket = static_cast<RegisterClientPacket*> (inPacket.get());
+                    debugPrintf("Registering client...\n");
+                    m_historicalPlayerCount++;
+                    NetworkUtils::ConnectedClient* newClient = NetworkUtils::registerClient(typedPacket, m_historicalPlayerCount);   // TODO: Decide if this should be in NetworkUtils or not
+                    m_connectedClients.append(newClient);
+                    /* Reply to the registration */
+                    shared_ptr<RegistrationReplyPacket> registrationReply = GenericPacket::createReliable<RegistrationReplyPacket>(newClient->peer);
+                    registrationReply->populate(newClient->guid, 0);
+                    NetworkUtils::send(registrationReply);                
+                    ENetAddress addr = typedPacket->srcAddr();
+                    addr.port = typedPacket->m_portNum;
+                    /* Set the amount of latency to add */
+                    NetworkUtils::setAddressLatency(addr, sessConfig->networkLatency);                
+                    NetworkUtils::setAddressLatency(typedPacket->srcAddr(), sessConfig->networkLatency);
+                    //registrationReply->send();
+                    debugPrintf("\tRegistered client: %s\n", newClient->guid.toString16());
+                    debugPrintf("\tPlayer ID: %i\n", newClient->playerID);
+
+                    Any modelSpec = PARSE_ANY(ArticulatedModel::Specification{			///< Basic model spec for target
+                        filename = "model/target/mid_poly_sphere_no_outline.obj";
+                        cleanGeometrySettings = ArticulatedModel::CleanGeometrySettings{
+                        allowVertexMerging = true;
+                        forceComputeNormals = false;
+                        forceComputeTangents = false;
+                        forceVertexMerging = true;
+                        maxEdgeLength = inf;
+                        maxNormalWeldAngleDegrees = 0;
+                        maxSmoothAngleDegrees = 0;
+                        };
+                        });
+                    shared_ptr<Model> model = ArticulatedModel::create(modelSpec);
+                    /* Create a new entity for the client */
+                    const shared_ptr<NetworkedEntity>& target = NetworkedEntity::create(newClient->guid.toString16(), &(*scene()), model, CFrame());
+                    // add entity to ConnectedClient
+                    m_connectedClients.last()->entity = target;
+
+                    target->setWorldSpace(true);
+                    target->setColor(G3D::Color3(20.0, 20.0, 200.0));
+                    target->setPlayerID(newClient.playerID);
+
+                    /* Add the new target to the scene */
+                    (*scene()).insert(target);
+
+                    //add camera and weapon
+                    const String* name = new String("camera" + std::to_string(m_connectedClients.size()));
+                    m_connectedClients.last()->camera = Camera::create(*name);
+                    m_connectedClients.last()->weapon = Weapon::create(&experimentConfig.weapon, scene(), m_connectedClients.last()->camera);
+
+                    (*scene()).insert(m_connectedClients.last()->camera);
+
+                    /* ADD NEW CLIENT TO OTHER CLIENTS, ADD OTHER CLIENTS TO NEW CLIENT */
+                    shared_ptr<CreateEntityPacket> createEntityPacket = GenericPacket::createForBroadcast<CreateEntityPacket>();
+                    createEntityPacket->populate(m_networkFrameNum, newClient->guid, newClient.playerID);
+                    NetworkUtils::broadcastReliable(createEntityPacket, m_localHost);
+                    debugPrintf("Sent a broadcast packet to all connected peers\n");
+
+                    for (int i = 0; i < m_connectedClients.length(); i++) {
+                        // Create entitys on the new client for all other clients
+                        if (newClient->guid != m_connectedClients[i]->guid) {
+                            createEntityPacket = GenericPacket::createReliable<CreateEntityPacket>(newClient->peer);
+                            createEntityPacket->populate(m_networkFrameNum, m_connectedClients[i]->guid, m_connectedClients[i]->playerID);
+                            NetworkUtils::send(createEntityPacket);
+                            //createEntityPacket->send();
+                            debugPrintf("Sent add to %s to add %s\n", newClient->guid.toString16(), m_connectedClients[i]->guid.toString16());
+                        }
+                    }
+                    // move the client to a different location
+                    // TODO: Make this smart not just some test code
+                    if (m_connectedClients.length() % 2 == 0) {
+                        Point3 position = Point3(-46, -2.3, 0);
+                        float heading = 90;
+                        shared_ptr<SetSpawnPacket> setSpawnPacket = GenericPacket::createReliable<SetSpawnPacket>(newClient->peer);
+                        setSpawnPacket->populate(position, heading);
+                        NetworkUtils::send(setSpawnPacket);
+                        //setSpawnPacket->send();
+                        shared_ptr<RespawnClientPacket> respawnPacket = GenericPacket::createReliable<RespawnClientPacket>(newClient->peer);
+                        respawnPacket->populate();
+                        NetworkUtils::send(respawnPacket);
+                        //respawnPacket->send();
+                    }
+                    break;
             }
-            else if (type == NetworkUtils::MessageType::REPORT_FIRE) {
-                NetworkUtils::handleFireReport(packet_contents, m_dataHandler, frameNum);
+            case PacketType::REPORT_HIT: {
+                    // This just causes everyone to respawn
+                    ReportHitPacket* typedPacket = static_cast<ReportHitPacket*> (inPacket.get());
+                    shared_ptr<NetworkedEntity> hitEntity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_shotID.toString16());
+                    //NetworkUtils::ConnectedClient* hitClient = getClientFromGUID(hitID);
+
+                    // Log the hit on the server
+                    const shared_ptr<NetworkedEntity> shooterEntity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_shooterID.toString16());
+                    RemotePlayerAction rpa = RemotePlayerAction();
+                    rpa.time = sess->logger->getFileTime();
+                    rpa.viewDirection = shooterEntity->getLookAzEl();
+                    rpa.position = shooterEntity->frame().translation;
+                    rpa.state = sess->currentState;
+                    rpa.action = PlayerActionType::Hit;
+                    rpa.actorID = typedPacket->m_shooterID.toString16();
+                    rpa.affectedID = typedPacket->m_shooterID.toString16();
+                    sess->logger->logRemotePlayerAction(rpa);
+
+                    float damage = 1.001 / sessConfig->hitsToKill;
+
+                    if (hitEntity->doDamage(damage)) { //TODO: PARAMETERIZE THIS DAMAGE VALUE SOME HOW! DO IT! DON'T FORGET!  DON'T DO IT!
+                        debugPrintf("A player died! Resetting game...\n");
+                        m_clientsReady = 0;
+                        //static_cast<NetworkedSession*>(sess.get())->resetSession();
+                        netSess->resetRound();
+                        scene()->typedEntity<PlayerEntity>("player")->setPlayerMovement(true); //Allow the server to move freely
+
+                        Array<shared_ptr<NetworkedEntity>> entities;
+                        scene()->getTypedEntityArray<NetworkedEntity>(entities);
+                        for (shared_ptr<NetworkedEntity> entity : entities) {
+                            entity->respawn();
+                        }
+
+                        /* Send a respawn packet to everyone */
+                        shared_ptr<RespawnClientPacket> respawnPacket = GenericPacket::createForBroadcast<RespawnClientPacket>();
+                        respawnPacket->populate(m_networkFrameNum);
+                        NetworkUtils::broadcastReliable(respawnPacket, m_localHost);
+                        shared_ptr<AddPointPacket> pointPacket = GenericPacket::createReliable<AddPointPacket>(client->peer);
+                        NetworkUtils::send(pointPacket);
+                    }
+                    // Notify every player of the hit
+                    shared_ptr<PlayerInteractPacket> interactPacket = GenericPacket::createForBroadcast<PlayerInteractPacket>();
+                    interactPacket->populate(m_networkFrameNum, PlayerActionType::Hit, typedPacket->m_shooterID);
+                    Array<ENetAddress*> clientAddresses;
+                    for (NetworkUtils::ConnectedClient* c : m_connectedClients) {
+                        clientAddresses.append(&c->unreliableAddress);
+                    }
+                    /* Send this as a player interact packet so that clients log it */
+                    NetworkUtils::broadcastUnreliable(interactPacket, &m_unreliableSocket, clientAddresses);
+                    break;
             }
-            else if (type == NetworkUtils::MessageType::READY_UP_CLIENT) {
-                playersReady++;
-                debugPrintf("Connected Number of Clients: %d\nReady Clints: %d\n", m_connectedClients.length(), playersReady);
-                if (playersReady >= experimentConfig.numPlayers)
+            case REPORT_FIRE:
                 {
-                    NetworkUtils::broadcastStartSession(m_localHost);
-                    debugPrintf("All PLAYERS ARE READY!\n");
+                    NetworkUtils::handleFireReport(packet_contents, m_dataHandler, frameNum);
                 }
+            case READY_UP_CLIENT: {
+                    m_clientsReady++;
+                    debugPrintf("Connected Number of Clients: %d\nReady Clients: %d\n", m_connectedClients.length(), m_clientsReady);
+                    if (m_clientsReady >= experimentConfig.numPlayers)
+                    {
+                        if (m_clientsReady >= experimentConfig.numPlayers)
+                        {
+                            if (sessConfig->numberOfRoundsPlayed % 2 == 0) {
+
+                                m_clientFirstRoundPeeker = rand() % 2;
+                                // Make them instantly spawn to the new location
+                                m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].respawnToPos = true;
+                                m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].respawnToPos = true;
+
+                                shared_ptr<SendPlayerConfigPacket> outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[m_clientFirstRoundPeeker]->peer);
+                                outPacket->populate(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], sessConfig->networkedSessionProgress);
+                                NetworkUtils::send(outPacket);
+                                outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[!m_clientFirstRoundPeeker]->peer);
+                                outPacket->populate(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], sessConfig->networkedSessionProgress);
+                                NetworkUtils::send(outPacket);
+
+                                // Set Latency 
+                                NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->peer->address, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].clientLatency);
+                                NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->unreliableAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].clientLatency);
+
+                                NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->peer->address, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
+                                NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
+                            }
+                            else {
+
+                                // Make them instantly spawn to the new location
+                                m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].respawnToPos = true;
+                                m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].respawnToPos = true;
+
+                                shared_ptr<SendPlayerConfigPacket> outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[!m_clientFirstRoundPeeker]->peer);
+                                outPacket->populate(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], sessConfig->networkedSessionProgress);
+                                NetworkUtils::send(outPacket);
+                                outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[m_clientFirstRoundPeeker]->peer);
+                                outPacket->populate(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], sessConfig->networkedSessionProgress);
+                                NetworkUtils::send(outPacket);
+
+                                // Set Latency 
+                                NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->peer->address, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].clientLatency);
+                                NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->unreliableAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].clientLatency);
+
+                                NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->peer->address, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
+                                NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
+                            }
+                            shared_ptr<StartSessionPacket> startSessPacket = GenericPacket::createForBroadcast<StartSessionPacket>();
+                            NetworkUtils::broadcastReliable(startSessPacket, m_localHost);
+                            m_clientFeedbackSubmitted = 0;
+                            netSess.get()->startRound();
+                            debugPrintf("All PLAYERS ARE READY!\n");
+                        }
+                    }
+                    break;
             }
-            enet_packet_destroy(event.packet);
+            case CLIENT_ROUND_TIMEOUT: {
+                    m_clientsTimedOut++;
+
+                    if (m_clientsTimedOut >= experimentConfig.numPlayers)
+                    {
+                        sessConfig->numberOfRoundsPlayed++;
+                        debugPrintf("Rounds Played %d, Rounds Left %d\n", sessConfig->numberOfRoundsPlayed, sessConfig->trials[0].count - sessConfig->numberOfRoundsPlayed);
+                        sessConfig->networkedSessionProgress = (float)sessConfig->numberOfRoundsPlayed / (float)sessConfig->trials[0].count;
+                        debugPrintf("SESSION PROGRESS: %f\n", sessConfig->networkedSessionProgress);
+                        m_clientsReady = 0;
+                        m_clientsTimedOut = 0;
+                        debugPrintf("Round Over!\n");
+
+                        shared_ptr<ClientFeedbackStartPacket> outPacket = GenericPacket::createForBroadcast<ClientFeedbackStartPacket>();
+                        NetworkUtils::broadcastReliable(outPacket, m_localHost);
+                    }
+                    break;
+            }
+            case CLIENT_FEEDBACK_SUBMITTED: {
+                    m_clientFeedbackSubmitted++;
+
+                    if (sessConfig->numberOfRoundsPlayed >= sessConfig->trials[0].count)
+                    {
+                        debugPrintf("SESSION OVER");
+                        shared_ptr<ClientSessionEndPacket> outPacket = GenericPacket::createForBroadcast<ClientSessionEndPacket>();
+                        NetworkUtils::broadcastReliable(outPacket, m_localHost);
+                    }
+
+                    else if (m_clientFeedbackSubmitted >= experimentConfig.numPlayers) {
+                        shared_ptr<ResetClientRoundPacket> outPacket = GenericPacket::createForBroadcast<ResetClientRoundPacket>();
+                        NetworkUtils::broadcastReliable(outPacket, m_localHost);
+                    }
+                    break;
+            }
+            default:
+                debugPrintf("WARNING: unhandled packet receved on the reliable channel of type: %d\n", inPacket->type());
+                break;
+            }
         }
+
+        inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
     }
 
     // only do if not in authoritative server mode, if yes, onASBroadcast() will handle this
@@ -252,11 +498,45 @@ void FPSciServerApp::onNetwork() {
         /* Now we send the position of all entities to all connected clients */
         Array<shared_ptr<NetworkedEntity>> entityArray;
         scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
-        NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
+        Array<BatchEntityUpdatePacket::EntityUpdate> updates;
+        for (shared_ptr<NetworkedEntity> e : entityArray) {
+            updates.append(BatchEntityUpdatePacket::EntityUpdate(e->frame(), e->name()));
+        }
+        shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
+        updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
+    
+        Array<ENetAddress*> clientAddresses;
+        for (NetworkUtils::ConnectedClient* c : m_connectedClients) {
+            clientAddresses.append(&c->unreliableAddress);
+        }
+        NetworkUtils::broadcastUnreliable(updatePacket, &m_unreliableSocket, clientAddresses);
+
+        // Broadcast the PlayerConfig to all clients
+        if (sessConfig->player.propagatePlayerConfigsToAll) {
+            sessConfig->player.propagatePlayerConfigsToAll = false;
+            shared_ptr<SendPlayerConfigPacket> configPacket = GenericPacket::createForBroadcast<SendPlayerConfigPacket>();
+            configPacket->populate(sessConfig->player, sessConfig->networkedSessionProgress);
+            NetworkUtils::broadcastReliable(configPacket, m_localHost);
+        }
+
+        if (sessConfig->player.propagatePlayerConfigsToSelectedClient) {
+            sessConfig->player.propagatePlayerConfigsToSelectedClient = false;
+            shared_ptr<SendPlayerConfigPacket> configPacket;
+            if (sessConfig->player.selectedClientIdx == 0) {
+                configPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[0]->peer);
+            }
+            else {
+                configPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[1]->peer);
+            }
+            configPacket->populate(sessConfig->player, sessConfig->networkedSessionProgress);
+            NetworkUtils::send(configPacket);
+        }
     }
 }
 
 void FPSciServerApp::onInit() {
+    this->setLowerFrameRateInBackground(startupConfig.lowerFrameRateInBackground);
+
     if (enet_initialize()) {
         throw std::runtime_error("Failed to initalize enet!");
     }
@@ -265,6 +545,7 @@ void FPSciServerApp::onInit() {
 
     GApp::onInit(); // Initialize the G3D application (one time)
     FPSciServerApp::initExperiment();
+    preparePerRoundConfigs();
 }
 
 void FPSciServerApp::oneFrame() {
@@ -500,6 +781,288 @@ void FPSciServerApp::oneFrame() {
     }
 }
 
+void FPSciServerApp::preparePerRoundConfigs() {
+
+    int peekersConfigIdx = 0;
+    int defendersConfigIdx = 0;
+
+    for (int i = 0; i < sessConfig->player.respawnPosArray.size(); i++) {
+        if (i % 2 == 0) {
+            // Peekers
+            for (int j = peekersConfigIdx; j < sessConfig->player.clientLatencyArray.size() + peekersConfigIdx; j++) {
+                m_peekersRoundConfigs.push_back(sessConfig->player); // load with default values first
+
+                // Create different peekers with different configs
+                m_peekersRoundConfigs[j].respawnPos = sessConfig->player.respawnPosArray[i];
+                m_peekersRoundConfigs[j].movementRestrictionX = sessConfig->player.movementRestrictionXArray[i];
+                m_peekersRoundConfigs[j].movementRestrictionZ = sessConfig->player.movementRestrictionZArray[i];
+                m_peekersRoundConfigs[j].restrictedMovementEnabled = sessConfig->player.restrictedMovementEnabledArray[i];
+                m_peekersRoundConfigs[j].restrictionBoxAngle = sessConfig->player.restrictionBoxAngleArray[i];
+                m_peekersRoundConfigs[j].playerType = "PEEKER";
+
+                m_peekersRoundConfigs[j].clientLatency = sessConfig->player.clientLatencyArray[j - peekersConfigIdx];   //TODO CHANGE MOVERATE WITH LATENCY
+            }
+            peekersConfigIdx += sessConfig->player.clientLatencyArray.size();
+            
+        }
+        else {
+            // Defenders
+            for (int j = defendersConfigIdx; j < sessConfig->player.clientLatencyArray.size() + defendersConfigIdx; j++) {
+                m_defendersRoundConfigs.push_back(sessConfig->player); // load with default values first
+
+                // Create different defenders with different configs
+                m_defendersRoundConfigs[j].respawnPos = sessConfig->player.respawnPosArray[i];
+                m_defendersRoundConfigs[j].respawnHeading = sessConfig->player.respawnHeadingArray[i];
+                m_defendersRoundConfigs[j].movementRestrictionX = sessConfig->player.movementRestrictionXArray[i];
+                m_defendersRoundConfigs[j].movementRestrictionZ = sessConfig->player.movementRestrictionZArray[i];
+                m_defendersRoundConfigs[j].restrictedMovementEnabled = sessConfig->player.restrictedMovementEnabledArray[i];
+                m_defendersRoundConfigs[j].restrictionBoxAngle = sessConfig->player.restrictionBoxAngleArray[i];
+                m_defendersRoundConfigs[j].playerType = "DEFENDER";
+
+                m_defendersRoundConfigs[j].clientLatency = sessConfig->player.clientLatencyArray[j - defendersConfigIdx];   //TODO CHANGE MOVERATE WITH LATENCY
+            }
+            defendersConfigIdx += sessConfig->player.clientLatencyArray.size();
+        }
+    }
+
+    /// Create all possible pairs of peeker vs defender matchups
+    
+    for (int batch = 0; batch < m_defendersRoundConfigs.size() / sessConfig->player.clientLatencyArray.size(); batch++) {
+        for (int pIdx = batch * sessConfig->player.clientLatencyArray.size(); pIdx < (batch + 1) * sessConfig->player.clientLatencyArray.size(); pIdx++) {
+            for (int dIdx = batch * sessConfig->player.clientLatencyArray.size(); dIdx < (batch + 1) * sessConfig->player.clientLatencyArray.size(); dIdx++) {
+                peekerDefenderConfigCombinationsIdx.push_back(std::make_pair(pIdx, dIdx));
+            }
+        }
+    }
+
+    /// Set number of rounds
+    sessConfig->trials[0].count = peekerDefenderConfigCombinationsIdx.size() * 2;
+
+    /// Shuffle combinations
+    for (int i = 0; i < peekerDefenderConfigCombinationsIdx.size(); i++)
+        debugPrintf("COMBINATION BEFORE SHUFFLE p%d d%d\n", peekerDefenderConfigCombinationsIdx[i].first, peekerDefenderConfigCombinationsIdx[i].second);
+    
+    std::random_shuffle(peekerDefenderConfigCombinationsIdx.begin(), peekerDefenderConfigCombinationsIdx.end());
+
+    for (int i = 0; i < peekerDefenderConfigCombinationsIdx.size(); i++)
+        debugPrintf("COMBINATION AFTER SHUFFLE p%d d%d\n", peekerDefenderConfigCombinationsIdx[i].first, peekerDefenderConfigCombinationsIdx[i].second);
+
+    
+
+    debugPrintf("PEEKER SIZE: %d", m_peekersRoundConfigs.size());
+    debugPrintf("    DEFENDER SIZE: %d    COMBINATION SIZE %d\n", m_defendersRoundConfigs.size(), peekerDefenderConfigCombinationsIdx.size());
+}
+
+NetworkUtils::ConnectedClient* FPSciServerApp::getClientFromAddress(ENetAddress e)
+{
+    for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
+        if (client->unreliableAddress.host == e.host && (client->unreliableAddress.port == e.port || client->peer->address.port == e.port)) {
+            return client;
+        }
+    }
+    return new NetworkUtils::ConnectedClient();
+}
+
+NetworkUtils::ConnectedClient* FPSciServerApp::getClientFromGUID(GUniqueID ID)
+{
+    for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
+        if (client->guid == ID) {
+            return client;
+        }
+    }
+}
+
+uint32 FPSciServerApp::frameNumFromID(GUniqueID id) 
+{
+    return getClientFromGUID(id)->frameNumber;
+}
+
+void FPSciServerApp::updateSession(const String& id, bool forceReload) {
+    // Check for a valid ID (non-emtpy and
+    Array<String> ids;
+    experimentConfig.getSessionIds(ids);
+    if (!id.empty() && ids.contains(id))
+    {
+        // Load the session config specified by the id
+        sessConfig = experimentConfig.getSessionConfigById(id);
+        logPrintf("User selected session: %s. Updating now...\n", id.c_str());
+        m_userSettingsWindow->setSelectedSession(id);
+        // Create the session based on the loaded config
+        if (experimentConfig.isNetworked) {
+            netSess = NetworkedSession::create(this, sessConfig);
+            sess = (shared_ptr<Session>)netSess;
+        }
+        else {
+            sess = Session::create(this, sessConfig);
+        }
+    }
+    else
+    {
+        // Create an empty session
+        sessConfig = SessionConfig::create();
+        netSess = NetworkedSession::create(this);
+        sess = (shared_ptr<Session>)netSess;
+    }
+
+    // Update reticle
+    reticleConfig.index = sessConfig->reticle.indexSpecified ? sessConfig->reticle.index : currentUser()->reticle.index;
+    reticleConfig.scale = sessConfig->reticle.scaleSpecified ? sessConfig->reticle.scale : currentUser()->reticle.scale;
+    reticleConfig.color = sessConfig->reticle.colorSpecified ? sessConfig->reticle.color : currentUser()->reticle.color;
+    reticleConfig.changeTimeS = sessConfig->reticle.changeTimeSpecified ? sessConfig->reticle.changeTimeS : currentUser()->reticle.changeTimeS;
+    setReticle(reticleConfig.index);
+
+    // Update the controls for this session
+    updateControls(m_firstSession); // If first session consider showing the menu
+
+    // Update the frame rate/delay
+    updateParameters(sessConfig->render.frameDelay, sessConfig->render.frameRate);
+
+    // Handle buffer setup here
+    updateShaderBuffers();
+
+    // Update shader table
+    m_shaderTable.clear();
+    if (!sessConfig->render.shader3D.empty())
+    {
+        m_shaderTable.set(sessConfig->render.shader3D, G3D::Shader::getShaderFromPattern(sessConfig->render.shader3D));
+    }
+    if (!sessConfig->render.shader2D.empty())
+    {
+        m_shaderTable.set(sessConfig->render.shader2D, G3D::Shader::getShaderFromPattern(sessConfig->render.shader2D));
+    }
+    if (!sessConfig->render.shaderComposite.empty())
+    {
+        m_shaderTable.set(sessConfig->render.shaderComposite, G3D::Shader::getShaderFromPattern(sessConfig->render.shaderComposite));
+    }
+
+    // Update shader parameters
+    m_startTime = System::time();
+    m_last2DTime = m_startTime;
+    m_last3DTime = m_startTime;
+    m_lastCompositeTime = m_startTime;
+    m_frameNumber = 0;
+
+    // Load (session dependent) fonts
+    hudFont = GFont::fromFile(System::findDataFile(sessConfig->hud.hudFont));
+    m_combatFont = GFont::fromFile(System::findDataFile(sessConfig->targetView.combatTextFont));
+
+    // Handle clearing the targets here (clear any remaining targets before loading a new scene)
+    if (notNull(scene()))
+        sess->clearTargets();
+
+    // Load the experiment scene if we haven't already (target only)
+    if (sessConfig->scene.name.empty())
+    {
+        // No scene specified, load default scene
+        if (m_loadedScene.name.empty() || forceReload)
+        {
+            loadScene(m_defaultSceneName); // Note: this calls onGraphics()
+            m_loadedScene.name = m_defaultSceneName;
+        }
+        // Otherwise let the loaded scene persist
+    }
+    else if (sessConfig->scene != m_loadedScene || forceReload)
+    {
+        loadScene(sessConfig->scene.name);
+        m_loadedScene = sessConfig->scene;
+    }
+
+    // Player parameters
+    initPlayer();
+
+    // Check for play mode specific parameters
+    if (notNull(weapon))
+        weapon->clearDecals();
+    weapon->setConfig(&sessConfig->weapon);
+    weapon->setScene(scene());
+    weapon->setCamera(activeCamera());
+
+    // Update weapon model (if drawn) and sounds
+    weapon->loadModels();
+    weapon->loadSounds();
+    if (!sessConfig->audio.sceneHitSound.empty())
+    {
+        m_sceneHitSound = Sound::create(System::findDataFile(sessConfig->audio.sceneHitSound));
+    }
+    if (!sessConfig->audio.refTargetHitSound.empty())
+    {
+        m_refTargetHitSound = Sound::create(System::findDataFile(sessConfig->audio.refTargetHitSound));
+    }
+
+    // Load static HUD textures
+    for (StaticHudElement element : sessConfig->hud.staticElements)
+    {
+        hudTextures.set(element.filename, Texture::fromFile(System::findDataFile(element.filename)));
+    }
+
+    // Update colored materials to choose from for target health
+    for (String id : sessConfig->getUniqueTargetIds())
+    {
+        shared_ptr<TargetConfig> tconfig = experimentConfig.getTargetConfigById(id);
+        materials.remove(id);
+        materials.set(id, makeMaterials(tconfig));
+    }
+
+    const String resultsDirPath = startupConfig.experimentList[experimentIdx].resultsDirPath;
+
+    // Check for need to start latency logging and if so run the logger now
+    if (!FileSystem::isDirectory(resultsDirPath))
+    {
+        FileSystem::createDirectory(resultsDirPath);
+    }
+
+    // Create and check log file name
+    const String logFileBasename = sessConfig->logger.logToSingleDb ? experimentConfig.description + "_" + userStatusTable.currentUser + "_" + m_expConfigHash : id + "_" + userStatusTable.currentUser + "_" + String(FPSciLogger::genFileTimestamp());
+    const String logFilename = FilePath::makeLegalFilename(logFileBasename);
+    // This is the specified path and log basename with illegal characters replaced, but not suffix (.db)
+    const String logPath = resultsDirPath + logFilename;
+
+    if (systemConfig.hasLogger)
+    {
+        if (!sessConfig->clickToPhoton.enabled)
+        {
+            logPrintf("WARNING: Using a click-to-photon logger without the click-to-photon region enabled!\n\n");
+        }
+        if (m_pyLogger == nullptr)
+        {
+            m_pyLogger = PythonLogger::create(systemConfig.loggerComPort, systemConfig.hasSync, systemConfig.syncComPort);
+        }
+        else
+        {
+            // Handle running logger if we need to (terminate then merge results)
+            m_pyLogger->mergeLogToDb();
+        }
+        // Run a new logger if we need to (include the mode to run in here...)
+        m_pyLogger->run(logPath, sessConfig->clickToPhoton.mode);
+    }
+
+    // Initialize the experiment (this creates the results file)
+    sess->onInit(logPath, experimentConfig.description + "/" + sessConfig->description);
+
+    // Don't create a results file for a user w/ no sessions left
+    if (m_userSettingsWindow->sessionsForSelectedUser() == 0)
+    {
+        logPrintf("No sessions remaining for selected user.\n");
+    }
+    else if (sessConfig->logger.enable)
+    {
+        logPrintf("Created results file: %s.db\n", logPath.c_str());
+    }
+
+    if (m_firstSession)
+    {
+        m_firstSession = false;
+    }
+
+    if (experimentConfig.isNetworked) {
+        for (NetworkUtils::ConnectedClient* client : m_connectedClients) {
+            /* Set the latency for every client that is currently connected */
+            NetworkUtils::setAddressLatency(client->peer->address, sessConfig->networkLatency);
+            NetworkUtils::setAddressLatency(client->unreliableAddress, sessConfig->networkLatency);
+        }
+    }
+}
+
 void FPSciServerApp::onASBroadcast()
 {
     // only do if in authoritative server mode
@@ -508,6 +1071,38 @@ void FPSciServerApp::onASBroadcast()
         /* Now we send the position of all entities to all connected clients */
         Array<shared_ptr<NetworkedEntity>> entityArray;
         scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
-        NetworkUtils::serverBatchEntityUpdate(entityArray, m_connectedClients, m_unreliableSocket, m_networkFrameNum);
+        Array<BatchEntityUpdatePacket::EntityUpdate> updates;
+        for (shared_ptr<NetworkedEntity> e : entityArray) {
+            updates.append(BatchEntityUpdatePacket::EntityUpdate(e->frame(), e->name()));
+        }
+        shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
+        updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
+    
+        Array<ENetAddress*> clientAddresses;
+        for (NetworkUtils::ConnectedClient* c : m_connectedClients) {
+            clientAddresses.append(&c->unreliableAddress);
+        }
+        NetworkUtils::broadcastUnreliable(updatePacket, &m_unreliableSocket, clientAddresses);
+
+        // Broadcast the PlayerConfig to all clients
+        if (sessConfig->player.propagatePlayerConfigsToAll) {
+            sessConfig->player.propagatePlayerConfigsToAll = false;
+            shared_ptr<SendPlayerConfigPacket> configPacket = GenericPacket::createForBroadcast<SendPlayerConfigPacket>();
+            configPacket->populate(sessConfig->player, sessConfig->networkedSessionProgress);
+            NetworkUtils::broadcastReliable(configPacket, m_localHost);
+        }
+
+        if (sessConfig->player.propagatePlayerConfigsToSelectedClient) {
+            sessConfig->player.propagatePlayerConfigsToSelectedClient = false;
+            shared_ptr<SendPlayerConfigPacket> configPacket;
+            if (sessConfig->player.selectedClientIdx == 0) {
+                configPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[0]->peer);
+            }
+            else {
+                configPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[1]->peer);
+            }
+            configPacket->populate(sessConfig->player, sessConfig->networkedSessionProgress);
+            NetworkUtils::send(configPacket);
+        }
     }
 }
