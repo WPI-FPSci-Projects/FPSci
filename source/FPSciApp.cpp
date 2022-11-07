@@ -965,6 +965,7 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 		/* Set the latency to be what the new latency */
 		NetworkUtils::setAddressLatency(m_reliableServerAddress, sessConfig->networkLatency);
 		NetworkUtils::setAddressLatency(m_unreliableServerAddress, sessConfig->networkLatency);
+		NetworkUtils::setAddressLatency(m_pingServerAddress, sessConfig->networkLatency);
 	}
 }
 
@@ -1260,6 +1261,7 @@ void FPSciApp::onNetwork() {
 						/* Set the amount of latency to add */
 						NetworkUtils::setAddressLatency(m_unreliableServerAddress, sessConfig->networkLatency);
 						NetworkUtils::setAddressLatency(typedPacket->srcAddr(), sessConfig->networkLatency);
+						NetworkUtils::setAddressLatency(m_pingServerAddress, sessConfig->networkLatency);
 					}
 					else {
 						debugPrintf("WARN: Server connection refused (%i)", typedPacket->m_status);
@@ -1348,6 +1350,7 @@ void FPSciApp::onNetwork() {
 				//Set Latency
 				NetworkUtils::setAddressLatency(m_unreliableServerAddress, sessConfig->player.clientLatency);
 				NetworkUtils::setAddressLatency(typedPacket->srcAddr(), sessConfig->player.clientLatency);
+				NetworkUtils::setAddressLatency(m_pingServerAddress, sessConfig->player.clientLatency);
 
 				break;
 			}
