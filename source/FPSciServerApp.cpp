@@ -1108,3 +1108,21 @@ void FPSciServerApp::onASBroadcast()
         }
     }
 }
+
+uint8 FPSciServerApp::GUIDtoPlayerID(GUniqueID guid)
+{
+    // search for the player with the given GUID
+    for (auto& client : m_connectedClients)
+        if (client->guid == guid)
+            return client->playerID;
+    return -1;
+}
+
+GUniqueID FPSciServerApp::playerIDtoGUID(uint8 playerID)
+{
+    // search for the player with the given playerID
+    for (auto& client : m_connectedClients)
+        if (client->playerID == playerID)
+            return client->guid;
+    return GUniqueID::NONE(0);
+}

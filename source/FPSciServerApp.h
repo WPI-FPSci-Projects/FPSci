@@ -44,4 +44,7 @@ public:
     Table <uint32, Array<uint16>> getClientRTTStatistics() { return m_clientRTTStatistics; }
 
     void onASBroadcast();
+
+    uint8 GUIDtoPlayerID(GUniqueID guid);
+    GUniqueID playerIDtoGUID(uint8 playerID);
 };
