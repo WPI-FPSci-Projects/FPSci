@@ -1036,7 +1036,7 @@ void FPSciApp::onNetwork() {
 		m_networkFrameNum++;
 	//}
 
-		m_dataHandler->NewCurrentFrame(m_networkFrameNum, m_connectedClients);
+	m_dataHandler->NewCurrentFrame(m_networkFrameNum, m_connectedClients);
 
 
 	if (!m_socketConnected) {
@@ -1165,9 +1165,9 @@ void FPSciApp::onNetwork() {
 				BatchEntityUpdatePacket* typedPacket = static_cast<BatchEntityUpdatePacket*>(inPacket.get());
 				//TODO: refactor this out into some other place, maybe NetworkUtils??
 					for (BatchEntityUpdatePacket::EntityUpdate e : typedPacket->m_updates) {
-						if (e.name != m_playerGUID.toString16() && experimentConfig.isAuthoritativeServer) { // Don't listen to updates for this client
+						if (e.name != m_playerGUID.toString16() || experimentConfig.isAuthoritativeServer) { // Don't listen to updates for this client
 							shared_ptr<Entity> entity;
-							if (e.name != m_playerGUID.toString16())
+							if (e.name == m_playerGUID.toString16())
 							{
 								entity = (*scene()).typedEntity<PlayerEntity>("player");
 
@@ -1184,6 +1184,7 @@ void FPSciApp::onNetwork() {
 									// Do nothing (No-Op)
 									break;
 								case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
+									
 									entity->setFrame(e.frame);
 									if (m_dataHandler != nullptr) {
 										m_dataHandler->UpdateCframe(e.playerID, e.frame, typedPacket->m_frameNumber);
@@ -1893,6 +1894,7 @@ void FPSciApp::setScopeView(bool scoped) {
 }
 
 void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
+	//TODO:: Need to adjust this function so when using authioitative server client doesnt try to predict
 	// Damage the target
 	float damage = m_currentWeaponDamage;
 	target->doDamage(damage);
@@ -1910,6 +1912,14 @@ void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
 		// 	return;
 		// }
 		return;
+	}
+	else if (experimentConfig.isNetworked && experimentConfig.isAuthoritativeServer) {
+		if (sess->currentState == PresentationState::networkedSessionRoundStart) {
+			shared_ptr<ReportFirePacket> outPacket = GenericPacket::createReliable<ReportFirePacket>(m_serverPeer);
+			outPacket->populate(m_networkFrameNum, true, m_playerGUID);
+			NetworkUtils::send(outPacket);
+			return;
+		}
 	}
 
 	// Check if we need to add combat text for this damage
@@ -1948,6 +1958,7 @@ void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
 		CFrame explosionFrame = target->frame();
 		explosionFrame.rotation = playerCamera->frame().rotation;
 		// Create the explosion
+		//TODO:: bug breaks client when using auoritative server
 		const shared_ptr<VisibleEntity> newExplosion = VisibleEntity::create(
 			format("explosion%d", m_explosionIdx),
 			scene().get(),

@@ -402,6 +402,7 @@ void FPSciServerApp::onNetwork()
                 {
                     ReportFirePacket* typedPacket = static_cast<ReportFirePacket*> (inPacket.get());
                     m_dataHandler->UpdateFired(GUIDtoPlayerID(typedPacket->m_shooterID), typedPacket->m_fired, typedPacket->m_frameNumber);
+                    break;
                 }
             case READY_UP_CLIENT: {
                     m_clientsReady++;

@@ -257,6 +257,9 @@ shared_ptr<GenericPacket> NetworkUtils::createTypedPacket(PacketType type, ENetA
 	case PacketType::PING_DATA:
 		return GenericPacket::createReceive<PingDataPacket>(srcAddr, inBuffer);
 		break;
+	case PacketType::REPORT_FIRE:
+		return GenericPacket::createReceive<ReportFirePacket>(srcAddr, inBuffer);
+		break;
 	default:
 		debugPrintf("WARNING: Could not create a typed packet of for type %d. Returning GenericPacket instead\n", type);
 		return GenericPacket::createReceive<GenericPacket>(srcAddr, inBuffer);
