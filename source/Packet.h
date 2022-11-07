@@ -190,10 +190,12 @@ public:
 	struct EntityUpdate {
 		CFrame frame;								///< CFrame to use in the update
 		String name;								///< Name of the entity this update applies to
+		uint8 playerID;								///< playerID of the entity this update applies to
 		/** Constructor to create and populate an update */
-		EntityUpdate(CFrame entityFrame, String entityName) {
+		EntityUpdate(CFrame entityFrame, String entityName, uint8 PID) {
 			frame = entityFrame;
 			name = entityName;
+			playerID = PID;
 		}
 		EntityUpdate() {}
 	};
@@ -236,11 +238,12 @@ public:
 	PacketType type() override { return CREATE_ENTITY; }
 	shared_ptr<GenericPacket> clone() override { return createShared<CreateEntityPacket>(*this); }
 
-	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
-	void populate(uint32 frameNumber, GUniqueID guid);
+	/** Fills in the member variables from the parameters (Must be called prior to calling send()) */
+	void populate(uint32 frameNumber, GUniqueID guid, uint8 playerID);
 
 	uint32 m_frameNumber;							///< Frame number that the entity was created on
 	GUniqueID m_guid;								///< GUID of the new entity (used as Entity->name)
+	uint8 m_playerID;								///< playerID of the new NetworkedEntity
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
@@ -321,10 +324,11 @@ public:
 	shared_ptr<GenericPacket> clone() override { return createShared<RegistrationReplyPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
-	void populate(GUniqueID guid, uint8 status);
+	void populate(GUniqueID guid, uint8 status, uint8 playerID);
 
 	GUniqueID m_guid;								///< GUID of the newly connected client
 	uint8 m_status;									///< Status code of the connection (0 is success)
+	uint8 m_playerID;								///< playerID of the newly connected client
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;

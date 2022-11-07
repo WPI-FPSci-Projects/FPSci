@@ -76,6 +76,7 @@ void BatchEntityUpdatePacket::serialize(BinaryOutput& outBuffer) {
 		GUniqueID guid = GUniqueID::fromString16(e.name.c_str());
 		guid.serialize(outBuffer);
 		e.frame.serialize(outBuffer);
+		outBuffer.writeUInt8(e.playerID);
 	}
 }
 
@@ -92,7 +93,9 @@ void BatchEntityUpdatePacket::deserialize(BinaryInput& inBuffer) {
 			guid.deserialize(inBuffer);
 			CFrame frame;
 			frame.deserialize(inBuffer);
-			m_updates.append(EntityUpdate(frame, guid.toString16()));
+			uint8 playerID;
+			playerID = inBuffer.readUInt8();
+			m_updates.append(EntityUpdate(frame, guid.toString16(), playerID));
 		}
 	}
 }
@@ -101,21 +104,24 @@ void BatchEntityUpdatePacket::deserialize(BinaryInput& inBuffer) {
  * Create Entity Packet *
  ************************/
 
-void CreateEntityPacket::populate(uint32 frameNumber, GUniqueID guid) {
+void CreateEntityPacket::populate(uint32 frameNumber, GUniqueID guid, uint8 playerID) {
 	m_frameNumber = frameNumber;
 	m_guid = guid;
+	m_playerID = playerID;
 }
 
 void CreateEntityPacket::serialize(BinaryOutput& outBuffer) {
 	GenericPacket::serialize(outBuffer);	// Call the super serialize
 	outBuffer.writeUInt32(m_frameNumber);
 	m_guid.serialize(outBuffer);
+	outBuffer.writeUInt8(m_playerID);
 }
 
 void CreateEntityPacket::deserialize(BinaryInput& inBuffer) {
 	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
 	m_frameNumber = inBuffer.readUInt32();
 	m_guid.deserialize(inBuffer);
+	m_playerID = inBuffer.readUInt8();
 }
 
 /*************************
@@ -165,21 +171,24 @@ void RegisterClientPacket::deserialize(BinaryInput& inBuffer) {
  * Registration Reply Packet *
  *****************************/
 
-void RegistrationReplyPacket::populate(GUniqueID guid, uint8 status) {
+void RegistrationReplyPacket::populate(GUniqueID guid, uint8 status, uint8 playerID) {
 	m_guid = guid;
 	m_status = status;
+	m_playerID = playerID;
 }
 
 void RegistrationReplyPacket::serialize(BinaryOutput& outBuffer) {
 	GenericPacket::serialize(outBuffer);	// Call the super serialize
 	m_guid.serialize(outBuffer);
 	outBuffer.writeUInt8(m_status);
+	outBuffer.writeUInt8(m_playerID);
 }
 
 void RegistrationReplyPacket::deserialize(BinaryInput& inBuffer) {
 	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
 	m_guid.deserialize(inBuffer);
 	m_status = inBuffer.readUInt8();
+	m_playerID = inBuffer.readUInt8();
 }
 
 /********************
