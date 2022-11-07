@@ -1036,6 +1036,8 @@ void FPSciApp::onNetwork() {
 		m_networkFrameNum++;
 	//}
 
+		m_dataHandler->NewCurrentFrame(m_networkFrameNum, m_connectedClients);
+
 
 	if (!m_socketConnected) {
 		shared_ptr<HandshakePacket> handshake = GenericPacket::createUnreliable<HandshakePacket>(&m_unreliableSocket, &m_unreliableServerAddress);
@@ -1163,7 +1165,7 @@ void FPSciApp::onNetwork() {
 				BatchEntityUpdatePacket* typedPacket = static_cast<BatchEntityUpdatePacket*>(inPacket.get());
 				//TODO: refactor this out into some other place, maybe NetworkUtils??
 					for (BatchEntityUpdatePacket::EntityUpdate e : typedPacket->m_updates) {
-						if (e.name != m_playerGUID.toString16() || experimentConfig.isAuthoritativeServer) { // Don't listen to updates for this client
+						if (e.name != m_playerGUID.toString16() && experimentConfig.isAuthoritativeServer) { // Don't listen to updates for this client
 							shared_ptr<Entity> entity;
 							if (e.name != m_playerGUID.toString16())
 							{
@@ -1174,7 +1176,7 @@ void FPSciApp::onNetwork() {
 								entity = (*scene()).typedEntity<NetworkedEntity>(e.name);
 							}
 							if (entity == nullptr) {
-								debugPrintf("Recieved update for entity %s, but it doesn't exist\n", e.name.c_str());
+								debugPrintf("Client: Recieved update for entity %s, but it doesn't exist\n", e.name.c_str());
 							}
 							else {
 								switch (typedPacket->m_updateType) {
@@ -1238,6 +1240,7 @@ void FPSciApp::onNetwork() {
 			case CREATE_ENTITY: {
 				CreateEntityPacket* typedPacket = static_cast<CreateEntityPacket*> (inPacket.get());
 				if (typedPacket->m_guid != m_playerGUID) {
+					m_connectedClients++;
 					// ignores if server tells us to create ourself
 					debugPrintf("Created entity with ID %s\n", typedPacket->m_guid.toString16());
 

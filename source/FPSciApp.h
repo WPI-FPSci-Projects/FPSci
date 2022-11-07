@@ -139,6 +139,7 @@ public:
 	SimTime m_lastOnSimulationIdealSimTime = 0.0f; ///< Ideal simulation time last onSimulation finished
 	uint32 m_networkFrameNum = 0;							///< The current frame (used to sync remote actions)
 	GUniqueID m_playerGUID = GUniqueID::create();	///< GUID for the player (used to identify the player in the network)
+	uint8 m_connectedClients = 1;
 protected:
 	float m_currentWeaponDamage = 0.0f; ///< A hack to avoid passing damage through callbacks
 
