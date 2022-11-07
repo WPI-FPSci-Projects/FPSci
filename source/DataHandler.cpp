@@ -56,6 +56,11 @@ void G3D::DataHandler::SetParameters(int frameCutoff, int futureFrames)
 
 void G3D::DataHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum)
 {
+	if (playerID == static_cast<uint8>(-1))
+	{
+		debugPrintf("Invalid playerID in UpdateCframe\n");
+		return;
+	}
 	if (CheckFrameAcceptable(frameNum)) {
 		DataInput* input = new DataInput(playerID, cframe);
 		m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].SetCFrame(cframe);
