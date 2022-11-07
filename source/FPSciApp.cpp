@@ -1343,6 +1343,13 @@ void FPSciApp::onNetwork() {
 				sessConfig->player.playerType = typedPacket->m_playerConfig->playerType;
 
 				sessConfig->networkedSessionProgress = typedPacket->m_networkedSessionProgress;
+
+				sessConfig->player.clientLatency = typedPacket->m_playerConfig->clientLatency;
+
+				//Set Latency
+				NetworkUtils::setAddressLatency(m_unreliableServerAddress, sessConfig->player.clientLatency);
+				NetworkUtils::setAddressLatency(typedPacket->srcAddr(), sessConfig->player.clientLatency);
+
 				break;
 			}
 			case ADD_POINTS: {
