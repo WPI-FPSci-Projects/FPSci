@@ -188,8 +188,7 @@ void FPSciServerApp::onNetwork()
                             case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
                                 entity->setFrame(e.frame);
                                 if (m_dataHandler != nullptr) {
-                                    //TODO: 
-                                    //m_dataHandler->UpdateCframe(e.name, e.frame, typedPacket->m_frameNumber);
+                                    m_dataHandler->UpdateCframe(e.playerID, e.frame, typedPacket->m_frameNumber);
                                 }
                                 break;
                             }
@@ -294,7 +293,7 @@ void FPSciServerApp::onNetwork()
 
                     target->setWorldSpace(true);
                     target->setColor(G3D::Color3(20.0, 20.0, 200.0));
-                    //target->setPlayerID(newClient.playerID); // TODO: FIX THIS
+                    target->setPlayerID(newClient->playerID);
 
                     /* Add the new target to the scene */
                     (*scene()).insert(target);
@@ -308,7 +307,7 @@ void FPSciServerApp::onNetwork()
 
                     /* ADD NEW CLIENT TO OTHER CLIENTS, ADD OTHER CLIENTS TO NEW CLIENT */
                     shared_ptr<CreateEntityPacket> createEntityPacket = GenericPacket::createForBroadcast<CreateEntityPacket>();
-                    //createEntityPacket->populate(m_networkFrameNum, newClient->guid, newClient.playerID); // TODO: FIX THIS
+                    createEntityPacket->populate(m_networkFrameNum, newClient->guid, newClient->playerID);
                     NetworkUtils::broadcastReliable(createEntityPacket, m_localHost);
                     debugPrintf("Sent a broadcast packet to all connected peers\n");
 
@@ -316,7 +315,7 @@ void FPSciServerApp::onNetwork()
                         // Create entitys on the new client for all other clients
                         if (newClient->guid != m_connectedClients[i]->guid) {
                             createEntityPacket = GenericPacket::createReliable<CreateEntityPacket>(newClient->peer);
-                            //createEntityPacket->populate(m_networkFrameNum, m_connectedClients[i]->guid, m_connectedClients[i]->playerID); // TODO: FIX THIS
+                            createEntityPacket->populate(m_networkFrameNum, m_connectedClients[i]->guid, m_connectedClients[i]->playerID);
                             NetworkUtils::send(createEntityPacket);
                             //createEntityPacket->send();
                             debugPrintf("Sent add to %s to add %s\n", newClient->guid.toString16(), m_connectedClients[i]->guid.toString16());
@@ -392,7 +391,7 @@ void FPSciServerApp::onNetwork()
             case REPORT_FIRE:
                 {
                     ReportFirePacket* typedPacket = static_cast<ReportFirePacket*> (inPacket.get());
-                    //m_dataHandler->UpdateFired(playerID, typedPacket->m_fired, typedPacket->m_frameNumber) // TODO: FIX PLAYERID
+                    m_dataHandler->UpdateFired(GUIDtoPlayerID(typedPacket->m_shooterID), typedPacket->m_fired, typedPacket->m_frameNumber);
                 }
             case READY_UP_CLIENT: {
                     m_clientsReady++;
@@ -502,7 +501,7 @@ void FPSciServerApp::onNetwork()
         scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
         Array<BatchEntityUpdatePacket::EntityUpdate> updates;
         for (shared_ptr<NetworkedEntity> e : entityArray) {
-            updates.append(BatchEntityUpdatePacket::EntityUpdate(e->frame(), e->name()));
+            updates.append(BatchEntityUpdatePacket::EntityUpdate(e->frame(), e->name(), e->getPlayerID()));
         }
         shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
         updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
@@ -1075,7 +1074,7 @@ void FPSciServerApp::onASBroadcast()
         scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
         Array<BatchEntityUpdatePacket::EntityUpdate> updates;
         for (shared_ptr<NetworkedEntity> e : entityArray) {
-            updates.append(BatchEntityUpdatePacket::EntityUpdate(e->frame(), e->name()));
+            updates.append(BatchEntityUpdatePacket::EntityUpdate(e->frame(), e->name(), e->getPlayerID()));
         }
         shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
         updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);

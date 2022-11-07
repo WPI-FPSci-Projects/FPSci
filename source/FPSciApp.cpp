@@ -1143,7 +1143,7 @@ void FPSciApp::onNetwork() {
 		}
 		shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createUnreliable<BatchEntityUpdatePacket>(&m_unreliableSocket, &m_unreliableServerAddress);
 		Array<BatchEntityUpdatePacket::EntityUpdate> updates;
-		updates.append(BatchEntityUpdatePacket::EntityUpdate(scene()->entity("player")->frame(), m_playerGUID.toString16()));
+		updates.append(BatchEntityUpdatePacket::EntityUpdate(scene()->entity("player")->frame(), m_playerGUID.toString16(), m_playerID));
 		updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
 		NetworkUtils::send(updatePacket);
 		//updatePacket->send();
@@ -1184,8 +1184,7 @@ void FPSciApp::onNetwork() {
 								case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
 									entity->setFrame(e.frame);
 									if (m_dataHandler != nullptr) {
-										// TODO:: convert GUID to playerID for e.name
-										// m_dataHandler->UpdateCframe(e.name, e.frame, typedPacket->m_frameNumber);
+										m_dataHandler->UpdateCframe(e.playerID, e.frame, typedPacket->m_frameNumber);
 									}
 									break;
 								}
@@ -1262,7 +1261,7 @@ void FPSciApp::onNetwork() {
 					//target->setHitSound(config->hitSound, m_app->soundTable, config->hitSoundVol);
 					//target->setDestoyedSound(config->destroyedSound, m_app->soundTable, config->destroyedSoundVol);
 					target->setColor(G3D::Color3(20.0, 20.0, 200.0));
-					// TODO::PID target->setPlayerID(packet_contents.readUInt8());
+					target->setPlayerID(typedPacket->m_playerID);
 
 					(*scene()).insert(target);
 					netSess->addHittableTarget(target);
@@ -1270,9 +1269,9 @@ void FPSciApp::onNetwork() {
 				else
 				{
 					// when we're told to create ourself, update our playerID to match what the server gives us
-					// TODO::PID uint8 playerID = packet_contents.readUInt8();
-					//debugPrintf("Updated playerID from %i to %i after server told us to create ourself\n", m_playerID, playerID);
-					//m_playerID = playerID;
+					uint8 playerID = typedPacket->m_playerID;
+					debugPrintf("Updated playerID from %i to %i after server told us to create ourself\n", m_playerID, playerID);
+					m_playerID = playerID;
 				}
 				break;
 			}
@@ -1281,12 +1280,11 @@ void FPSciApp::onNetwork() {
 				debugPrintf("INFO: Received registration reply...\n");
 					if (typedPacket->m_guid == m_playerGUID) {
 					// TODO::PID uint8 playerID = packet_contents.readUInt8();
-					//int status = packet_contents.readUInt8();
-						if (typedPacket->m_status == 0) {
+					if (typedPacket->m_status == 0) {
 						m_enetConnected = true;
 						debugPrintf("INFO: Received registration from server\n");
-							// TODO::PID m_playerID = playerID;
-							// TODO::PID debugPrintf("INFO: Got assigned playerID %i\n", m_playerID);
+						m_playerID = typedPacket->m_playerID;
+						debugPrintf("INFO: Got assigned playerID %i\n", m_playerID);
 
 						/* Set the amount of latency to add */
 						NetworkUtils::setAddressLatency(m_unreliableServerAddress, sessConfig->networkLatency);
