@@ -258,11 +258,21 @@ void FPSciServerApp::onNetwork()
                     RegisterClientPacket* typedPacket = static_cast<RegisterClientPacket*> (inPacket.get());
                     debugPrintf("Registering client...\n");
                     m_historicalPlayerCount++;
-                    NetworkUtils::ConnectedClient* newClient = NetworkUtils::registerClient(typedPacket, m_historicalPlayerCount);   // TODO: Decide if this should be in NetworkUtils or not
+                    NetworkUtils::ConnectedClient* newClient = new NetworkUtils::ConnectedClient();
+                    newClient->peer = typedPacket->m_peer;
+                    newClient->guid = typedPacket->m_guid;
+                    newClient->playerID = m_historicalPlayerCount;
+                    ENetAddress tempAddr; // stole from register client function
+                    tempAddr.host = typedPacket->m_peer->address.host;
+                    tempAddr.port = typedPacket->m_portNum;
+                    newClient->unreliableAddress = tempAddr;
+                    debugPrintf("\tPort: %i\n", tempAddr.port);
+                    debugPrintf("\tHost: %i\n", tempAddr.host);
+                    
                     m_connectedClients.append(newClient);
                     /* Reply to the registration */
                     shared_ptr<RegistrationReplyPacket> registrationReply = GenericPacket::createReliable<RegistrationReplyPacket>(newClient->peer);
-                    registrationReply->populate(newClient->guid, 0);
+                    registrationReply->populate(newClient->guid, 0, newClient->playerID);
                     NetworkUtils::send(registrationReply);                
                     ENetAddress addr = typedPacket->srcAddr();
                     addr.port = typedPacket->m_portNum;

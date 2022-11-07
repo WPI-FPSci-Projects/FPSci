@@ -100,6 +100,7 @@ namespace G3D {
 		ClientDataInput* PredictFrameLinear(int frameNum, uint8 playerID);
 		ClientDataInput* PredictFrameQuadratic(int frameNum, uint8 playerID);
 		bool DataPointExists(int frameNum, uint8 playerID);
+		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum);
 	};
 };
 

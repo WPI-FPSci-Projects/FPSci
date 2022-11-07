@@ -191,7 +191,7 @@ void G3D::ClientDataHandler::NewCurrentFrame(int frameNum, int clientsConnected)
 	m_DataInputs->insert(0, arr);
 }
 
-void G3D::ServerDataHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum)
+void G3D::ClientDataHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum)
 {
 	if (CheckFrameAcceptable(frameNum)) {
 		ClientDataInput* input = new ClientDataInput(playerID, cframe, false);
