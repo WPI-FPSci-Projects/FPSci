@@ -1066,7 +1066,6 @@ void FPSciApp::onNetwork() {
 
 				auto pingAck = [](ENetSocket socket, NetworkUtils::PingStatistics& stats, bool& pinging) {
 					while (pinging) {
-						// Ping sent via unreliable channel, host technically not needed but prevents crash  
 						shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePing(&socket);
 						while (inPacket != nullptr) {
 							ENetAddress srcAddr = inPacket->srcAddr();
