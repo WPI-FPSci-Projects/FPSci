@@ -438,6 +438,8 @@ void SendPlayerConfigPacket::serialize(BinaryOutput& outBuffer) {
 	outBuffer.writeString(selectedConfig.playerType);
 
 	outBuffer.writeFloat32(m_networkedSessionProgress);
+
+	outBuffer.writeFloat32(selectedConfig.clientLatency);
 }
 
 void SendPlayerConfigPacket::deserialize(BinaryInput& inBuffer) {
@@ -478,9 +480,12 @@ void SendPlayerConfigPacket::deserialize(BinaryInput& inBuffer) {
 	m_playerConfig->restrictionBoxAngle = inBuffer.readFloat32();
 
 	m_playerConfig->counterStrafing = inBuffer.readBool8();
+
 	m_playerConfig->playerType = inBuffer.readString();
 
 	m_networkedSessionProgress = inBuffer.readFloat32();
+
+	m_playerConfig->clientLatency = inBuffer.readFloat32();
 }
 
 

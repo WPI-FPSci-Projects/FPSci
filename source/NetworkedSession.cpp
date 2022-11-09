@@ -138,6 +138,7 @@ void NetworkedSession::startRound() {
 	m_sessionStarted = true;
 	currentState = PresentationState::networkedSessionRoundStart;
 	m_roundOver = false;
+	m_app->closeUserSettingsWindow();
 }
 
 
