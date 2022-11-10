@@ -1927,8 +1927,8 @@ void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
 			shared_ptr<ReportFirePacket> outPacket = GenericPacket::createReliable<ReportFirePacket>(m_serverPeer);
 			outPacket->populate(m_networkFrameNum, true, m_playerGUID);
 			NetworkUtils::send(outPacket);
-			return;
 		}
+		return;
 	}
 
 	// Check if we need to add combat text for this damage
