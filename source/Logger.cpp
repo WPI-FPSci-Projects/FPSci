@@ -65,6 +65,7 @@ void FPSciLogger::initResultsFile(const String& filename,
 		createQuestionsTable();
 		createUsersTable();
 		createNetworkedClientTable();
+		createPlayerConfigTable();
 	}
 
 	// Add the session info to the sessions table
@@ -536,6 +537,32 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 	insertRowsIntoDB(m_db, "Client_States", rows);
 }
 
+void FPSciLogger::createPlayerConfigTable() {
+	// Users table
+	Columns playerColumns = {
+		{"time", "text"},
+		{"trial_id", "real"},
+		{"player_id", "text"},
+		{"config", "text"}
+	};
+	createTableInDB(m_db, "PlayerConfigs", playerColumns);
+}
+
+void FPSciLogger::logPlayerConfig(const PlayerConfig& playerConfig, const GUniqueID& id, int trialNumber) {
+	const String time = genUniqueTimestamp();
+	Any emptyAny = Any();
+	playerConfig.addToAny(emptyAny);
+
+	RowEntry row = {
+		String(std::to_string(trialNumber)),
+		"'" + time + "'",
+		String(id.toString16()),
+		String(emptyAny.unparse())
+	};
+	m_playerConfigs.append(row);
+}
+
+
 void FPSciLogger::loggerThreadEntry()
 {
 	std::unique_lock<std::mutex> lk(m_queueMutex);
@@ -584,6 +611,10 @@ void FPSciLogger::loggerThreadEntry()
 		networkedClients.swap(m_networkedClients, networkedClients);
 		m_networkedClients.reserve(networkedClients.size() * 2);
 
+		decltype(m_playerConfigs) playerConfigs;
+		users.swap(m_playerConfigs, playerConfigs);
+		m_playerConfigs.reserve(playerConfigs.size() * 2);
+
 		// Unlock all the now-empty queues and write out our temporary copies
 		lk.unlock();
 
@@ -598,6 +629,7 @@ void FPSciLogger::loggerThreadEntry()
 		insertRowsIntoDB(m_db, "Targets", targets);
 		insertRowsIntoDB(m_db, "Users", users);
 		insertRowsIntoDB(m_db, "Trials", trials);
+		insertRowsIntoDB(m_db, "PlayerConfigs", playerConfigs);
 
 		lk.lock();
 	}

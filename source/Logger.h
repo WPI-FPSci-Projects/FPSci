@@ -28,6 +28,7 @@ public:
 	using QuestionResult = RowEntry;
 	using TrialValues = RowEntry;
 	using UserValues = RowEntry;
+	using PlayerValues = RowEntry;
 
 protected:
 	sqlite3* m_db = nullptr;						///< The db used for logging
@@ -58,6 +59,7 @@ protected:
 	Array<TrialValues> m_trials;						///< Trial ID, start/end time etc.
 	Array<UserValues> m_users;
 	Array<NetworkedClient> m_networkedClients;
+	Array<PlayerValues> m_playerConfigs;
 
 	size_t getTotalQueueBytes()
 	{
@@ -126,6 +128,7 @@ protected:
 	void createQuestionsTable();
 	void createUsersTable();
 	void createNetworkedClientTable();
+	void createPlayerConfigTable();
 
 	// Functions that assume the schema from above
 	//void insertSession(sessionInfo);
@@ -160,6 +163,7 @@ public:
 	void logTargetTypes(const Array<shared_ptr<TargetConfig>>& targets);
 
 	void logNetworkedClient(const NetworkedClient& client) { addToQueue(m_networkedClients, client); }
+	void logPlayerConfig(const PlayerConfig& playerConfig, const GUniqueID& id, int trialNumber);
 
 	/** Wakes up the logging thread and flushes even if the buffer limit is not reached yet. */
 	void flush(bool blockUntilDone);
