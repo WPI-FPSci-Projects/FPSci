@@ -283,17 +283,36 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 
 Any PlayerConfig::addToAny(Any a, bool forceAll) const {
 	PlayerConfig def;
-	if (forceAll || def.moveRate != moveRate)			a["moveRate"] = moveRate;
-	if (forceAll || def.moveScale != moveScale)			a["moveScale"] = moveScale;
-	if (forceAll || def.height != height)				a["playerHeight"] = height;
-	if (forceAll || def.crouchHeight != crouchHeight)	a["crouchHeight"] = crouchHeight;
-	if (forceAll || def.jumpVelocity != jumpVelocity)	a["jumpVelocity"] = jumpVelocity;
-	if (forceAll || def.jumpInterval != jumpInterval)	a["jumpInterval"] = jumpInterval;
-	if (forceAll || def.jumpTouch != jumpTouch)			a["jumpTouch"] = jumpTouch;
-	if (forceAll || def.gravity != gravity)				a["playerGravity"] = gravity;
-	if (forceAll || def.axisLock != axisLock)			a["playerAxisLock"] = axisLock;
-	if (forceAll || def.stillBetweenTrials != stillBetweenTrials)		a["disablePlayerMotionBetweenTrials"] = stillBetweenTrials;
-	if (forceAll || def.resetPositionPerTrial != resetPositionPerTrial)	a["resetPlayerPositionBetweenTrials"] = resetPositionPerTrial;
+	if (forceAll || def.moveRate != moveRate)								a["moveRate"] = moveRate;
+	if (forceAll || def.moveScale != moveScale)								a["moveScale"] = moveScale;
+	if (forceAll || def.height != height)									a["playerHeight"] = height;
+	if (forceAll || def.crouchHeight != crouchHeight)						a["crouchHeight"] = crouchHeight;
+	if (forceAll || def.jumpVelocity != jumpVelocity)						a["jumpVelocity"] = jumpVelocity;
+	if (forceAll || def.jumpInterval != jumpInterval)						a["jumpInterval"] = jumpInterval;
+	if (forceAll || def.jumpTouch != jumpTouch)								a["jumpTouch"] = jumpTouch;
+	if (forceAll || def.gravity != gravity)									a["playerGravity"] = gravity;
+	if (forceAll || def.axisLock != axisLock)								a["playerAxisLock"] = axisLock;
+	if (forceAll || def.stillBetweenTrials != stillBetweenTrials)			a["disablePlayerMotionBetweenTrials"] = stillBetweenTrials;
+	if (forceAll || def.resetPositionPerTrial != resetPositionPerTrial)		a["resetPlayerPositionBetweenTrials"] = resetPositionPerTrial;
+	if (forceAll || def.sprintMultiplier != sprintMultiplier)				a["sprintMultiplier"] = sprintMultiplier;
+	if (forceAll || def.headBobEnabled != headBobEnabled)					a["headBobEnabled"] = headBobEnabled;
+	if (forceAll || def.headBobAmplitude != headBobAmplitude)				a["headBobAmplitude"] = headBobAmplitude;
+	if (forceAll || def.headBobFrequency != headBobFrequency)				a["headBobFrequency"] = headBobFrequency;
+	if (forceAll || def.accelerationEnabled != accelerationEnabled)			a["accelerationEnabled"] = accelerationEnabled;
+	if (forceAll || def.movementAcceleration != movementAcceleration)		a["movementAcceleration"] = movementAcceleration;
+	if (forceAll || def.movementDeceleration != movementDeceleration)		a["movementDeceleration"] = movementDeceleration;
+	if (forceAll || def.respawnPos != respawnPos)							a["respawnPos"] = respawnPos;
+	if (forceAll || def.respawnHeading != respawnHeading)					a["respawnHeading"] = respawnHeading;
+	if (forceAll || def.respawnToPos != respawnToPos)						a["respawnToPos"] = respawnToPos;
+	if (forceAll || def.movementRestrictionX != movementRestrictionX)		a["movementRestrictionX"] = movementRestrictionX;
+	if (forceAll || def.movementRestrictionZ != movementRestrictionZ)		a["movementRestrictionZ"] = movementRestrictionZ;
+	if (forceAll || def.restrictedMovementEnabled != restrictedMovementEnabled)	a["restrictedMovementEnabled"] = restrictedMovementEnabled;
+	if (forceAll || def.restrictionBoxAngle != restrictionBoxAngle)			a["restrictionBoxAngle"] = restrictionBoxAngle;
+	if (forceAll || def.counterStrafing != counterStrafing)					a["counterStrafing"] = counterStrafing;
+	if (forceAll || def.selectedClientIdx != selectedClientIdx)				a["selectedClientIdx"] = selectedClientIdx;
+	if (forceAll || def.playerType != playerType)							a["playerType"] = playerType;
+	if (forceAll || def.clientLatency != clientLatency)						a["clientLatency"] = clientLatency;
+
 	return a;
 }
 
