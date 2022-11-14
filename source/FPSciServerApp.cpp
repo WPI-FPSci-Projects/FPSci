@@ -1136,6 +1136,9 @@ void FPSciServerApp::checkFrameValidity()
 
 void FPSciServerApp::snapBackPlayer(uint8 playerID)
 {
+    // change the player's position to the last valid position
+    
+    // broadcast the new position to all clients
     
 }
 
