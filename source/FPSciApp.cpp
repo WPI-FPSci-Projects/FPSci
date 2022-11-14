@@ -744,6 +744,9 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->readFromFile = &sessConfig->player.readFromFile;
 	player->selectedClientIdx = &sessConfig->player.selectedClientIdx;
 	player->clientPlayerConfigs = &sessConfig->player.clientPlayerConfigs;
+	player->cornerPosition = &sessConfig->player.cornerPosition;
+	player->defenderRandomDisplacementAngle = &sessConfig->player.defenderRandomDisplacementAngle;
+	player->playerType = &sessConfig->player.playerType;
 	// Respawn player
 	player->respawn();
 	updateMouseSensitivity();
@@ -1214,6 +1217,10 @@ void FPSciApp::onNetwork() {
 				sessConfig->networkedSessionProgress = typedPacket->m_networkedSessionProgress;
 
 				sessConfig->player.clientLatency = typedPacket->m_playerConfig->clientLatency;
+
+				sessConfig->player.defenderRandomDisplacementAngle = typedPacket->m_playerConfig->defenderRandomDisplacementAngle;
+				sessConfig->player.cornerPosition = typedPacket->m_playerConfig->cornerPosition;
+
 
 				//Set Latency
 				NetworkUtils::setAddressLatency(m_unreliableServerAddress, sessConfig->player.clientLatency);

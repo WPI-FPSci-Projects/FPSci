@@ -105,6 +105,11 @@ public:
 
     int* selectedClientIdx = nullptr;               ///< Indicates to the index of the client thats currently selected
 
+    Point3* cornerPosition = nullptr;                   ///< Corner for peeker and defender
+    float* defenderRandomDisplacementAngle = nullptr;   ///< Angle from which the defender will be rotated wrt the corner
+
+    String* playerType = nullptr;              ///< Defines if the player is a 'Peeker' or a 'Defender' 
+
     Array <PlayerConfig>* clientPlayerConfigs = nullptr;  ///< Holds config for connected clients
 
     /** \brief Computes all triangles that could be hit during a
@@ -172,7 +177,30 @@ public:
     bool getPlayerMovement() { return m_PlayerMovement; }
 
 	void respawn() {
-		m_frame.translation = m_respawnPosition;
+
+        m_frame.translation = m_respawnPosition;
+
+        if (playerType!= nullptr && playerType->compare("DEFENDER") == 0) {
+
+            double newX, temp, newZ, angle;
+
+            angle = (*defenderRandomDisplacementAngle - (-*defenderRandomDisplacementAngle)) * ((((float)rand()) / (float)RAND_MAX)) + (-*defenderRandomDisplacementAngle);
+
+            newX = m_respawnPosition.x - (*cornerPosition).x;
+            newZ = m_respawnPosition.z - (*cornerPosition).z;
+            temp = newX;
+            newX = newX * cos(angle * (pi() / 180.0f)) - newZ * sin(angle * (pi() / 180.0f));
+            newZ = temp * sin(angle * (pi() / 180.0f)) + newZ * cos(angle * (pi() / 180.0f));
+            
+            newX += (*cornerPosition).x;
+            newZ += (*cornerPosition).y;
+
+            m_respawnPosition.x = newX;
+            m_respawnPosition.z = newZ;
+
+            m_frame.translation = m_respawnPosition;
+        }
+
 		m_headingRadians = m_spawnHeadingRadians;
 		m_headTilt = 0.0f;                              // Reset heading tilt
         m_inAir = true;                                 // Set in air to let player "fall" if needed

@@ -93,17 +93,21 @@ public:
 	int				selectedClientIdx = 0;						///< Indicates the index of the client that player configs will be propagated to
 	String			playerType = "";							///< Indicates what type of player it is (Peeker/Defender/Other)
 	float			clientLatency = 0.0f;						///< Clients latency over the network
+	Point3			cornerPosition = Point3(0.0f,0.0f,0.0f);	///< Holds the corner position for peeker and defender	
+	float			defenderRandomDisplacementAngle = 0.0f;		///< The defender will be rotated randomly between -defenderRandomDisplacementAngle to defenderRandomDisplacementAngle wrt corner point on respawn
 	Array <PlayerConfig>  clientPlayerConfigs;					///< Player config for all the clients
 
 	// For peekers and defenders per round config settings
-	Array<Point3> respawnPosArray = { Point3(-46.0f, -2.3f, 0.0f), Point3(-36.0f, -2.3f, 0.0f) }; ///< Holds Peeker's/Defender's spawn position
+	Array<Point3> respawnPosArray = { Point3(-46.0f, -2.3f, 0.0f), Point3(-42.0f, -2.3f, 0.0f) }; ///< Holds Peeker's/Defender's spawn position
 	Array<float> respawnHeadingArray = { 0.0f, 90.0f };											  ///< Holds Peeker's/Defender's respawn heading
 	Array<float> movementRestrictionXArray = { 3.0f, 2.0f };									  ///< Holds Peeker's/Defender's restricted movement span along X 
 	Array<float> movementRestrictionZArray = { 3.0f, 2.0f };								      ///< Holds Peeker's/Defender's restricted movement span along Z 
 	Array<bool>	 restrictedMovementEnabledArray = {true, true};									  ///< If true, Peeker's/Defender's movement will be restricted along X and Z
 	Array<float> restrictionBoxAngleArray = { 10.0f, 0.0f };									  ///< Rotates Peeker's/Defender's the restriction box (degrees)
 
-	Array<float> clientLatencyArray = { 0, 10, 20 };											  ///< Holds Peeker's/Defender's latency settings
+	Array<float> clientLatencyArray = { 0, 10};												      ///< Holds Peeker's/Defender's latency settings
+	Array<Point3> cornerPositionArray = { Point3(-42.0f, -2.3f, 0.0f) };						  ///< Holds the corner position settings for rounds
+	Array<float> defenderRandomDisplacementAngleArray = { 0 };								      ///< Holds defenders displacement array
 
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;

@@ -202,7 +202,9 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("restrictionBoxAngle", restrictionBoxAngle);
 		reader.getIfPresent("restrictedMovementEnabled", restrictedMovementEnabled);
 		reader.getIfPresent("counterStrafing", counterStrafing);
-		reader.getIfPresent("propagatePlayerConfigs", propagatePlayerConfigsToAll);
+		reader.getIfPresent("counterStrafing", counterStrafing);
+		reader.getIfPresent("cornerPosition", cornerPosition);
+		reader.getIfPresent("defenderRandomDisplacementAngle", defenderRandomDisplacementAngle);
 
 		clientPlayerConfigs.push_back(PlayerConfig());
 		clientPlayerConfigs.push_back(PlayerConfig());
@@ -235,6 +237,8 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client1restrictedMovementEnabled", clientPlayerConfigs[0].restrictedMovementEnabled);
 		reader.getIfPresent("Client1counterStrafing", clientPlayerConfigs[0].counterStrafing);
 		reader.getIfPresent("Client1propagatePlayerConfigs", clientPlayerConfigs[0].propagatePlayerConfigsToAll);
+		reader.getIfPresent("Client1cornerPosition", clientPlayerConfigs[0].cornerPosition);
+		reader.getIfPresent("Client1defenderRandomDisplacementAngle", clientPlayerConfigs[0].defenderRandomDisplacementAngle);
 
 		// For Client 2
 		reader.getIfPresent("Client2moveRate", clientPlayerConfigs[1].moveRate);
@@ -264,6 +268,8 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client2restrictedMovementEnabled", clientPlayerConfigs[1].restrictedMovementEnabled);
 		reader.getIfPresent("Client2counterStrafing", clientPlayerConfigs[1].counterStrafing);
 		reader.getIfPresent("Client2propagatePlayerConfigs", clientPlayerConfigs[1].propagatePlayerConfigsToAll);
+		reader.getIfPresent("Client2cornerPosition", clientPlayerConfigs[1].cornerPosition);
+		reader.getIfPresent("Client2defenderRandomDisplacementAngle", clientPlayerConfigs[1].defenderRandomDisplacementAngle);
 
 		reader.getIfPresent("respawnPosArray", respawnPosArray);
 		reader.getIfPresent("respawnHeadingArray", respawnHeadingArray);
@@ -271,6 +277,9 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("movementRestrictionZArray", movementRestrictionZArray);
 		reader.getIfPresent("restrictedMovementEnabledArray", restrictedMovementEnabledArray);
 		reader.getIfPresent("restrictionBoxAngleArray", restrictionBoxAngleArray);
+
+		reader.getIfPresent("cornerPositionArray", cornerPositionArray);
+		reader.getIfPresent("defenderRandomDisplacementAngleArray", defenderRandomDisplacementAngleArray);
 
 		reader.getIfPresent("clientLatencyArray", clientLatencyArray);
 
@@ -312,6 +321,8 @@ Any PlayerConfig::addToAny(Any a, bool forceAll) const {
 	if (forceAll || def.selectedClientIdx != selectedClientIdx)				a["selectedClientIdx"] = selectedClientIdx;
 	if (forceAll || def.playerType != playerType)							a["playerType"] = playerType;
 	if (forceAll || def.clientLatency != clientLatency)						a["clientLatency"] = clientLatency;
+	if (forceAll || def.cornerPosition != cornerPosition)					a["cornerPosition"] = cornerPosition;
+	if (forceAll || def.defenderRandomDisplacementAngle != defenderRandomDisplacementAngle)	a["defenderRandomDisplacementAngle"] = defenderRandomDisplacementAngle;
 
 	return a;
 }

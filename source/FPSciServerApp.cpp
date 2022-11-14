@@ -355,8 +355,8 @@ void FPSciServerApp::onNetwork() {
                             NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
 
                             //Log configs
-                            //sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
-                            //sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                            sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                            sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
                         }
                         shared_ptr<StartSessionPacket> startSessPacket = GenericPacket::createForBroadcast<StartSessionPacket>();
                         NetworkUtils::broadcastReliable(startSessPacket, m_localHost);
@@ -694,6 +694,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
 
     int peekersConfigIdx = 0;
     int defendersConfigIdx = 0;
+    int defAngleSettingsIdx = 0;
 
     for (int i = 0; i < sessConfig->player.respawnPosArray.size(); i++) {
         if (i % 2 == 0) {
@@ -710,7 +711,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
                 m_peekersRoundConfigs[j].restrictionBoxAngle = sessConfig->player.restrictionBoxAngleArray[i];
                 m_peekersRoundConfigs[j].playerType = "PEEKER";
 
-                m_peekersRoundConfigs[j].clientLatency = sessConfig->player.clientLatencyArray[j - peekersConfigIdx];   //TODO CHANGE MOVERATE WITH LATENCY
+                m_peekersRoundConfigs[j].clientLatency = sessConfig->player.clientLatencyArray[j - peekersConfigIdx];
             }
             peekersConfigIdx += sessConfig->player.clientLatencyArray.size();
             
@@ -729,9 +730,14 @@ void FPSciServerApp::preparePerRoundConfigs() {
                 m_defendersRoundConfigs[j].restrictionBoxAngle = sessConfig->player.restrictionBoxAngleArray[i];
                 m_defendersRoundConfigs[j].playerType = "DEFENDER";
 
-                m_defendersRoundConfigs[j].clientLatency = sessConfig->player.clientLatencyArray[j - defendersConfigIdx];   //TODO CHANGE MOVERATE WITH LATENCY
+                // Set corner position and displacement angle for the defender
+                m_defendersRoundConfigs[j].cornerPosition = sessConfig->player.cornerPositionArray[defAngleSettingsIdx];
+                m_defendersRoundConfigs[j].defenderRandomDisplacementAngle = sessConfig->player.defenderRandomDisplacementAngleArray[defAngleSettingsIdx];
+
+                m_defendersRoundConfigs[j].clientLatency = sessConfig->player.clientLatencyArray[j - defendersConfigIdx];
             }
             defendersConfigIdx += sessConfig->player.clientLatencyArray.size();
+            defAngleSettingsIdx++;
         }
     }
 
