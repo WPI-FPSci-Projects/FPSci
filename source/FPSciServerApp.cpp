@@ -1119,6 +1119,21 @@ void FPSciServerApp::onASBroadcast()
     }
 }
 
+void FPSciServerApp::checkFrameValidity()
+{
+    // Player displacement check
+    // Check if a player is moving too quickly, based on player max speed and frame rate
+    {
+        
+    }
+    
+    // Player to player collision detection
+    // Check if two players are too close, based on body radius
+    {
+        
+    }
+}
+
 void FPSciServerApp::snapBackPlayer(uint8 playerID)
 {
     

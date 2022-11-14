@@ -43,7 +43,9 @@ public:
     void updateSession(const String& id, bool forceReload) override;
     Table <uint32, Array<uint16>> getClientRTTStatistics() { return m_clientRTTStatistics; }
 
+    // Authoritative server functions
     void onASBroadcast();
+    void checkFrameValidity();
 
     // Utility functions
     void snapBackPlayer(uint8 playerID);                               ///< Snaps back a player to the position they were at last frame
