@@ -109,7 +109,6 @@ void FPSciServerApp::initExperiment() {
         auto s2cPing = [](ENetSocket socket) {
 
             while (true) {
-                // Ping sent via unreliable channel, host technically not needed but prevents crash    
                 shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePing(&socket);               
                 while (inPacket != nullptr) {                   
                     ENetAddress srcAddr = inPacket->srcAddr();
