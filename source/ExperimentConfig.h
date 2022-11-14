@@ -24,6 +24,7 @@ public:
 	int futureFrame = 2;
 	bool extrapolationEnabled = false;
 	int extrapolationType = 1;							///< Type of extrapolation to perform. 0 None, 1 linear, 2 quadratic
+	bool timeWarpEnabled = false;						///< Primary flag for enabling Time Warp latency compensation
 
 	ExperimentConfig() { init(); }
 	ExperimentConfig(const Any& any);
