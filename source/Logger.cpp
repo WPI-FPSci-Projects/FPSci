@@ -550,7 +550,7 @@ void FPSciLogger::createPlayerConfigTable() {
 
 void FPSciLogger::logPlayerConfig(const PlayerConfig& playerConfig, const GUniqueID& id, int trialNumber) {
 	const String time = genUniqueTimestamp();
-	Any emptyAny = Any();
+	Any emptyAny = Any(Any::TABLE);
 	playerConfig.addToAny(emptyAny);
 
 	RowEntry row = {
