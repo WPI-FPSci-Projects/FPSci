@@ -1119,6 +1119,11 @@ void FPSciServerApp::onASBroadcast()
     }
 }
 
+void FPSciServerApp::snapBackPlayer(uint8 playerID)
+{
+    
+}
+
 uint8 FPSciServerApp::GUIDtoPlayerID(GUniqueID guid)
 {
     // search for the player with the given GUID

@@ -45,6 +45,8 @@ public:
 
     void onASBroadcast();
 
+    // Utility functions
+    void snapBackPlayer(uint8 playerID);                               ///< Snaps back a player to the position they were at last frame
     uint8 GUIDtoPlayerID(GUniqueID guid);
     GUniqueID playerIDtoGUID(uint8 playerID);
 };
