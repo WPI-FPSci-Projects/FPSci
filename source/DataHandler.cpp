@@ -209,7 +209,16 @@ bool G3D::ClientDataHandler::DataPointExists(int frameNum, uint8 playerID) {
 		return false;
 }
 
-ClientDataInput* G3D::ClientDataHandler::PredictEntity(int frameNum, uint8 playerID){
+CoordinateFrame G3D::ClientDataHandler::GetCFrame(int frameNum, int playerID) {
+	if (CheckFrameAcceptable(frameNum)) {
+		return m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 2][0][playerID].GetCFrame();
+	}
+	else {
+		return *new CoordinateFrame();
+	}
+}
+
+ClientDataInput* G3D::ClientDataHandler::PredictEntity(int frameNum, uint8 playerID, int moveRate){
 	//check if current frame exists. If real do nothing. if not real predict
 	ClientDataInput* prediction = new ClientDataInput();
 	if (!DataPointExists(frameNum, playerID) && CheckFrameAcceptable(frameNum)) {//does not update if value if it is out of bounds or if it exists
@@ -217,18 +226,18 @@ ClientDataInput* G3D::ClientDataHandler::PredictEntity(int frameNum, uint8 playe
 			//todo: perpetuate current position
 		}
 		else if (type == predictionType::LINEAR && DataPointExists(frameNum + 1, playerID) && DataPointExists(frameNum + 2, playerID)) {
-			prediction = PredictFrameLinear(frameNum, playerID);
+			prediction = PredictFrameLinear(frameNum, playerID, moveRate);
 		}
 		else if (type == predictionType::QUADRATIC && DataPointExists(frameNum + 1, playerID) && DataPointExists(frameNum + 2, playerID) &&
 			DataPointExists(frameNum + 3, playerID)) {
-			prediction = PredictFrameQuadratic(frameNum, playerID);
+			prediction = PredictFrameQuadratic(frameNum, playerID, moveRate);
 		}
 	}
 
 	return prediction;
 }
 
-ClientDataInput* G3D::ClientDataHandler::PredictFrameLinear(int frameNum, uint8 playerID) {
+ClientDataInput* G3D::ClientDataHandler::PredictFrameLinear(int frameNum, uint8 playerID, int moveRate) {
 
 	//p_new = p_current+(t_current-t_old)(p_current-p_old)
 	//p_new = p_current + (t_current - t_old)(p_current - p_old) + ½ * ((p_current - p_old) - (p_old - p_old2) / old) * (t_current - t_old) ^ 2
@@ -242,6 +251,17 @@ ClientDataInput* G3D::ClientDataHandler::PredictFrameLinear(int frameNum, uint8 
 	//new data point from last two datapoints
 	Point3 p0 = 2 * p1 - p2;
 	Matrix3 m0 = 2 * m1 - m2;
+	//make z 0
+	p0.z = 0;
+
+	int m_walkSpeed = moveRate * units::meters() / units::seconds();
+	if (p0.x > m_walkSpeed) {
+		p0.x = m_walkSpeed;
+	}
+	if (p0.y > m_walkSpeed) {
+		p0.y > m_walkSpeed;
+	}
+
 	//new cframe from calculated deltas
 	CoordinateFrame* cframe = new CoordinateFrame(m0, p0);
 	//new network input based on cframe, previous frames get fired (keep or change to false by default)
@@ -251,7 +271,7 @@ ClientDataInput* G3D::ClientDataHandler::PredictFrameLinear(int frameNum, uint8 
 	//return the created networkinput
 	return prediction;//prediction;
 }
-ClientDataInput* G3D::ClientDataHandler::PredictFrameQuadratic(int frameNum, uint8 playerID) {
+ClientDataInput* G3D::ClientDataHandler::PredictFrameQuadratic(int frameNum, uint8 playerID, int moveRate) {
 	//BUG TODO: accelerates to infinity if no new frame is found add max speed to calculations
 
 	//p_new = p_current+(t_current-t_old)(p_current-p_old)
@@ -268,6 +288,9 @@ ClientDataInput* G3D::ClientDataHandler::PredictFrameQuadratic(int frameNum, uin
 	//form new data point from last 3 data points
 	Point3 p0 = 2 * p1 - p2 + (.5* (p1 - 2 * p2 + p3));
 	Matrix3 m0 = 2 * m1 - m2 + (.5 * (m1 - 2 * m2 + m3));
+	//make z 0
+	p0.z = 0;
+
 	//new cframe from calculated deltas
 	CoordinateFrame* cframe = new CoordinateFrame(m0, p0);
 	//new network input based on cframe, previous frames get fired (keep or change to false by default)

@@ -453,6 +453,7 @@ void FPSciServerApp::onNetwork()
                                 NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
                             }
                             shared_ptr<StartSessionPacket> startSessPacket = GenericPacket::createForBroadcast<StartSessionPacket>();
+                            startSessPacket->populate(m_networkFrameNum);
                             NetworkUtils::broadcastReliable(startSessPacket, m_localHost);
                             m_clientFeedbackSubmitted = 0;
                             netSess.get()->startRound();

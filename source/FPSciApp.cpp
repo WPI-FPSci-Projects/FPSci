@@ -1548,7 +1548,7 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 		Array<shared_ptr<NetworkedEntity>> entityArray;
 		scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
 		for (shared_ptr<NetworkedEntity> ne : entityArray) {
-			ClientDataInput* prediction = m_dataHandler->PredictEntity(m_networkFrameNum, ne->getPlayerID());
+			ClientDataInput* prediction = m_dataHandler->PredictEntity(m_networkFrameNum, ne->getPlayerID(), *p->moveRate);
 			if (prediction->m_exists) {
 				ne->setFrame(prediction->GetCFrame());
 			}
@@ -2179,6 +2179,10 @@ void FPSciApp::onCleanup() {
 void FPSciApp::oneFrame() {
 	// Count this frame (for shaders)
 	m_frameNumber++;
+
+	//add current palyer position
+	shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
+	m_dataHandler->UpdateCframe(m_playerID, player->frame(), m_networkFrameNum);
 
 	// Target frame time (only call this method once per one frame!)
 	RealTime targetFrameTime = sess->targetFrameTime();

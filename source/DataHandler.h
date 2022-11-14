@@ -49,7 +49,7 @@ namespace G3D {
 	public:
 		int m_pastFrames = 10;
 		int m_futureFrames = 2;
-		int m_currentFrame = 0;
+		uint32 m_currentFrame = 0;
 		Array<Array<DataInput>*>* m_DataInputs = new Array<Array<DataInput>*>; //hold some future frames //this will be full hopfully
 	public:
 		DataHandler();
@@ -96,9 +96,10 @@ namespace G3D {
 		ClientDataHandler();
 		void NewCurrentFrame(int frameNum, int clientsConnected);
 		~ClientDataHandler();
-		ClientDataInput* PredictEntity(int frameNum, uint8 playerID);
-		ClientDataInput* PredictFrameLinear(int frameNum, uint8 playerID);
-		ClientDataInput* PredictFrameQuadratic(int frameNum, uint8 playerID);
+		CoordinateFrame GetCFrame(int frameNum, int playerID);
+		ClientDataInput* PredictEntity(int frameNum, uint8 playerID, int moveRate);
+		ClientDataInput* PredictFrameLinear(int frameNum, uint8 playerID, int moveRate);
+		ClientDataInput* PredictFrameQuadratic(int frameNum, uint8 playerID, int moveRate);
 		bool DataPointExists(int frameNum, uint8 playerID);
 		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum);
 	};
