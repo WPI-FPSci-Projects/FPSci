@@ -24,6 +24,7 @@ ExperimentConfig::ExperimentConfig(const Any& any) : FpsConfig(any) {
 		reader.getIfPresent("extrapolationEnabled", extrapolationEnabled);
 		reader.getIfPresent("extrapolationType", extrapolationType);
 		reader.getIfPresent("timeWarpEnabled", timeWarpEnabled);
+		reader.getIfPresent("useSMAForTimeWarp", useSMAForTimeWarp);
 
 		logPrintf("serverAddress is : %s:%d\n", serverAddress.c_str(), serverPort);
 		break;
