@@ -331,8 +331,8 @@ void FPSciServerApp::onNetwork() {
                             NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
 
                             //Log configs
-                            //sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
-                            //sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                            sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                            sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
                         }
                         else {
 

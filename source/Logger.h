@@ -70,7 +70,8 @@ protected:
 			queueBytes(m_targetLocations) +
 			queueBytes(m_targets) +
 			queueBytes(m_trials) + 
-			queueBytes(m_networkedClients);
+			queueBytes(m_networkedClients) +
+			queueBytes(m_playerConfigs);
 	}
 
 	template<typename ItemType> void addToQueue(Array<ItemType>& queue, const ItemType& item)

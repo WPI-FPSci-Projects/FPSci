@@ -559,7 +559,7 @@ void FPSciLogger::logPlayerConfig(const PlayerConfig& playerConfig, const GUniqu
 		String(id.toString16()),
 		String(emptyAny.unparse())
 	};
-	m_playerConfigs.append(row);
+	addToQueue(m_playerConfigs, row);
 }
 
 
