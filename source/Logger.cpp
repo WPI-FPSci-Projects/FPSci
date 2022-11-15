@@ -86,7 +86,7 @@ void FPSciLogger::initResultsFile(const String& filename,
 	for (String name : sessConfig->logger.sessParamsToLog) { sessValues.append("'" + a[name].unparse() + "'"); }
 	// add header row
 	insertRowIntoDB(m_db, "Sessions", sessValues);
-
+	writeToFile(R"(results\CSVFailsafe)", "SessionInit.csv", sessValues);
 }
 
 void FPSciLogger::createExperimentsTable(const String& expConfigFilename) {
@@ -112,6 +112,8 @@ void FPSciLogger::createExperimentsTable(const String& expConfigFilename) {
 		"'" + readWholeFile(expConfigFilename)  + "'"
 	};
 	insertRowIntoDB(m_db, "Experiments", expRow);
+
+	writeToFile(R"(results\CSVFailsafe)", "PlayerActions.csv", expRow);
 }
 
 void FPSciLogger::createSessionsTable(const shared_ptr<SessionConfig>& sessConfig) {
@@ -129,9 +131,6 @@ void FPSciLogger::createSessionsTable(const shared_ptr<SessionConfig>& sessConfi
 	// add any user-specified parameters as headers
 	for (String name : sessConfig->logger.sessParamsToLog) { sessColumns.append({ "'" + name + "'", "text", "NOT NULL" }); }
 	createTableInDB(m_db, "Sessions", sessColumns); // no need of Primary Key for this table.
-
-	for (RowEntry rowData : sessColumns)
-		writeToFile(R"(results\CSVFailsafe)", "Sessions.csv", rowData);
 }
 
 void FPSciLogger::updateSessionEntry(bool complete, int trialCount) {
