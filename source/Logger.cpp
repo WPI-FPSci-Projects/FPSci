@@ -113,7 +113,7 @@ void FPSciLogger::createExperimentsTable(const String& expConfigFilename) {
 	};
 	insertRowIntoDB(m_db, "Experiments", expRow);
 
-	writeToFile(R"(results\CSVFailsafe)", "PlayerActions.csv", expRow);
+	writeToFile(R"(results\CSVFailsafe)", "Experiments.csv", expRow);
 }
 
 void FPSciLogger::createSessionsTable(const shared_ptr<SessionConfig>& sessConfig) {
@@ -605,7 +605,6 @@ void FPSciLogger::logPlayerConfig(const PlayerConfig& playerConfig, const GUniqu
 		String(std::to_string(playerConfig.cornerPosition.z)),
 		String(std::to_string(playerConfig.defenderRandomDisplacementAngle)),
 	};
-	m_playerConfigs.append(row);
 	addToQueue(m_playerConfigs, row);
 	writeToFile(R"(results\CSVFailsafe)","PlayerConfigs.csv", row);
 }
