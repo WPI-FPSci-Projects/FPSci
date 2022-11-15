@@ -2190,8 +2190,10 @@ void FPSciApp::oneFrame() {
 	m_frameNumber++;
 
 	//add current palyer position
-	shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
-	m_dataHandler->UpdateCframe(m_playerID, player->frame(), m_networkFrameNum);
+	if (m_playerID != 255) {
+		shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
+		m_dataHandler->UpdateCframe(m_playerID, player->frame(), m_networkFrameNum);
+	}
 
 	// Target frame time (only call this method once per one frame!)
 	RealTime targetFrameTime = sess->targetFrameTime();

@@ -225,10 +225,10 @@ ClientDataInput* G3D::ClientDataHandler::PredictEntity(int frameNum, uint8 playe
 		if (type == predictionType::NONE) {
 			//todo: perpetuate current position
 		}
-		else if (type == predictionType::LINEAR && DataPointExists(frameNum + 1, playerID) && DataPointExists(frameNum + 2, playerID)) {
+		else if (type == predictionType::LINEAR && !DataPointExists(frameNum + 1, playerID) && !DataPointExists(frameNum + 2, playerID)) {
 			prediction = PredictFrameLinear(frameNum, playerID, moveRate);
 		}
-		else if (type == predictionType::QUADRATIC && DataPointExists(frameNum + 1, playerID) && DataPointExists(frameNum + 2, playerID) &&
+		else if (type == predictionType::QUADRATIC && !DataPointExists(frameNum + 1, playerID) && !DataPointExists(frameNum + 2, playerID) &&
 			DataPointExists(frameNum + 3, playerID)) {
 			prediction = PredictFrameQuadratic(frameNum, playerID, moveRate);
 		}
