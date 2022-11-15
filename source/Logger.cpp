@@ -86,7 +86,7 @@ void FPSciLogger::initResultsFile(const String& filename,
 	for (String name : sessConfig->logger.sessParamsToLog) { sessValues.append("'" + a[name].unparse() + "'"); }
 	// add header row
 	insertRowIntoDB(m_db, "Sessions", sessValues);
-	writeToFile(R"(results\CSVFailsafe)", "SessionInit.csv", sessValues);
+	//writeToFile(R"(results\CSVFailsafe)", "SessionInit.csv", sessValues);
 }
 
 void FPSciLogger::createExperimentsTable(const String& expConfigFilename) {
@@ -113,7 +113,7 @@ void FPSciLogger::createExperimentsTable(const String& expConfigFilename) {
 	};
 	insertRowIntoDB(m_db, "Experiments", expRow);
 
-	writeToFile(R"(results\CSVFailsafe)", "Experiments.csv", expRow);
+	//writeToFile(R"(results\CSVFailsafe)", "Experiments.csv", expRow);
 }
 
 void FPSciLogger::createSessionsTable(const shared_ptr<SessionConfig>& sessConfig) {
@@ -195,8 +195,8 @@ void FPSciLogger::logTargetTypes(const Array<shared_ptr<TargetConfig>>& targets)
 		rows.append(targetTypeRow);
 	}
 	insertRowsIntoDB(m_db, "Target_Types", rows);
-	for (RowEntry rowData : rows)
-		writeToFile(R"(results\CSVFailsafe)", "TargetTypes.csv", rowData);
+	/*for (RowEntry rowData : rows)
+		writeToFile(R"(results\CSVFailsafe)", "TargetTypes.csv", rowData);*/
 }
 
 void FPSciLogger::createTargetsTable() {
@@ -222,7 +222,7 @@ void FPSciLogger::addTarget(const String& name, const shared_ptr<TargetConfig>& 
 		String(std::to_string(spawnEcc.y)),
 	};
 	logTargetInfo(targetValues);
-		writeToFile(R"(results\CSVFailsafe)", "TargetInfos.csv", targetValues);
+	//writeToFile(R"(results\CSVFailsafe)", "TargetInfos.csv", targetValues);
 }
 
 void FPSciLogger::createTrialsTable() {
@@ -270,8 +270,8 @@ void FPSciLogger::recordTargetLocations(const Array<TargetLocation>& locations) 
 		rows.append(targetTrajectoryValues);
 	}
 	insertRowsIntoDB(m_db, "Target_Trajectory", rows);
-	for (RowEntry rowData : rows)
-		writeToFile(R"(results\CSVFailsafe)", "TargetTrajectories.csv", rowData);
+	/*for (RowEntry rowData : rows)
+		writeToFile(R"(results\CSVFailsafe)", "TargetTrajectories.csv", rowData);*/
 }
 
 void FPSciLogger::createPlayerActionTable() {
@@ -319,8 +319,8 @@ void FPSciLogger::recordPlayerActions(const Array<PlayerAction>& actions) {
 		rows.append(playerActionValues);
 	}
 	insertRowsIntoDB(m_db, "Player_Action", rows); 
-	for (RowEntry rowData : rows)
-		writeToFile(R"(results\CSVFailsafe)", "PlayerActions.csv", rowData);
+	/*for (RowEntry rowData : rows)
+		writeToFile(R"(results\CSVFailsafe)", "PlayerActions.csv", rowData);*/
 }
 
 void FPSciLogger::createRemotePlayerActionTable() {
@@ -370,8 +370,8 @@ void FPSciLogger::recordRemotePlayerActions(const Array<RemotePlayerAction>& act
 		rows.append(playerActionValues);
 	}
 	insertRowsIntoDB(m_db, "Remote_Player_Action", rows);
-	for (RowEntry rowData : rows)
-		writeToFile(R"(results\CSVFailsafe)", "RemotePlayerActions.csv", rowData);
+	/*for (RowEntry rowData : rows)
+		writeToFile(R"(results\CSVFailsafe)", "RemotePlayerActions.csv", rowData);*/
 }
 
 
@@ -404,8 +404,8 @@ void FPSciLogger::recordFrameInfo(const Array<FrameInfo>& frameInfo) {
 		rows.append(frameValues);
 	}
 	insertRowsIntoDB(m_db, "Frame_Info", rows);
-	for (RowEntry rowData : rows)
-		writeToFile(R"(results\CSVFailsafe)", "FrameInfos.csv", rowData);
+	/*for (RowEntry rowData : rows)
+		writeToFile(R"(results\CSVFailsafe)", "FrameInfos.csv", rowData);*/
 }
 
 void FPSciLogger::createQuestionsTable() {
@@ -440,7 +440,7 @@ void FPSciLogger::addQuestion(Question q, String session, const shared_ptr<Dialo
 		"'" + q.result + "'"
 	};
 	logQuestionResult(rowContents);
-	writeToFile(R"(results\CSVFailsafe)", "QuestionResults.csv", rowContents);
+	//writeToFile(R"(results\CSVFailsafe)", "QuestionResults.csv", rowContents);
 }
 
 void FPSciLogger::createUsersTable() {
@@ -497,7 +497,7 @@ void FPSciLogger::logUserConfig(const UserConfig& user, const String& sessId, co
 		String(std::to_string(sensitivity.y))
 	};
 	m_users.append(row);
-	writeToFile(R"(results\CSVFailsafe)", "UserConfig.csv", row);
+	//writeToFile(R"(results\CSVFailsafe)", "UserConfig.csv", row);
 }
 
 void FPSciLogger::createNetworkedClientTable() {
@@ -550,8 +550,8 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 		rows.append(networkedClientValues);
 	}
 	insertRowsIntoDB(m_db, "Client_States", rows);
-	for (RowEntry rowData : rows)
-		writeToFile(R"(results\CSVFailsafe)", "ClientStates.csv", rowData);
+	/*for (RowEntry rowData : rows)
+		writeToFile(R"(results\CSVFailsafe)", "ClientStates.csv", rowData);*/
 }
 
 void FPSciLogger::createPlayerConfigTable() {
