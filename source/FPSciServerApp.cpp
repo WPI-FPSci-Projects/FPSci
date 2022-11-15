@@ -198,7 +198,11 @@ void FPSciServerApp::onNetwork() {
                 debugPrintf("\tRegistered client: %s\n", newClient->guid.toString16());
 
                 Any modelSpec = PARSE_ANY(ArticulatedModel::Specification{			///< Basic model spec for target
-                    filename = "model/target/mid_poly_sphere_no_outline.obj";
+                    filename = "model/target/pointingplayer.obj";
+                    preprocess = {
+                    transformGeometry(all(), Matrix4::yawDegrees(120));
+                    transformGeometry(all(), Matrix4::translation(0, -1, 0));
+                    };
                     cleanGeometrySettings = ArticulatedModel::CleanGeometrySettings{
                     allowVertexMerging = true;
                     forceComputeNormals = false;
@@ -704,6 +708,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
 
                 // Create different peekers with different configs
                 m_peekersRoundConfigs[j].respawnPos = sessConfig->player.respawnPosArray[i];
+                m_peekersRoundConfigs[j].moveRate = sessConfig->player.moveRateArray[i];
                 m_peekersRoundConfigs[j].respawnHeading = sessConfig->player.respawnHeadingArray[i];
                 m_peekersRoundConfigs[j].movementRestrictionX = sessConfig->player.movementRestrictionXArray[i];
                 m_peekersRoundConfigs[j].movementRestrictionZ = sessConfig->player.movementRestrictionZArray[i];
@@ -723,6 +728,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
 
                 // Create different defenders with different configs
                 m_defendersRoundConfigs[j].respawnPos = sessConfig->player.respawnPosArray[i];
+                m_defendersRoundConfigs[j].moveRate = sessConfig->player.moveRateArray[i];
                 m_defendersRoundConfigs[j].respawnHeading = sessConfig->player.respawnHeadingArray[i];
                 m_defendersRoundConfigs[j].movementRestrictionX = sessConfig->player.movementRestrictionXArray[i];
                 m_defendersRoundConfigs[j].movementRestrictionZ = sessConfig->player.movementRestrictionZArray[i];

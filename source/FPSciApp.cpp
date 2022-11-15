@@ -1097,7 +1097,11 @@ void FPSciApp::onNetwork() {
 					debugPrintf("Created entity with ID %s\n", typedPacket->m_guid.toString16());
 
 					Any modelSpec = PARSE_ANY(ArticulatedModel::Specification{			///< Basic model spec for target
-						filename = "model/target/mid_poly_sphere_no_outline.obj";
+						filename = "model/target/pointingplayer.obj";
+						preprocess = {
+						transformGeometry(all(), Matrix4::yawDegrees(120));
+						transformGeometry(all(), Matrix4::translation(0, -1, 0));
+						};
 						cleanGeometrySettings = ArticulatedModel::CleanGeometrySettings{
 						allowVertexMerging = true;
 						forceComputeNormals = false;

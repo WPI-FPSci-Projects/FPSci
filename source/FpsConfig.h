@@ -105,9 +105,10 @@ public:
 	Array<bool>	 restrictedMovementEnabledArray = {true, true};									  ///< If true, Peeker's/Defender's movement will be restricted along X and Z
 	Array<float> restrictionBoxAngleArray = { 10.0f, 0.0f };									  ///< Rotates Peeker's/Defender's the restriction box (degrees)
 
-	Array<float> clientLatencyArray = { 0, 10};												      ///< Holds Peeker's/Defender's latency settings
+	Array<float> clientLatencyArray = { 0, 10 };												  ///< Holds Peeker's/Defender's latency settings
 	Array<Point3> cornerPositionArray = { Point3(-42.0f, -2.3f, 0.0f) };						  ///< Holds the corner position settings for rounds
 	Array<float> defenderRandomDisplacementAngleArray = { 0 };								      ///< Holds defenders displacement array
+	Array<float> moveRateArray = { 7.0, 0.0 };													  ///< Holds moverate for peeker and defender
 
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;
