@@ -1283,7 +1283,6 @@ void FPSciApp::onNetwork() {
 				RegistrationReplyPacket* typedPacket = static_cast<RegistrationReplyPacket*>(inPacket.get());
 				debugPrintf("INFO: Received registration reply...\n");
 					if (typedPacket->m_guid == m_playerGUID) {
-					// TODO::PID uint8 playerID = packet_contents.readUInt8();
 					if (typedPacket->m_status == 0) {
 						m_enetConnected = true;
 						debugPrintf("INFO: Received registration from server\n");

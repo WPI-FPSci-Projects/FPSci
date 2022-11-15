@@ -639,6 +639,9 @@ void FPSciServerApp::oneFrame() {
         }
         m_logicWatch.tock();
 
+        // Validity checks
+        checkFrameValidity();
+
         // Simulation
         m_simulationWatch.tick();
         BEGIN_PROFILER_EVENT("Simulation");
@@ -1117,6 +1120,31 @@ void FPSciServerApp::onASBroadcast()
             NetworkUtils::send(configPacket);
         }
     }
+}
+
+void FPSciServerApp::checkFrameValidity()
+{
+    // Player displacement check
+    // Check if a player is moving too quickly, based on player max speed and frame rate
+    // If so, snap the player to the last valid position
+    {
+        snapBackPlayer(-1);
+    }
+    
+    // Player to player collision detection
+    // Check if two players are too close, based on body radius
+    // If so, snap the players to the last valid positions
+    {
+        snapBackPlayer(-1);
+    }
+}
+
+void FPSciServerApp::snapBackPlayer(uint8 playerID)
+{
+    // change the player's position to the last valid position
+    
+    // broadcast the new position to all clients
+    
 }
 
 uint8 FPSciServerApp::GUIDtoPlayerID(GUniqueID guid)
