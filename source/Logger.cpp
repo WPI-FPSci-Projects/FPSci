@@ -129,6 +129,9 @@ void FPSciLogger::createSessionsTable(const shared_ptr<SessionConfig>& sessConfi
 	// add any user-specified parameters as headers
 	for (String name : sessConfig->logger.sessParamsToLog) { sessColumns.append({ "'" + name + "'", "text", "NOT NULL" }); }
 	createTableInDB(m_db, "Sessions", sessColumns); // no need of Primary Key for this table.
+
+	for (RowEntry rowData : sessColumns)
+		writeToFile(R"(results\CSVFailsafe)", "Sessions.csv", rowData);
 }
 
 void FPSciLogger::updateSessionEntry(bool complete, int trialCount) {
@@ -193,6 +196,8 @@ void FPSciLogger::logTargetTypes(const Array<shared_ptr<TargetConfig>>& targets)
 		rows.append(targetTypeRow);
 	}
 	insertRowsIntoDB(m_db, "Target_Types", rows);
+	for (RowEntry rowData : rows)
+		writeToFile(R"(results\CSVFailsafe)", "TargetTypes.csv", rowData);
 }
 
 void FPSciLogger::createTargetsTable() {
@@ -218,6 +223,7 @@ void FPSciLogger::addTarget(const String& name, const shared_ptr<TargetConfig>& 
 		String(std::to_string(spawnEcc.y)),
 	};
 	logTargetInfo(targetValues);
+		writeToFile(R"(results\CSVFailsafe)", "TargetInfos.csv", targetValues);
 }
 
 void FPSciLogger::createTrialsTable() {
@@ -311,7 +317,9 @@ void FPSciLogger::recordPlayerActions(const Array<PlayerAction>& actions) {
 		};
 		rows.append(playerActionValues);
 	}
-	insertRowsIntoDB(m_db, "Player_Action", rows);
+	insertRowsIntoDB(m_db, "Player_Action", rows); 
+	for (RowEntry rowData : rows)
+		writeToFile(R"(results\CSVFailsafe)", "PlayerActions.csv", rowData);
 }
 
 void FPSciLogger::createRemotePlayerActionTable() {
@@ -393,6 +401,8 @@ void FPSciLogger::recordFrameInfo(const Array<FrameInfo>& frameInfo) {
 		rows.append(frameValues);
 	}
 	insertRowsIntoDB(m_db, "Frame_Info", rows);
+	for (RowEntry rowData : rows)
+		writeToFile(R"(results\CSVFailsafe)", "FrameInfos.csv", rowData);
 }
 
 void FPSciLogger::createQuestionsTable() {
@@ -427,6 +437,7 @@ void FPSciLogger::addQuestion(Question q, String session, const shared_ptr<Dialo
 		"'" + q.result + "'"
 	};
 	logQuestionResult(rowContents);
+	writeToFile(R"(results\CSVFailsafe)", "QuestionResults.csv", rowContents);
 }
 
 void FPSciLogger::createUsersTable() {
@@ -483,6 +494,7 @@ void FPSciLogger::logUserConfig(const UserConfig& user, const String& sessId, co
 		String(std::to_string(sensitivity.y))
 	};
 	m_users.append(row);
+	writeToFile(R"(results\CSVFailsafe)", "UserConfig.csv", row);
 }
 
 void FPSciLogger::createNetworkedClientTable() {
@@ -535,31 +547,64 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 		rows.append(networkedClientValues);
 	}
 	insertRowsIntoDB(m_db, "Client_States", rows);
+	for (RowEntry rowData : rows)
+		writeToFile(R"(results\CSVFailsafe)", "ClientStates.csv", rowData);
 }
 
 void FPSciLogger::createPlayerConfigTable() {
-	// Users table
 	Columns playerColumns = {
 		{"time", "text"},
 		{"trial_id", "real"},
 		{"player_id", "text"},
-		{"config", "text"}
+		{"moveRate", "real"},
+		{"respawnPosX", "real"},
+		{"respawnPosY", "real"},
+		{"respawnPosZ", "real"},
+		{"respawnHeading", "real"},
+		{"movementRestrictionX", "real"},
+		{"movementRestrictionZ", "real"},
+		{"restrictedMovementEnabled", "boolean"},
+		{"restrictionBoxAngle", "real"},
+		{"counterStrafing", "boolean"},
+		{"selectedClientIdx", "integer"},
+		{"playerType", "text"},
+		{"clientLatency", "real"},
+		{"cornerPositionX", "real"},
+		{"cornerPositionY", "real"},
+		{"cornerPositionZ", "real"},
+		{"defenderRandomDisplacementAngle", "real"},
 	};
 	createTableInDB(m_db, "PlayerConfigs", playerColumns);
 }
 
 void FPSciLogger::logPlayerConfig(const PlayerConfig& playerConfig, const GUniqueID& id, int trialNumber) {
 	const String time = genUniqueTimestamp();
-	Any emptyAny = Any(Any::TABLE);
-	playerConfig.addToAny(emptyAny);
+	/*Any emptyAny = Any(Any::TABLE);
+	emptyAny = playerConfig.addToAny(emptyAny);*/
 
 	RowEntry row = {
 		String(std::to_string(trialNumber)),
 		"'" + time + "'",
 		String(id.toString16()),
-		String(emptyAny.unparse())
+		String(std::to_string(playerConfig.moveRate)),
+		String(std::to_string(playerConfig.respawnPos.x)),
+		String(std::to_string(playerConfig.respawnPos.y)),
+		String(std::to_string(playerConfig.respawnPos.z)),
+		String(std::to_string(playerConfig.respawnHeading)),
+		String(std::to_string(playerConfig.movementRestrictionX)),
+		String(std::to_string(playerConfig.movementRestrictionZ)),
+		String(std::to_string(playerConfig.restrictedMovementEnabled)),
+		String(std::to_string(playerConfig.selectedClientIdx)),
+		String(playerConfig.playerType),
+		String(std::to_string(playerConfig.clientLatency)),
+		String(std::to_string(playerConfig.cornerPosition.x)),
+		String(std::to_string(playerConfig.cornerPosition.y)),
+		String(std::to_string(playerConfig.cornerPosition.z)),
+		String(std::to_string(playerConfig.defenderRandomDisplacementAngle)),
 	};
+	m_playerConfigs.append(row);
 	addToQueue(m_playerConfigs, row);
+	writeToFile(R"(results\CSVFailsafe)","PlayerConfigs.csv", row);
 }
 
 
@@ -683,3 +728,21 @@ void FPSciLogger::flush(bool blockUntilDone)
 void FPSciLogger::closeResultsFile() {
 	sqlite3_close(m_db);
 }
+
+void FPSciLogger::writeToFile(String folderName, String fileName, RowEntry data)
+{
+	std::ofstream file;
+	if (!FileSystem::isDirectory(folderName))
+	{
+		FileSystem::createDirectory(folderName);
+	}
+	file.open((folderName + R"(\)"+ fileName).c_str(), std::ios_base::app);
+	for (String cellData : data)
+	{
+		file << cellData.c_str() << ",";
+	}
+	file << std::endl;
+
+	file.close();
+}
+

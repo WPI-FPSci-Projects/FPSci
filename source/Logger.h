@@ -5,6 +5,10 @@
 #include "Session.h"
 #include "NetworkedSession.h"
 #include "Dialogs.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
 
 using RowEntry = Array<String>;
 using Columns = Array<Array<String>>;
@@ -183,4 +187,7 @@ public:
 
 	/** Add a target to an experiment */
 	void addTarget(const String& name, const shared_ptr<TargetConfig>& targetConfig, const String& spawnTime, const float& size, const Point2& spawnEcc);
+
+	/** Write to CSV failsafe **/
+	void writeToFile(String folderName, String fileName, RowEntry data);
 };
