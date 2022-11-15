@@ -270,6 +270,8 @@ void FPSciLogger::recordTargetLocations(const Array<TargetLocation>& locations) 
 		rows.append(targetTrajectoryValues);
 	}
 	insertRowsIntoDB(m_db, "Target_Trajectory", rows);
+	for (RowEntry rowData : rows)
+		writeToFile(R"(results\CSVFailsafe)", "TargetTrajectories.csv", rowData);
 }
 
 void FPSciLogger::createPlayerActionTable() {
@@ -368,6 +370,8 @@ void FPSciLogger::recordRemotePlayerActions(const Array<RemotePlayerAction>& act
 		rows.append(playerActionValues);
 	}
 	insertRowsIntoDB(m_db, "Remote_Player_Action", rows);
+	for (RowEntry rowData : rows)
+		writeToFile(R"(results\CSVFailsafe)", "RemotePlayerActions.csv", rowData);
 }
 
 
