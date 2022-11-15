@@ -76,8 +76,9 @@ namespace G3D {
 		void UpdateFired(uint8 playerID, bool fired, int frameNum);
 		Array<ServerDataInput>* GetFrameBuffer();
 		void FlushBuffer();
+		CoordinateFrame GetCFrame(int frameNum, int playerID);
 		void NewCurrentFrame(int frameNum, int clientsConnected);
-		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum);
+		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum, bool fromClient);
 	};
 
 

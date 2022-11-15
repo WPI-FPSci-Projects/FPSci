@@ -187,7 +187,7 @@ void FPSciServerApp::onNetwork()
                             case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
                                 entity->setFrame(e.frame);
                                 if (m_dataHandler != nullptr) {
-                                    m_dataHandler->UpdateCframe(e.playerID, e.frame, typedPacket->m_frameNumber);
+                                    m_dataHandler->UpdateCframe(e.playerID, e.frame, typedPacket->m_frameNumber, true);
                                 }
                                 break;
                             }
@@ -1142,9 +1142,22 @@ void FPSciServerApp::checkFrameValidity()
 void FPSciServerApp::snapBackPlayer(uint8 playerID)
 {
     // change the player's position to the last valid position
-    
+    CoordinateFrame snapBackFrame = m_dataHandler->GetCFrame(m_networkFrameNum - 1, playerID);
+    m_dataHandler->UpdateCframe(playerID, snapBackFrame, m_networkFrameNum, false);
+    G3D::String guid = playerIDtoGUID(playerID).toString16();
     // broadcast the new position to all clients
-    
+    //get entity from playerID
+    shared_ptr<NetworkedEntity> entity = (*scene()).typedEntity<NetworkedEntity>(guid);
+    //create update array and add just 
+    Array<BatchEntityUpdatePacket::EntityUpdate> updates;
+    updates.append(BatchEntityUpdatePacket::EntityUpdate(snapBackFrame, guid, playerID));
+    shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
+    updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
+    Array<ENetAddress*> clientAddresses;
+    for (NetworkUtils::ConnectedClient* c : m_connectedClients) {
+        clientAddresses.append(&c->unreliableAddress);
+    }
+    NetworkUtils::broadcastUnreliable(updatePacket, &m_unreliableSocket, clientAddresses);
 }
 
 uint8 FPSciServerApp::GUIDtoPlayerID(GUniqueID guid)

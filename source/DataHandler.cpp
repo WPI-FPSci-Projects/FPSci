@@ -147,12 +147,14 @@ void G3D::ServerDataHandler::NewCurrentFrame(int frameNum, int clientsConnected)
 	m_DataInputs->insert(0, arr);
 }
 
-void G3D::ServerDataHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum)
+void G3D::ServerDataHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum, bool fromClient)
 {
 	if (CheckFrameAcceptable(frameNum)) {
 		ServerDataInput* input = new ServerDataInput(playerID, cframe, false);
 		m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].SetCFrame(cframe);
-		m_unreadFrameBuffer->append(*input);
+		if (fromClient) {
+			m_unreadFrameBuffer->append(*input);
+		}
 	}
 }
 
@@ -164,6 +166,15 @@ G3D::ServerDataHandler::ServerDataHandler()
 }
 
 G3D::ServerDataHandler::~ServerDataHandler() {}
+
+CoordinateFrame G3D::ServerDataHandler::GetCFrame(int frameNum, int playerID) {
+	if (CheckFrameAcceptable(frameNum)) {
+		return m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 2][0][playerID].GetCFrame();
+	}
+	else {
+		return *new CoordinateFrame();
+	}
+}
 
 
 /********************************ClientsDataHandler************************************/
