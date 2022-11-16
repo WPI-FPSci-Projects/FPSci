@@ -42,11 +42,6 @@ void G3D::ServerDataInput::SetFired(bool fired) {
 	m_fired = fired;
 }
 
-/*************************ClientDataHandler***********************************/
-G3D::ClientDataInput::ClientDataInput() : DataInput() , m_exists(false){}
-G3D::ClientDataInput::ClientDataInput(uint8 playerID, CoordinateFrame cframe, bool givenCFrame) : DataInput(playerID, cframe), m_exists(givenCFrame){}
-G3D::ClientDataInput::~ClientDataInput() {}
-
 /*******************DataHandler**************************/
 void G3D::DataHandler::SetParameters(int frameCutoff, int futureFrames)
 {
@@ -182,132 +177,69 @@ CoordinateFrame G3D::ServerDataHandler::GetCFrame(int frameNum, int playerID) {
 
 G3D::ClientDataHandler::ClientDataHandler()
 {
-	for (int i = 0; i < m_pastFrames + m_futureFrames + 1; i++) {
-		m_DataInputs->append(new Array<ClientDataInput>);
+	for (int i = 0; i < static_cast<int>(m_type)+1; i++) {
+		m_DataInputs->append(new Array<CoordinateFrame>);
 	}
-}
-	
-void G3D::ClientDataHandler::NewCurrentFrame(int frameNum, int clientsConnected)
-{
-	//Call per frame
-	//debugPrintf("%d\t%d\n", m_leadingFrame, frameNum);
-	m_currentFrame = frameNum;
-	m_DataInputs->pop();
-	Array<ClientDataInput>* arr = new Array<ClientDataInput>();
-	//TODO: Does this actually make clientsConnected worth of network inputs or just the size of them
-	for (int i = 0; i < 8; i++) {
-		arr->append(*new ClientDataInput());
-	}
-	//convert to on function call
-	m_DataInputs->insert(0, arr);
+
 }
 
-void G3D::ClientDataHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum)
+void G3D::ClientDataHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, uint32 currentFrame, uint32 packetFrame)
 {
-	if (CheckFrameAcceptable(frameNum)) {
-		ClientDataInput* input = new ClientDataInput(playerID, cframe, false);
-		m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].SetCFrame(cframe);
+	m_DataInputs[0][playerID]->pop();
+	m_DataInputs[0][playerID]->insert(0, cframe);
+	m_frameLag[0][playerID] = currentFrame - packetFrame;
+	Vector3* newVector = new Vector3();
+	Matrix3* newHeading = new Matrix3();
+	switch (m_type)
+	{
+	case predictionType::LINEAR: {
+		Point3 p1 = m_DataInputs[0][playerID][0][0].translation;
+		Point3 p2 = m_DataInputs[0][playerID][0][1].translation;
+
+		Matrix3 m1 = m_DataInputs[0][playerID][0][0].rotation;
+		Matrix3 m2 = m_DataInputs[0][playerID][0][1].rotation;
+
+		*newVector = p1 - p2;
+		*newHeading = m1 - m2;
+		break;
 	}
+	case predictionType::QUADRATIC: {
+		Point3 p1 = m_DataInputs[0][playerID][0][0].translation;
+		Point3 p2 = m_DataInputs[0][playerID][0][1].translation;
+		Point3 p3 = m_DataInputs[0][playerID][0][2].translation;
+
+		Matrix3 m1 = m_DataInputs[0][playerID][0][0].rotation;
+		Matrix3 m2 = m_DataInputs[0][playerID][0][1].rotation;
+		Matrix3 m3 = m_DataInputs[0][playerID][0][2].rotation;
+
+		*newVector = p1 - p2 + (.5 * (p1 - 2 * p2 + p3));
+		*newHeading = m1 - m2 + (.5 * (m1 - 2 * m2 + m3));
+		break;
+	}
+	}
+	m_clientVectors[0][playerID] = *newVector;
+	m_clientHeading[0][playerID] = *newHeading;
+	RecalulateClient(playerID, cframe);
 }
 
 G3D::ClientDataHandler::~ClientDataHandler() {}
 
-bool G3D::ClientDataHandler::DataPointExists(int frameNum, uint8 playerID) {
-	if (CheckFrameAcceptable(frameNum)) {
-		return m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].m_exists;
-	}
-	else
-		return false;
-}
-
-CoordinateFrame G3D::ClientDataHandler::GetCFrame(int frameNum, int playerID) {
-	if (CheckFrameAcceptable(frameNum)) {
-		return m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 2][0][playerID].GetCFrame();
-	}
-	else {
-		return *new CoordinateFrame();
-	}
-}
-
-ClientDataInput* G3D::ClientDataHandler::PredictEntity(int frameNum, uint8 playerID, int moveRate){
-	//check if current frame exists. If real do nothing. if not real predict
-	ClientDataInput* prediction = new ClientDataInput();
-	if (!DataPointExists(frameNum, playerID) && CheckFrameAcceptable(frameNum)) {//does not update if value if it is out of bounds or if it exists
-		if (type == predictionType::NONE) {
-			//todo: perpetuate current position
-		}
-		else if (type == predictionType::LINEAR && !DataPointExists(frameNum + 1, playerID) && !DataPointExists(frameNum + 2, playerID)) {
-			prediction = PredictFrameLinear(frameNum, playerID, moveRate);
-		}
-		else if (type == predictionType::QUADRATIC && !DataPointExists(frameNum + 1, playerID) && !DataPointExists(frameNum + 2, playerID) &&
-			DataPointExists(frameNum + 3, playerID)) {
-			prediction = PredictFrameQuadratic(frameNum, playerID, moveRate);
-		}
-	}
+CoordinateFrame* G3D::ClientDataHandler::PredictEntityFrame(CoordinateFrame currentKnownLocation, uint8 playerID, int moveRate) {
+	//new cframe from adding vector to last known position
+	//Possibility to fall out of map
+	CoordinateFrame* prediction = new CoordinateFrame(
+		currentKnownLocation.rotation + m_clientHeading[0][playerID],
+		currentKnownLocation.translation +  m_clientVectors[0][playerID]
+	);
 
 	return prediction;
 }
 
-ClientDataInput* G3D::ClientDataHandler::PredictFrameLinear(int frameNum, uint8 playerID, int moveRate) {
+CoordinateFrame* G3D::ClientDataHandler::RecalulateClient(uint8 playerID, CoordinateFrame cframe) {
+	CoordinateFrame* prediction = new CoordinateFrame(
+		cframe.rotation + m_clientHeading[0][playerID] * m_frameLag[0][playerID],
+		cframe.translation + m_frameLag[0][playerID] * m_clientVectors[0][playerID]
+	);
 
-	//p_new = p_current+(t_current-t_old)(p_current-p_old)
-	//p_new = p_current + (t_current - t_old)(p_current - p_old) + ½ * ((p_current - p_old) - (p_old - p_old2) / old) * (t_current - t_old) ^ 2
-	Point3 p1 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 1][0][playerID].GetCFrame().translation;
-	Point3 p2 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 2][0][playerID].GetCFrame().translation;
-
-	Matrix3 m1 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 1][0][playerID].GetCFrame().rotation;
-	Matrix3 m2 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 2][0][playerID].GetCFrame().rotation;
-
-
-	//new data point from last two datapoints
-	Point3 p0 = 2 * p1 - p2;
-	Matrix3 m0 = 2 * m1 - m2;
-	//make z 0
-	p0.z = 0;
-
-	int m_walkSpeed = moveRate * units::meters() / units::seconds();
-	if (p0.x > m_walkSpeed) {
-		p0.x = m_walkSpeed;
-	}
-	if (p0.y > m_walkSpeed) {
-		p0.y > m_walkSpeed;
-	}
-
-	//new cframe from calculated deltas
-	CoordinateFrame* cframe = new CoordinateFrame(m0, p0);
-	//new network input based on cframe, previous frames get fired (keep or change to false by default)
-	ClientDataInput* prediction = new ClientDataInput(playerID, *cframe, true);
-	//add predicted frame to datainputs
-	m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID] = *prediction;
-	//return the created networkinput
-	return prediction;//prediction;
-}
-ClientDataInput* G3D::ClientDataHandler::PredictFrameQuadratic(int frameNum, uint8 playerID, int moveRate) {
-	//BUG TODO: accelerates to infinity if no new frame is found add max speed to calculations
-
-	//p_new = p_current+(t_current-t_old)(p_current-p_old)
-	//p_new = p_current + (t_current - t_old)(p_current - p_old) + ½ * ((p_current - p_old) - (p_old - p_old2) / (t_current - t_old)) * (t_old - t_old2) ^ 2
-	Point3 p1 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 1][0][playerID].GetCFrame().translation;
-	Point3 p2 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 2][0][playerID].GetCFrame().translation;
-	Point3 p3 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 3][0][playerID].GetCFrame().translation;
-
-	Matrix3 m1 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 1][0][playerID].GetCFrame().rotation;
-	Matrix3 m2 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 2][0][playerID].GetCFrame().rotation;
-	Matrix3 m3 = m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 3][0][playerID].GetCFrame().rotation;
-
-
-	//form new data point from last 3 data points
-	Point3 p0 = 2 * p1 - p2 + (.5* (p1 - 2 * p2 + p3));
-	Matrix3 m0 = 2 * m1 - m2 + (.5 * (m1 - 2 * m2 + m3));
-	//make z 0
-	p0.z = 0;
-
-	//new cframe from calculated deltas
-	CoordinateFrame* cframe = new CoordinateFrame(m0, p0);
-	//new network input based on cframe, previous frames get fired (keep or change to false by default)
-	ClientDataInput* prediction = new ClientDataInput(playerID, *cframe, true);
-	//add predicted frame to datainputs
-	m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID] = *prediction;
-	//return the created networkinput
-	return prediction;//prediction;
+	return prediction;
 }

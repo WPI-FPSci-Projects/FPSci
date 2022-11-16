@@ -34,17 +34,6 @@ namespace G3D {
 
 	};
 
-	class ClientDataInput : public DataInput {
-	public:
-		bool m_exists;
-	public:
-		ClientDataInput();
-		ClientDataInput(uint8 playerID, CoordinateFrame cframe, bool givenCFrame);
-		~ClientDataInput();
-
-	};
-
-
 	class DataHandler {
 	public:
 		int m_pastFrames = 10;
@@ -82,7 +71,7 @@ namespace G3D {
 	};
 
 
-	class ClientDataHandler : public DataHandler {
+	class ClientDataHandler{
 	public:
 		enum class predictionType
 		{
@@ -91,18 +80,18 @@ namespace G3D {
 			QUADRATIC,
 		};
 
-		predictionType type = predictionType::NONE;
-		Array<Array<ClientDataInput>*>* m_DataInputs = new Array<Array<ClientDataInput>*>;
+		predictionType m_type = predictionType::NONE;
+		Array<Array<CoordinateFrame>*>* m_DataInputs = new Array<Array<CoordinateFrame>*>;
+		Array<Vector3>* m_clientVectors = new Array<Vector3>;
+		Array<Matrix3>* m_clientHeading = new Array<Matrix3>;
+		Array<int8>* m_frameLag = new Array<int8>;
 	public:
 		ClientDataHandler();
-		void NewCurrentFrame(int frameNum, int clientsConnected);
 		~ClientDataHandler();
-		CoordinateFrame GetCFrame(int frameNum, int playerID);
-		ClientDataInput* PredictEntity(int frameNum, uint8 playerID, int moveRate);
-		ClientDataInput* PredictFrameLinear(int frameNum, uint8 playerID, int moveRate);
-		ClientDataInput* PredictFrameQuadratic(int frameNum, uint8 playerID, int moveRate);
-		bool DataPointExists(int frameNum, uint8 playerID);
-		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum);
+		CoordinateFrame* PredictEntityFrame(CoordinateFrame currentKnownLocation, uint8 playerID, int moveRate);
+		CoordinateFrame* RecalulateClient(uint8 playerID, CoordinateFrame cframe);
+		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, uint32 currentFrame, uint32 packetFrame);
+
 	};
 };
 

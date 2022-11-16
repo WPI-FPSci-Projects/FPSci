@@ -76,8 +76,7 @@ void FPSciApp::initExperiment() {
 	makeGUI();
 
 	//datahandler
-	m_dataHandler->SetParameters(experimentConfig.pastFrame, experimentConfig.futureFrame);
-	m_dataHandler->type = static_cast<ClientDataHandler::predictionType>(experimentConfig.extrapolationType);
+	m_dataHandler->m_type = static_cast<ClientDataHandler::predictionType>(experimentConfig.extrapolationType);
 
 
 	updateMouseSensitivity();													  // Update (apply) mouse sensitivity
@@ -1037,9 +1036,6 @@ void FPSciApp::onNetwork() {
 		m_networkFrameNum++;
 	//}
 
-	m_dataHandler->NewCurrentFrame(m_networkFrameNum, m_connectedClients);
-
-
 	if (!m_socketConnected) {
 		shared_ptr<HandshakePacket> handshake = GenericPacket::createUnreliable<HandshakePacket>(&m_unreliableSocket, &m_unreliableServerAddress);
 		shared_ptr<HandshakePacket> ping_handshake = GenericPacket::createUnreliable<HandshakePacket>(&m_pingSocket, &m_pingServerAddress);
@@ -1186,8 +1182,8 @@ void FPSciApp::onNetwork() {
 								case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
 									
 									entity->setFrame(e.frame);
-									if (m_dataHandler != nullptr) {
-										m_dataHandler->UpdateCframe(e.playerID, e.frame, typedPacket->m_frameNumber);
+									if (m_dataHandler != nullptr && e.name != m_playerGUID.toString16()) {
+										m_dataHandler->UpdateCframe(e.playerID, e.frame, m_networkFrameNum, typedPacket->m_frameNumber);
 									}
 									break;
 								}
@@ -1556,10 +1552,8 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 		Array<shared_ptr<NetworkedEntity>> entityArray;
 		scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
 		for (shared_ptr<NetworkedEntity> ne : entityArray) {
-			ClientDataInput* prediction = m_dataHandler->PredictEntity(m_networkFrameNum, ne->getPlayerID(), *p->moveRate);
-			if (prediction->m_exists) {
-				ne->setFrame(prediction->GetCFrame());
-			}
+			CoordinateFrame* prediction = m_dataHandler->PredictEntityFrame(ne->frame(), ne->getPlayerID(), *p->moveRate);
+			ne->setFrame(*prediction);
 		}
 	}
 
@@ -2187,12 +2181,6 @@ void FPSciApp::onCleanup() {
 void FPSciApp::oneFrame() {
 	// Count this frame (for shaders)
 	m_frameNumber++;
-
-	//add current palyer position
-	if (m_playerID != 255) {
-		shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
-		m_dataHandler->UpdateCframe(m_playerID, player->frame(), m_networkFrameNum);
-	}
 
 	// Target frame time (only call this method once per one frame!)
 	RealTime targetFrameTime = sess->targetFrameTime();
