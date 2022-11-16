@@ -1124,18 +1124,35 @@ void FPSciServerApp::onASBroadcast()
 
 void FPSciServerApp::checkFrameValidity()
 {
-    // Player displacement check
-    // Check if a player is moving too quickly, based on player max speed and frame rate
-    // If so, snap the player to the last valid position
-    {
-        snapBackPlayer(-1);
-    }
-    
-    // Player to player collision detection
-    // Check if two players are too close, based on body radius
-    // If so, snap the players to the last valid positions
-    {
-        snapBackPlayer(-1);
+    Array<shared_ptr<NetworkedEntity>> entityArray;
+    scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
+
+    for (shared_ptr<NetworkedEntity> e1 : entityArray) {
+        // Player displacement check
+        // Check if a player is moving too quickly, based on player max speed and frame rate
+        // If so, snap the player to the last valid position
+        /* 
+        {
+            snapBackPlayer(-1);
+        }
+        */
+        // Player to player collision detection
+        // Check if two players are too close, based on body radius
+        // If so, snap the players to the last valid positions
+
+        Point3 player1Pos = e1->frame().translation;
+        //Potentially performance heavy (O(n^2))
+        for (shared_ptr<NetworkedEntity> e2 : entityArray) {
+            Point3 player2Pos = e2->frame().translation;
+            double dist = sqrt(pow(player1Pos.x - player2Pos.x, 2) + pow(player1Pos.y - player2Pos.y, 2) + pow(player1Pos.z - player2Pos.z, 2));
+            // Hardcoded to 1.5 * 2 m based on sphere parameters in PlayerEntity, maybe move to config later?
+            if (dist < 3 && e1->getPlayerID() != e2->getPlayerID()) {
+                debugPrintf("%d colliding with %d\n", e1->getPlayerID(), e2->getPlayerID()); //TODO remove
+                snapBackPlayer(e1->getPlayerID());
+                snapBackPlayer(e2->getPlayerID());
+            }
+
+        }       
     }
 }
 
