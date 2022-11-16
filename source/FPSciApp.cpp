@@ -1552,8 +1552,8 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 		Array<shared_ptr<NetworkedEntity>> entityArray;
 		scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
 		for (shared_ptr<NetworkedEntity> ne : entityArray) {
-			CoordinateFrame* prediction = m_dataHandler->PredictEntityFrame(ne->frame(), ne->getPlayerID(), *p->moveRate);
-			ne->setFrame(*prediction);
+			//CoordinateFrame* prediction = m_dataHandler->PredictEntityFrame(ne->frame(), ne->getPlayerID(), *p->moveRate);
+			//ne->setFrame(*prediction);
 		}
 	}
 
