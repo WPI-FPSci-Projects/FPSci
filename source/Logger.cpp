@@ -586,8 +586,8 @@ void FPSciLogger::logPlayerConfig(const PlayerConfig& playerConfig, const GUniqu
 	emptyAny = playerConfig.addToAny(emptyAny);*/
 
 	RowEntry row = {
-		String(std::to_string(trialNumber)),
 		"'" + time + "'",
+		String(std::to_string(trialNumber)),
 		String(id.toString16()),
 		String(std::to_string(playerConfig.moveRate)),
 		String(std::to_string(playerConfig.respawnPos.x)),
@@ -597,16 +597,18 @@ void FPSciLogger::logPlayerConfig(const PlayerConfig& playerConfig, const GUniqu
 		String(std::to_string(playerConfig.movementRestrictionX)),
 		String(std::to_string(playerConfig.movementRestrictionZ)),
 		String(std::to_string(playerConfig.restrictedMovementEnabled)),
+		String(std::to_string(playerConfig.restrictionBoxAngle)),
+		String(std::to_string(playerConfig.counterStrafing)),
 		String(std::to_string(playerConfig.selectedClientIdx)),
-		String(playerConfig.playerType),
+		"'" + playerConfig.playerType + "'",
 		String(std::to_string(playerConfig.clientLatency)),
 		String(std::to_string(playerConfig.cornerPosition.x)),
 		String(std::to_string(playerConfig.cornerPosition.y)),
 		String(std::to_string(playerConfig.cornerPosition.z)),
 		String(std::to_string(playerConfig.defenderRandomDisplacementAngle)),
 	};
-	addToQueue(m_playerConfigs, row);
-	writeToFile(R"(results\CSVFailsafe)","PlayerConfigs.csv", row);
+	m_playerConfigs.append(row);
+	//writeToFile(R"(results\CSVFailsafe)","PlayerConfigs.csv", row);
 }
 
 
@@ -659,7 +661,7 @@ void FPSciLogger::loggerThreadEntry()
 		m_networkedClients.reserve(networkedClients.size() * 2);
 
 		decltype(m_playerConfigs) playerConfigs;
-		users.swap(m_playerConfigs, playerConfigs);
+		playerConfigs.swap(m_playerConfigs, playerConfigs);
 		m_playerConfigs.reserve(playerConfigs.size() * 2);
 
 		// Unlock all the now-empty queues and write out our temporary copies
