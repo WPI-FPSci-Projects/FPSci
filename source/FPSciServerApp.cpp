@@ -256,7 +256,6 @@ void FPSciServerApp::onNetwork()
             case REGISTER_CLIENT: {
                     RegisterClientPacket* typedPacket = static_cast<RegisterClientPacket*> (inPacket.get());
                     debugPrintf("Registering client...\n");
-                    m_historicalPlayerCount++;
                     NetworkUtils::ConnectedClient* newClient = new NetworkUtils::ConnectedClient();
                     newClient->peer = typedPacket->m_peer;
                     newClient->guid = typedPacket->m_guid;
@@ -272,7 +271,8 @@ void FPSciServerApp::onNetwork()
                     /* Reply to the registration */
                     shared_ptr<RegistrationReplyPacket> registrationReply = GenericPacket::createReliable<RegistrationReplyPacket>(newClient->peer);
                     registrationReply->populate(newClient->guid, 0, newClient->playerID);
-                    NetworkUtils::send(registrationReply);                
+                    NetworkUtils::send(registrationReply);      
+                    m_historicalPlayerCount++;
                     ENetAddress addr = typedPacket->srcAddr();
                     addr.port = typedPacket->m_portNum;
                     /* Set the amount of latency to add */

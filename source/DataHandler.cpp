@@ -177,17 +177,24 @@ CoordinateFrame G3D::ServerDataHandler::GetCFrame(int frameNum, int playerID) {
 
 G3D::ClientDataHandler::ClientDataHandler()
 {
-	for (int i = 0; i < static_cast<int>(m_type)+1; i++) {
-		m_DataInputs->append(new Array<CoordinateFrame>);
-	}
 
 }
 
-void G3D::ClientDataHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, uint32 currentFrame, uint32 packetFrame)
+void G3D::ClientDataHandler::AddNewClient(String playerID) {
+	m_DataInputs->set(playerID, new Array<CoordinateFrame>);
+	for (int i = 0; i < static_cast<int>(m_type) + 1; i++) {
+		m_DataInputs->get(playerID)->append(*new CoordinateFrame());
+	}
+	m_frameLag->set(playerID, 0);
+	m_clientVectors->set(playerID, *new Vector3());
+	m_clientHeading->set(playerID, *new Matrix3());
+}
+
+void G3D::ClientDataHandler::UpdateCframe(String playerID, CoordinateFrame cframe, uint32 currentFrame, uint32 packetFrame)
 {
-	m_DataInputs[0][playerID]->pop();
-	m_DataInputs[0][playerID]->insert(0, cframe);
-	m_frameLag[0][playerID] = currentFrame - packetFrame;
+	m_DataInputs->get(playerID)->pop();
+	m_DataInputs->get(playerID)->insert(0, cframe);
+	m_frameLag->get(playerID) = currentFrame - packetFrame;
 	Vector3* newVector = new Vector3();
 	Matrix3* newHeading = new Matrix3();
 	switch (m_type)
@@ -224,7 +231,7 @@ void G3D::ClientDataHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe
 
 G3D::ClientDataHandler::~ClientDataHandler() {}
 
-CoordinateFrame* G3D::ClientDataHandler::PredictEntityFrame(CoordinateFrame currentKnownLocation, uint8 playerID, int moveRate) {
+CoordinateFrame* G3D::ClientDataHandler::PredictEntityFrame(CoordinateFrame currentKnownLocation, String playerID) {
 	//new cframe from adding vector to last known position
 	//Possibility to fall out of map
 	CoordinateFrame* prediction = new CoordinateFrame(
@@ -235,7 +242,7 @@ CoordinateFrame* G3D::ClientDataHandler::PredictEntityFrame(CoordinateFrame curr
 	return prediction;
 }
 
-CoordinateFrame* G3D::ClientDataHandler::RecalulateClient(uint8 playerID, CoordinateFrame cframe) {
+CoordinateFrame* G3D::ClientDataHandler::RecalulateClient(String playerID, CoordinateFrame cframe) {
 	CoordinateFrame* prediction = new CoordinateFrame(
 		cframe.rotation + m_clientHeading[0][playerID] * m_frameLag[0][playerID],
 		cframe.translation + m_frameLag[0][playerID] * m_clientVectors[0][playerID]

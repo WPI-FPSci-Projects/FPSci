@@ -81,16 +81,17 @@ namespace G3D {
 		};
 
 		predictionType m_type = predictionType::NONE;
-		Array<Array<CoordinateFrame>*>* m_DataInputs = new Array<Array<CoordinateFrame>*>;
-		Array<Vector3>* m_clientVectors = new Array<Vector3>;
-		Array<Matrix3>* m_clientHeading = new Array<Matrix3>;
-		Array<int8>* m_frameLag = new Array<int8>;
+		Table<String, Array<CoordinateFrame>*>* m_DataInputs = new Table<String, Array<CoordinateFrame>*>;
+		Table<String, Vector3>* m_clientVectors = new Table<String, Vector3>;
+		Table<String, Matrix3>* m_clientHeading = new Table<String, Matrix3>;
+		Table<String, int8>* m_frameLag = new Table<String, int8>;
 	public:
 		ClientDataHandler();
 		~ClientDataHandler();
-		CoordinateFrame* PredictEntityFrame(CoordinateFrame currentKnownLocation, uint8 playerID, int moveRate);
-		CoordinateFrame* RecalulateClient(uint8 playerID, CoordinateFrame cframe);
-		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, uint32 currentFrame, uint32 packetFrame);
+		CoordinateFrame* PredictEntityFrame(CoordinateFrame currentKnownLocation, String playerID);
+		CoordinateFrame* RecalulateClient(String playerID, CoordinateFrame cframe);
+		void UpdateCframe(String playerID, CoordinateFrame cframe, uint32 currentFrame, uint32 packetFrame);
+		void AddNewClient(String playerID);
 
 	};
 };

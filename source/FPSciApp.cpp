@@ -1183,7 +1183,7 @@ void FPSciApp::onNetwork() {
 									
 									entity->setFrame(e.frame);
 									if (m_dataHandler != nullptr && e.name != m_playerGUID.toString16()) {
-										m_dataHandler->UpdateCframe(e.playerID, e.frame, m_networkFrameNum, typedPacket->m_frameNumber);
+										m_dataHandler->UpdateCframe(e.name, e.frame, m_networkFrameNum, typedPacket->m_frameNumber);
 									}
 									break;
 								}
@@ -1265,6 +1265,8 @@ void FPSciApp::onNetwork() {
 
 					(*scene()).insert(target);
 					netSess->addHittableTarget(target);
+
+					m_dataHandler->AddNewClient(target->name());
 				}
 				else
 				{
@@ -1545,17 +1547,6 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 	// Move the player
 	const shared_ptr<PlayerEntity>& p = scene()->typedEntity<PlayerEntity>("player");
 	playerCamera->setFrame(p->getCameraFrame());
-
-	//predict and move all networked entities that have not been updated this frame
-	//TODO: when to stop predicting movement?
-	if (experimentConfig.extrapolationEnabled) {
-		Array<shared_ptr<NetworkedEntity>> entityArray;
-		scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
-		for (shared_ptr<NetworkedEntity> ne : entityArray) {
-			//CoordinateFrame* prediction = m_dataHandler->PredictEntityFrame(ne->frame(), ne->getPlayerID(), *p->moveRate);
-			//ne->setFrame(*prediction);
-		}
-	}
 
 	// Handle developer mode features here
 	if (startupConfig.developerMode)
@@ -2295,6 +2286,19 @@ void FPSciApp::oneFrame() {
 		}
 		m_simulationWatch.tock();
 		END_PROFILER_EVENT();
+	}
+
+	//predict and move all networked entities that have not been updated this frame
+	//TODO: when to stop predicting movement?
+	if (experimentConfig.extrapolationEnabled) {
+		Array<shared_ptr<NetworkedEntity>> entityArray;
+		scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
+		if (entityArray.size() > 1) {
+			for (shared_ptr<NetworkedEntity> ne : entityArray) {
+				CoordinateFrame* prediction = m_dataHandler->PredictEntityFrame(ne->frame(), ne->name());
+				ne->setFrame(*prediction);
+			}
+		}
 	}
 
 	// Pose
