@@ -20,7 +20,6 @@ ExperimentConfig::ExperimentConfig(const Any& any) : FpsConfig(any) {
 		reader.getIfPresent("isNetworked", isNetworked);
 		reader.getIfPresent("isAuthoritativeServer", isAuthoritativeServer);
 		reader.getIfPresent("pastFrame", pastFrame);
-		reader.getIfPresent("futureFrame", futureFrame);
 		reader.getIfPresent("extrapolationEnabled", extrapolationEnabled);
 		reader.getIfPresent("extrapolationType", extrapolationType);
 

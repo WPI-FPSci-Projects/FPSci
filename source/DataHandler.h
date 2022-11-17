@@ -3,71 +3,67 @@
 #include <map>
 
 namespace G3D {
-	class DataInput // need to store X amount of last arrays
-	{
-	public:
-		uint8 m_playerID;
-		CoordinateFrame m_cframe;
 
-	public:
-		DataInput();
-		DataInput(uint8 playerID, CoordinateFrame cframe);
-		~DataInput();
-
-		CoordinateFrame GetCFrame();
-		void SetCFrame(CoordinateFrame cframe);
-
-	};
-
-	class ServerDataInput : public DataInput// need to store X amount of last arrays
+	class ServerDataInput
 	{
 	public:
 		bool m_fired;
+		CoordinateFrame m_cframe;
+		bool m_valid;
 
 	public:
 		ServerDataInput();
-		ServerDataInput(uint8 playerID, CoordinateFrame cframe, bool fired);
+		ServerDataInput(CoordinateFrame cframe, bool fired, bool valid);
 		~ServerDataInput();
 
 		bool GetFired();
 		void SetFired(bool fired);
+		CoordinateFrame GetCFrame();
+		void SetCFrame(CoordinateFrame cframe);
+		bool GetValid();
+		void SetValid(bool valid);
 
 	};
 
-	class DataHandler {
+
+	class ServerDataHandler{
 	public:
 		int m_pastFrames = 10;
-		int m_futureFrames = 2;
 		uint32 m_currentFrame = 0;
-		Array<Array<DataInput>*>* m_DataInputs = new Array<Array<DataInput>*>; //hold some future frames //this will be full hopfully
-	public:
-		DataHandler();
-		~DataHandler();
-		void SetParameters(int frameCutoff, int futureFrames);
-		bool AllClientsFrame(int frameNum, int clientsConnected);
-		void NewCurrentFrame(int frameNum, int clientsConnected);
-		bool CheckFrameAcceptable(int frameNum); //meant to keep out very old data points. how to incorperate that with client extrapolation? 
-
-		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum);
-
-		Array<DataInput>* GetFrameInputs(int frame);
-	};
-
-	class ServerDataHandler : public DataHandler {
-	public:
-		Array<Array<ServerDataInput>*>* m_DataInputs = new Array<Array<ServerDataInput>*>;
+		Table<String, Array<ServerDataInput>*>* m_DataInputs;
+		Table<String, int>* m_clientLastValid;
 		//TODO: keep track of how many clients are present during a single frame
 		Array<ServerDataInput>* m_unreadFrameBuffer = new Array<ServerDataInput>;//these will be half empty
 
 	public:
 		ServerDataHandler();
 		~ServerDataHandler();
-		void UpdateFired(uint8 playerID, bool fired, int frameNum);
+	
+		//used to access a cframe from a datapoint
+		CoordinateFrame GetCFrame(int frameNum, String playerID);
+
+		//Called per frame to delete oldest data point
+		void NewCurrentFrame(int frameNum);
+
+		//updateing values in Handler
+		void UpdateCframe(String playerID, CoordinateFrame cframe, int frameNum, bool fromClient);
+		void UpdateFired(String playerID, bool fired, int frameNum);
+		void ValidateData(String playerID, int frameNum);
+		int lastValidFromFrameNum(String playerID, int frameNum);
+
+		//meant to keep out very old data points.
+		bool CheckFrameAcceptable(int frameNum);
+
+		//setup
+		void SetParameters(int frameCutoff);
+
+		//Add/delete clients
+		void AddNewClient(String playerID);
+		void DeleteClient(String playerID);
+
+		//unreadFrameBuffer
 		Array<ServerDataInput>* GetFrameBuffer();
 		void FlushBuffer();
-		CoordinateFrame GetCFrame(int frameNum, int playerID);
-		void NewCurrentFrame(int frameNum, int clientsConnected);
-		void UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum, bool fromClient);
 	};
 
 

@@ -1,35 +1,12 @@
 ﻿#include "DataHandler.h"
-
-G3D::DataInput::DataInput(uint8 playerID, CoordinateFrame cframe) :
-	m_playerID(playerID), m_cframe(cframe)
-{
-}
-
-G3D::DataInput::DataInput() :
-	m_cframe(CFrame()), m_playerID(0)
-{
-}
-
-G3D::DataInput::~DataInput()
-{
-}
-
-G3D::CoordinateFrame G3D::DataInput::GetCFrame()
-{
-	return m_cframe;
-}
-
-void G3D::DataInput::SetCFrame(CoordinateFrame cframe)
-{
-	m_cframe = cframe;
-}
-
 /**********************ServerDataInput********************/
-G3D::ServerDataInput::ServerDataInput() : m_fired(false), DataInput()
+G3D::ServerDataInput::ServerDataInput() 
+	: m_fired(false), m_cframe(CoordinateFrame()), m_valid(false)
 {
 }
 
-G3D::ServerDataInput::ServerDataInput(uint8 playerID, CoordinateFrame cframe, bool fired) : m_fired(fired), DataInput(playerID, cframe){
+G3D::ServerDataInput::ServerDataInput(CoordinateFrame cframe, bool fired, bool valid) 
+	: m_fired(fired), m_cframe(cframe), m_valid(valid){
 
 }
 
@@ -41,81 +18,112 @@ bool G3D::ServerDataInput::GetFired() {
 void G3D::ServerDataInput::SetFired(bool fired) {
 	m_fired = fired;
 }
-
-/*******************DataHandler**************************/
-void G3D::DataHandler::SetParameters(int frameCutoff, int futureFrames)
+G3D::CoordinateFrame G3D::ServerDataInput::GetCFrame()
 {
-	m_pastFrames = frameCutoff;
-	m_futureFrames = futureFrames;
+	return m_cframe;
 }
 
-void G3D::DataHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum)
+void G3D::ServerDataInput::SetCFrame(CoordinateFrame cframe)
 {
-	if (playerID == static_cast<uint8>(-1))
-	{
-		debugPrintf("Invalid playerID in UpdateCframe\n");
-		return;
-	}
-	if (CheckFrameAcceptable(frameNum)) {
-		DataInput* input = new DataInput(playerID, cframe);
-		m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].SetCFrame(cframe);
-	}
+	m_cframe = cframe;
+}
+bool G3D::ServerDataInput::GetValid() {
+	return m_valid;
 }
 
-G3D::DataHandler::DataHandler()
-{
-	for (int i = 0; i < m_pastFrames + m_futureFrames + 1; i++) {
-		m_DataInputs->append(new Array<DataInput>);
-	}
+void G3D::ServerDataInput::SetValid(bool valid) {
+	m_valid = valid;
 }
-
-G3D::DataHandler::~DataHandler() {}
-
-bool G3D::DataHandler::AllClientsFrame(int frameNum, int clientsConnected)
-{
-	return m_DataInputs[0][m_currentFrame - frameNum + 2]->length() == clientsConnected;
-}
-
-Array<G3D::DataInput>* G3D::DataHandler::GetFrameInputs(int frameNum)
-{
-	//if (m_DataInputs->empty) return NULL;
-	return m_DataInputs[0][m_currentFrame - frameNum + 2];
-}
-
-void G3D::DataHandler::NewCurrentFrame(int frameNum, int clientsConnected)
-{
-	//Call per frame
-	//debugPrintf("%d\t%d\n", m_leadingFrame, frameNum);
-	m_currentFrame = frameNum;
-	m_DataInputs->pop();
-	Array<DataInput>* arr = new Array<DataInput>();
-	//TODO: Does this actually make clientsConnected worth of network inputs or just the size of them
-	for (int i = 0; i < 8; i++) {
-		arr->append(*new DataInput());
-	}
-	//convert to on function call
-	m_DataInputs->insert(0, arr);
-}
-
-bool G3D::DataHandler::CheckFrameAcceptable(int frameNum)
-{
-	//i have a feeling this may cause issues in the future
-	return (m_currentFrame - frameNum + m_futureFrames >= 0 && m_currentFrame - frameNum + m_futureFrames < m_pastFrames);
-}
-
 
 /**********************ServerDataHandler**************************/
 //TODO: unqiue newgetFrameInputs // also clientdatahandler
 
-void G3D::ServerDataHandler::UpdateFired(uint8 playerID, bool fired, int frameNum)
+void G3D::ServerDataHandler::NewCurrentFrame(int frameNum)
 {
-	if (CheckFrameAcceptable(frameNum)) {
-		ServerDataInput* input = new ServerDataInput(playerID, *new CoordinateFrame(), fired);
-		m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].SetFired(fired);
-		m_unreadFrameBuffer->append(*input);
+	//Call per frame
+	m_currentFrame = frameNum;
+	for (String clientName : m_clientLastValid->getKeys()) {
+		m_DataInputs->get(clientName)->pop();
+		ServerDataInput* newDataPoint = new ServerDataInput();
+		m_DataInputs->get(clientName)->insert(0, *newDataPoint);
 	}
 }
 
+void G3D::ServerDataHandler::UpdateFired(String playerID, bool fired, int frameNum)
+{
+	if (CheckFrameAcceptable(frameNum)) {
+		ServerDataInput* input = new ServerDataInput(*new CoordinateFrame(), fired, false);
+		m_DataInputs->get(playerID)->getCArray()[m_currentFrame - frameNum].SetFired(fired);
+
+		m_unreadFrameBuffer->push(*input);
+	}
+}
+
+void G3D::ServerDataHandler::UpdateCframe(String playerID, CoordinateFrame cframe, int frameNum, bool fromClient)
+{
+	if (CheckFrameAcceptable(frameNum)) {
+		ServerDataInput* input = new ServerDataInput(cframe, false, false);
+		m_DataInputs->get(playerID)->getCArray()[m_currentFrame - frameNum].SetCFrame(cframe);
+		if (fromClient) {
+			m_unreadFrameBuffer->push(*input);
+		}
+	}
+}
+
+void G3D::ServerDataHandler::ValidateData(String playerID, int frameNum) {
+	m_DataInputs->get(playerID)->getCArray()[m_currentFrame - frameNum].SetValid(true);
+	m_clientLastValid->get(playerID) = frameNum;
+}
+
+int G3D::ServerDataHandler::lastValidFromFrameNum(String playerID, int frameNum){
+	for (int i = m_currentFrame - frameNum; i < m_pastFrames; i++) {
+		if (m_DataInputs->get(playerID)->getCArray()[i].GetValid()) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+G3D::ServerDataHandler::ServerDataHandler()
+{
+	m_DataInputs = new Table<String, Array<ServerDataInput>*>;
+	m_clientLastValid = new Table<String, int>;
+}
+
+G3D::ServerDataHandler::~ServerDataHandler() {}
+
+CoordinateFrame G3D::ServerDataHandler::GetCFrame(int frameNum, String playerID) {
+	if (CheckFrameAcceptable(frameNum)) {
+		return m_DataInputs->get(playerID)->getCArray()[m_currentFrame - frameNum].GetCFrame();
+	}
+	else {
+		return *new CoordinateFrame();
+	}
+}
+
+void G3D::ServerDataHandler::SetParameters(int frameCutoff)
+{
+	m_pastFrames = frameCutoff;
+}
+
+bool G3D::ServerDataHandler::CheckFrameAcceptable(int frameNum)
+{
+	//i have a feeling this may cause issues in the future
+	return (m_currentFrame - frameNum >= 0 && m_currentFrame - frameNum < m_pastFrames);
+}
+
+void G3D::ServerDataHandler::AddNewClient(String playerID) {
+	m_DataInputs->set(playerID, new Array<ServerDataInput>);// ->resize(m_pastFrames, false);
+	m_DataInputs->get(playerID)->resize(m_pastFrames, false);
+	m_clientLastValid->set(playerID, 0);
+}
+
+void G3D::ServerDataHandler::DeleteClient(String playerID) {
+	m_DataInputs->remove(playerID);
+	m_clientLastValid->remove(playerID);
+}
+
+/********UnreadFrameBuffer***********/
 Array<G3D::ServerDataInput>* G3D::ServerDataHandler::GetFrameBuffer() {
 	//return buffer of all frames that have not yet been applied
 	return m_unreadFrameBuffer;
@@ -125,50 +133,6 @@ void G3D::ServerDataHandler::FlushBuffer()
 {
 	//clears the buffer of unapplied networkInputs must be called every frame
 	m_unreadFrameBuffer->clear();
-}
-
-void G3D::ServerDataHandler::NewCurrentFrame(int frameNum, int clientsConnected)
-{
-	//Call per frame
-	//debugPrintf("%d\t%d\n", m_leadingFrame, frameNum);
-	m_currentFrame = frameNum;
-	m_DataInputs->pop();
-	Array<ServerDataInput>* arr = new Array<ServerDataInput>();
-	//TODO: Does this actually make clientsConnected worth of network inputs or just the size of them
-	for (int i = 0; i < 8; i++) {
-		arr->append(*new ServerDataInput());
-	}
-	//convert to on function call
-	m_DataInputs->insert(0, arr);
-}
-
-void G3D::ServerDataHandler::UpdateCframe(uint8 playerID, CoordinateFrame cframe, int frameNum, bool fromClient)
-{
-	if (CheckFrameAcceptable(frameNum)) {
-		ServerDataInput* input = new ServerDataInput(playerID, cframe, false);
-		m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames][0][playerID].SetCFrame(cframe);
-		if (fromClient) {
-			m_unreadFrameBuffer->append(*input);
-		}
-	}
-}
-
-G3D::ServerDataHandler::ServerDataHandler()
-{
-	for (int i = 0; i < m_pastFrames + m_futureFrames + 1; i++) {
-		m_DataInputs->append(new Array<ServerDataInput>);
-	}
-}
-
-G3D::ServerDataHandler::~ServerDataHandler() {}
-
-CoordinateFrame G3D::ServerDataHandler::GetCFrame(int frameNum, int playerID) {
-	if (CheckFrameAcceptable(frameNum)) {
-		return m_DataInputs[0][m_currentFrame - frameNum + m_futureFrames + 2][0][playerID].GetCFrame();
-	}
-	else {
-		return *new CoordinateFrame();
-	}
 }
 
 
@@ -183,7 +147,7 @@ G3D::ClientDataHandler::ClientDataHandler()
 void G3D::ClientDataHandler::AddNewClient(String playerID) {
 	m_DataInputs->set(playerID, new Array<CoordinateFrame>);
 	for (int i = 0; i < static_cast<int>(m_type) + 1; i++) {
-		m_DataInputs->get(playerID)->append(*new CoordinateFrame());
+		m_DataInputs->get(playerID)->push(*new CoordinateFrame());
 	}
 	m_frameLag->set(playerID, 0);
 	m_clientVectors->set(playerID, *new Vector3());
