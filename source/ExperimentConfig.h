@@ -25,7 +25,6 @@ public:
 	bool extrapolationEnabled = false;
 	int extrapolationType = 1;							///< Type of extrapolation to perform. 0 None, 1 linear, 2 quadratic
 	bool timeWarpEnabled = false;						///< Primary flag for enabling Time Warp latency compensation
-	bool useSMAForTimeWarp = false;						///< Whether or not to use the SMA of RTT for time warp; if false, the latest RTT value will be used instead
 
 	ExperimentConfig() { init(); }
 	ExperimentConfig(const Any& any);
