@@ -60,7 +60,7 @@ void FPSciServerApp::initExperiment() {
     /* This is where added code begins */
     
     //Setup dataHandler
-    m_dataHandler->SetParameters(experimentConfig.pastFrame, experimentConfig.futureFrame);
+    m_dataHandler->SetParameters(experimentConfig.pastFrame);
     
     // Setup the network and start listening for clients
     ENetAddress localAddress;
@@ -187,7 +187,7 @@ void FPSciServerApp::onNetwork()
                             case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
                                 entity->setFrame(e.frame);
                                 if (m_dataHandler != nullptr) {
-                                    m_dataHandler->UpdateCframe(e.playerID, e.frame, typedPacket->m_frameNumber, true);
+                                    m_dataHandler->UpdateCframe(e.name, e.frame, typedPacket->m_frameNumber, true);
                                 }
                                 break;
                             }
@@ -251,6 +251,9 @@ void FPSciServerApp::onNetwork()
                     NetworkUtils::broadcastReliable(outPacket, m_localHost);
                     //NetworkUtils::send(outPacket);
                     //outPacket->send();
+
+                    //remove from datahandler
+                    m_dataHandler->DeleteClient(client->guid.toString16());
                     break;
             }
             case REGISTER_CLIENT: {
@@ -344,6 +347,11 @@ void FPSciServerApp::onNetwork()
                         NetworkUtils::send(respawnPacket);
                         //respawnPacket->send();
                     }
+
+                    //Add to Datahandler
+                    m_dataHandler->AddNewClient(newClient->guid.toString16());
+
+
                     break;
             }
             case PacketType::REPORT_HIT: {
@@ -400,7 +408,7 @@ void FPSciServerApp::onNetwork()
             case REPORT_FIRE:
                 {
                     ReportFirePacket* typedPacket = static_cast<ReportFirePacket*> (inPacket.get());
-                    m_dataHandler->UpdateFired(GUIDtoPlayerID(typedPacket->m_shooterID), typedPacket->m_fired, typedPacket->m_frameNumber);
+                    m_dataHandler->UpdateFired(typedPacket->m_shooterID.toString16(), typedPacket->m_fired, typedPacket->m_frameNumber);
                     break;
                 }
             case READY_UP_CLIENT: {
@@ -564,7 +572,7 @@ void FPSciServerApp::oneFrame() {
     // Count this frame (for shaders)
     m_frameNumber++;
 
-    m_dataHandler->NewCurrentFrame(m_frameNumber, m_connectedClients.size());
+    m_dataHandler->NewCurrentFrame(m_frameNumber);
 
     // Target frame time (only call this method once per one frame!)
     RealTime targetFrameTime = sess->targetFrameTime();
@@ -1159,8 +1167,10 @@ void FPSciServerApp::checkFrameValidity()
 void FPSciServerApp::snapBackPlayer(uint8 playerID)
 {
     // change the player's position to the last valid position
-    CoordinateFrame snapBackFrame = m_dataHandler->GetCFrame(m_networkFrameNum - 1, playerID);
-    m_dataHandler->UpdateCframe(playerID, snapBackFrame, m_networkFrameNum, false);
+    CoordinateFrame snapBackFrame = m_dataHandler->GetCFrame(
+        m_dataHandler->m_clientLastValid->get((m_connectedClients[playerID]->guid.toString16())),
+        m_connectedClients[playerID]->guid.toString16());
+    m_dataHandler->UpdateCframe(m_connectedClients[playerID]->guid.toString16(), snapBackFrame, m_networkFrameNum, false);
     m_connectedClients[playerID]->entity->setFrame(snapBackFrame);
 }
 
