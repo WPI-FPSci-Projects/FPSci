@@ -1063,6 +1063,10 @@ void FPSciApp::onNetwork() {
 				}
 				break;
 			}
+			case SEQUENCE_NUMBER: {
+				SNPacket* typedPacket = static_cast<SNPacket*> (inPacket.get());
+				//LOG typedPacket->m_sequenceNumber; (UNRELIABLE)
+			}
 			default:
 				debugPrintf("WARNING: Unhandled packet received on unreliable channel of type %d\n", inPacket->type());
 			}
@@ -1204,12 +1208,21 @@ void FPSciApp::onNetwork() {
 				sessConfig->player.counterStrafing = typedPacket->m_playerConfig->counterStrafing;
 				break;
 			}
+			case SEQUENCE_NUMBER: {
+				SNPacket* typedPacket = static_cast<SNPacket*> (inPacket.get());
+				//LOG typedPacket->m_sequenceNumber; (RELIABLE)
+			}
 			default:
 				debugPrintf("WARNING: unhandled packet received on reliable channel of type: %d\n", inPacket->type());
 			}
 		}
 		inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
 	}
+
+	//TODO log NetworkUtils::getByteCount();
+	NetworkUtils::resetByteCount();
+
+	//TODO log profiler output
 }
 
 void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {

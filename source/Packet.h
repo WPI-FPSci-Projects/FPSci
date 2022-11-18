@@ -32,7 +32,9 @@ enum PacketType {
 	SEND_PLAYER_CONFIG,
 
 	RELIABLE_CONNECT,			///< Packet type to represent an enet event type connect
-	RELIABLE_DISCONNECT			///< Packet type to represent an enet event type disconnect
+	RELIABLE_DISCONNECT,		///< Packet type to represent an enet event type disconnect
+
+	SEQUENCE_NUMBER // for Evaluation
 };
 
 /** A Generic Packet type that contains only the type of packet and basic information for sending/receiving a packet
@@ -622,3 +624,29 @@ public:
 	PacketType type() override { return RELIABLE_DISCONNECT; }
 	shared_ptr<GenericPacket> clone() override { return createShared<ReliableDisconnectPacket>(*this); }
 };
+
+/** A Packet for sending a sequence number
+*
+* Used for evaluation; a marker packet that can be used to calculate latency and/or characterize the network
+*/
+class SNPacket : public GenericPacket {
+protected:
+	SNPacket() : GenericPacket() {}
+	SNPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	SNPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	SNPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return SEQUENCE_NUMBER; }
+	shared_ptr<GenericPacket> clone() override { return createShared<SNPacket>(*this); }
+
+	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
+	void populate(uint32 sequenceNumber);
+
+	uint32 m_sequenceNumber;							///< Frame number that this action took place
+
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+}

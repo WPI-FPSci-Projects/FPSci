@@ -71,6 +71,9 @@ shared_ptr<GenericPacket> NetworkUtils::createTypedPacket(PacketType type, ENetA
 	case PacketType::SEND_PLAYER_CONFIG:
 		return GenericPacket::createReceive<SendPlayerConfigPacket>(srcAddr, inBuffer);
 		break;
+	case PacketType::SEQUENCE_NUMBER:
+		return GenericPacket::createReceive<SNPacket>(srcAddr, inBuffer);
+		break;
 	default:
 		debugPrintf("WARNING: Could not create a typed packet of for type %d. Returning GenericPacket instead\n", type);
 		return GenericPacket::createReceive<GenericPacket>(srcAddr, inBuffer);
@@ -182,13 +185,27 @@ void NetworkUtils::send(shared_ptr<GenericPacket> packet)
 	}
 
 	if (latency == 0) { // don't bother the other thread if we don't want any delay
-		packet->send();
+		NetworkUtils::byteCount += packet->send();
 	}
 	else {
 		sendPacketDelayed(packet, latency);
 	}
 }
 
+void NetworkUtils::resetByteCount() {
+	NetworkUtils::byteCount = 0;
+}
+
+void NetworkUtils::addByteCount(int bytes) {
+	NetworkUtils::byteCount += bytes;
+}
+
+int NetworkUtils::getByteCount() {
+	return NetworkUtils::byteCount;
+}
+
 // default latency is none by default:
 int NetworkUtils::defaultLatency = 0;
 std::map<ENetAddress, int, ENetAddressCompare> NetworkUtils::latencyMap;
+
+int NetworkUtils::byteCount = 0;

@@ -1,4 +1,5 @@
 #include "LatentNetwork.h"
+#include "NetworkUtils.h"
 
 
 void LatentNetwork::networkThreadTick()
@@ -33,7 +34,7 @@ void LatentNetwork::networkThreadTick()
 
 		while (m_packetHeap.length() > 0 && m_packetHeap[0]->timeToSend <= now) {
 			std::pop_heap(m_packetHeap.begin(), m_packetHeap.end(), PacketSendtimeCompare());
-			m_packetHeap.back()->encapsulatedPacket->send();
+			NetworkUtils::addByteCount(m_packetHeap.back()->encapsulatedPacket->send());
 			m_packetHeap.pop_back();
 		}
 		//debugPrintf("Packet heap length: %d\n", m_packetHeap.length());

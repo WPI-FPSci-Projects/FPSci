@@ -137,4 +137,12 @@ public:
 		static void sendPacketDelayed(shared_ptr<GenericPacket> packet, int delay);
 		static int defaultLatency;
 		static std::map<ENetAddress, int, ENetAddressCompare> latencyMap;
+
+	// EVAL
+	public:
+		static void resetByteCount();
+		static int getByteCount();
+		static void addByteCount(int bytes);
+	protected:
+		static int byteCount;
 };

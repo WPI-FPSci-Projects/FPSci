@@ -437,3 +437,22 @@ void SendPlayerConfigPacket::deserialize(BinaryInput& inBuffer) {
 
 	m_playerConfig->counterStrafing = inBuffer.readBool8();
 }
+
+
+/*************************
+ *Sequence Number Packet *
+ *************************/
+
+void SNPacket::populate(uint32 sequenceNumber) {
+	m_sequenceNumber = sequenceNumber;
+}
+
+void SNPacket::serialize(BinaryOutput& outBuffer) {
+	GenericPacket::serialize(outBuffer);	// Call the super serialize
+	outBuffer.writeUInt32(m_sequenceNumber);
+}
+
+void SNPacket::deserialize(BinaryInput& inBuffer) {
+	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
+	m_sequenceNumber = inBuffer.readUInt32();
+}
