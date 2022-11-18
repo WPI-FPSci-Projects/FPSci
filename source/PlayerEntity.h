@@ -186,6 +186,8 @@ public:
 
             angle = (*defenderRandomDisplacementAngle - (-*defenderRandomDisplacementAngle)) * ((((float)rand()) / (float)RAND_MAX)) + (-*defenderRandomDisplacementAngle);
 
+            debugPrintf("Displacement angle: %f\n", angle);
+
             newX = m_respawnPosition.x - (*cornerPosition).x;
             newZ = m_respawnPosition.z - (*cornerPosition).z;
             temp = newX;
@@ -193,7 +195,7 @@ public:
             newZ = temp * sin(angle * (pi() / 180.0f)) + newZ * cos(angle * (pi() / 180.0f));
             
             newX += (*cornerPosition).x;
-            newZ += (*cornerPosition).y;
+            newZ += (*cornerPosition).z;
 
             m_respawnPosition.x = newX;
             m_respawnPosition.z = newZ;
