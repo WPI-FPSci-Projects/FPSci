@@ -588,7 +588,7 @@ void FPSciLogger::logPlayerConfig(const PlayerConfig& playerConfig, const GUniqu
 	RowEntry row = {
 		"'" + time + "'",
 		String(std::to_string(trialNumber)),
-		String(id.toString16()),
+		id.toString16(),
 		String(std::to_string(playerConfig.moveRate)),
 		String(std::to_string(playerConfig.respawnPos.x)),
 		String(std::to_string(playerConfig.respawnPos.y)),
