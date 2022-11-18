@@ -272,6 +272,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client2defenderRandomDisplacementAngle", clientPlayerConfigs[1].defenderRandomDisplacementAngle);
 
 		reader.getIfPresent("respawnPosArray", respawnPosArray);
+		reader.getIfPresent("moveRateArray", moveRateArray);
 		reader.getIfPresent("respawnHeadingArray", respawnHeadingArray);
 		reader.getIfPresent("movementRestrictionXArray", movementRestrictionXArray);
 		reader.getIfPresent("movementRestrictionZArray", movementRestrictionZArray);

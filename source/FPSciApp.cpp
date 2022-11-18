@@ -1100,7 +1100,7 @@ void FPSciApp::onNetwork() {
 						filename = "model/target/pointingplayer.obj";
 						preprocess = {
 						transformGeometry(all(), Matrix4::yawDegrees(120));
-						transformGeometry(all(), Matrix4::translation(0, -1, 0));
+						//transformGeometry(all(), Matrix4::translation(0, -1, 0));
 						};
 						cleanGeometrySettings = ArticulatedModel::CleanGeometrySettings{
 						allowVertexMerging = true;
