@@ -28,6 +28,10 @@ public:
 	using QuestionResult = RowEntry;
 	using TrialValues = RowEntry;
 	using UserValues = RowEntry;
+	//EVAL
+	using BytesSent = RowEntry;
+	using SNTimestamp = RowEntry;
+	using ProfilerStatus = RowEntry;
 
 protected:
 	sqlite3* m_db = nullptr;						///< The db used for logging
@@ -58,6 +62,10 @@ protected:
 	Array<TrialValues> m_trials;						///< Trial ID, start/end time etc.
 	Array<UserValues> m_users;
 	Array<NetworkedClient> m_networkedClients;
+	//EVAL
+	Array<BytesSent> m_bytesSent;
+	Array<SNTimestamp> m_SNTimestamp;
+	Array<ProfilerStatus> m_ProfilerStatus;
 
 	size_t getTotalQueueBytes()
 	{
@@ -68,7 +76,11 @@ protected:
 			queueBytes(m_targetLocations) +
 			queueBytes(m_targets) +
 			queueBytes(m_trials) + 
-			queueBytes(m_networkedClients);
+			queueBytes(m_networkedClients) +
+			//EVAL
+			queueBytes(m_bytesSent) +
+			queueBytes(m_SNTimestamp) +
+			queueBytes(m_ProfilerStatus);
 	}
 
 	template<typename ItemType> void addToQueue(Array<ItemType>& queue, const ItemType& item)
@@ -127,6 +139,11 @@ protected:
 	void createUsersTable();
 	void createNetworkedClientTable();
 
+	//EVAL
+	void createBytesSentTable();
+	void createSNTimestampTable();
+	void createProfilerStatusTable();
+
 	// Functions that assume the schema from above
 	//void insertSession(sessionInfo);
 	//void updateSession(sessionInfo);
@@ -160,6 +177,11 @@ public:
 	void logTargetTypes(const Array<shared_ptr<TargetConfig>>& targets);
 
 	void logNetworkedClient(const NetworkedClient& client) { addToQueue(m_networkedClients, client); }
+
+	//EVAL
+	void logBytesSent(int frameNum, int bytes);
+	void logSNTimestamp(int frameNum, int SN, bool recieved);
+	void logProfilerStatus(int frameNum, double networkDuration, double totalDuration);
 
 	/** Wakes up the logging thread and flushes even if the buffer limit is not reached yet. */
 	void flush(bool blockUntilDone);

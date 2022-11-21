@@ -536,6 +536,79 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 	insertRowsIntoDB(m_db, "Client_States", rows);
 }
 
+//EVAL
+void FPSciLogger::createBytesSentTable() {
+	// Users table
+	Columns bytesColumns = {
+		{"time", "text"},
+		{"frameNum", "real"},
+		{"bytes", "real"}
+	};
+	createTableInDB(m_db, "BytesSent", bytesColumns);
+}
+
+void FPSciLogger::logBytesSent(int frameNum, int bytes) {
+	const String time = genUniqueTimestamp();
+
+	RowEntry row = {
+		"'" + time + "'",
+		String(std::to_string(frameNum)),
+		String(std::to_string(bytes))
+	};
+	m_bytesSent.append(row);
+}
+
+void FPSciLogger::createSNTimestampTable() {
+	// Users table
+	Columns snColumns = {
+		{"time", "text"},
+		{"frameNum", "real"},
+		{"SNSent", "real"},
+		{"SNReceived", "real"}
+	};
+	createTableInDB(m_db, "SNTimestamps", snColumns);
+}
+
+void FPSciLogger::logSNTimestamp(int frameNum, int SN, bool recieved) {
+	const String time = genUniqueTimestamp();
+	String sent = !recieved ? "" : String(SN);
+	String received = recieved ? "" : String(SN);
+
+		RowEntry row = {
+			"'" + time + "'",
+			String(std::to_string(frameNum)),
+			"'" + sent + "'",
+			"'" + received + "'"
+	};
+	m_SNTimestamp.append(row);
+}
+
+void FPSciLogger::createProfilerStatusTable() {
+	// Users table
+	Columns profilerColumns = {
+		{"time", "text"},
+		{"frameNum", "real"},
+		{"networkDuration", "real"},
+		{"totalDuration", "real"}
+	};
+	createTableInDB(m_db, "ProfilerStatus", profilerColumns);
+}
+
+void FPSciLogger::logProfilerStatus(int frameNum, double networkDuration, double totalDuration) {
+	const String time = genUniqueTimestamp();
+
+	RowEntry row = {
+		"'" + time + "'",
+		String(std::to_string(frameNum)),
+		String(std::to_string(networkDuration)),
+		String(std::to_string(totalDuration)),
+	};
+	m_ProfilerStatus.append(row);
+}
+
+
+
+
 void FPSciLogger::loggerThreadEntry()
 {
 	std::unique_lock<std::mutex> lk(m_queueMutex);
@@ -584,6 +657,19 @@ void FPSciLogger::loggerThreadEntry()
 		networkedClients.swap(m_networkedClients, networkedClients);
 		m_networkedClients.reserve(networkedClients.size() * 2);
 
+		//EVAL
+		decltype(m_bytesSent) bytesSent;
+		bytesSent.swap(m_bytesSent, bytesSent);
+		m_bytesSent.reserve(bytesSent.size() * 2);
+
+		decltype(m_SNTimestamp) SNTimestamp;
+		SNTimestamp.swap(m_SNTimestamp, SNTimestamp);
+		m_SNTimestamp.reserve(SNTimestamp.size() * 2);
+
+		decltype(m_ProfilerStatus) ProfilerStatus;
+		ProfilerStatus.swap(m_ProfilerStatus, ProfilerStatus);
+		m_ProfilerStatus.reserve(ProfilerStatus.size() * 2);
+
 		// Unlock all the now-empty queues and write out our temporary copies
 		lk.unlock();
 
@@ -598,6 +684,11 @@ void FPSciLogger::loggerThreadEntry()
 		insertRowsIntoDB(m_db, "Targets", targets);
 		insertRowsIntoDB(m_db, "Users", users);
 		insertRowsIntoDB(m_db, "Trials", trials);
+
+		//EVAL
+		insertRowsIntoDB(m_db, "BytesSent", bytesSent);
+		insertRowsIntoDB(m_db, "SNTimestamps", SNTimestamp);
+		insertRowsIntoDB(m_db, "ProfilerStatus", ProfilerStatus);
 
 		lk.lock();
 	}

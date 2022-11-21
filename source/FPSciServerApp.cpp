@@ -415,6 +415,10 @@ void FPSciServerApp::oneFrame() {
     }
 
     for (int repeat = 0; repeat < max(1, m_renderPeriod); ++repeat) {
+        //const Array< const Array< Profiler::Event& >*>& eventTree;
+        //Array< const Array< Profiler::Event >*> eventTrees = Array< const Array< Profiler::Event >*>();
+        //Profiler::getEvents(eventTrees);
+        //https://casual-effects.com/g3d/G3D10/build/manual/class_g3_d_1_1_profiler.html
         Profiler::nextFrame();
         m_lastTime = m_now;
         m_now = System::time();

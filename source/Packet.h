@@ -649,4 +649,4 @@ public:
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
 	void deserialize(BinaryInput& inBuffer) override;
-}
+};
