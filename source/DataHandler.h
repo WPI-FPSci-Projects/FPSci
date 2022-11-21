@@ -2,22 +2,55 @@
 #include <G3D/G3D.h>
 #include <map>
 
+/*READ ME
+Server datahandler
+	m_DataInputs is the overall storage mechanism for cframes and their validity
+	m_clientLastValid is a table of frameNums for the newest validated position from server
+	m_clientLatestFrame is a table of frameNum for newest postion from a client
+	m_unreadCFrameBuffer is CFrames not yet checked by server
+	m_unreadFiredbuffer is fire reports not yet checked by server
+
+	getCFrame is how you access a cframe
+	updateCframe is how you add a cframe to the datahandler fromClient is to recognize if a datapoint is from a client.
+				 So if called in onNetwork it should be true that way it is added to unreadFrameBuffer.
+				 Otherwise make it false so it is not added to unreadFrameBuffer and not checked again.
+	
+
+	ValidateData is how you check to make sure that a value form a client has been checked and validated by the server
+	lastValidFromFrameNum lets you check any frame number and it looks backwards through time to find the most recent valid frame from the frameNum specified
+
+
+	GetCFrameBuffer() / GetFiredBuffer() used to get the buffer
+	FlushCFrameBuffer() / FlushFiredBuffer(); use after all values have been checked
+
+Client datahandler
+	prediction type is specified in experiment.any use to define how you want to calculate extrapolation 1 is none, 2 is linear, 3 quadratic
+
+	m_DataInputs keeps track of same amount of data points as type
+	m_clientHeading is transition matrix for each client from calculated result
+	m_clientVectors is transition vector for each client from calculated result
+	m_frameLag keeps track how far behind in time is each client to local clients
+
+	PredictEntityFrame is used to calculate 1 frames worth of movement based on client vector and heading
+	RecalulateClient re-extraoplates the position based on new data and frame lag
+	UpdateCframe adds new cframe to its data getting rid of the oldest for a client and recaluclates vector and matrix
+
+	
+*/
+
 namespace G3D {
 
 	class ServerDataInput
 	{
 	public:
-		bool m_fired;
 		CoordinateFrame m_cframe;
 		bool m_valid;
 
 	public:
 		ServerDataInput();
-		ServerDataInput(CoordinateFrame cframe, bool fired, bool valid);
+		ServerDataInput(CoordinateFrame cframe, bool valid);
 		~ServerDataInput();
 
-		bool GetFired();
-		void SetFired(bool fired);
 		CoordinateFrame GetCFrame();
 		void SetCFrame(CoordinateFrame cframe);
 		bool GetValid();
@@ -32,8 +65,9 @@ namespace G3D {
 		uint32 m_currentFrame = 0;
 		Table<String, Array<ServerDataInput>*>* m_DataInputs;
 		Table<String, int>* m_clientLastValid;
-		//TODO: keep track of how many clients are present during a single frame
-		Array<ServerDataInput>* m_unreadFrameBuffer = new Array<ServerDataInput>;//these will be half empty
+		Table<String, int>* m_clientLatestFrame;
+		Array<ServerDataInput>* m_unreadCFrameBuffer;
+		Array<bool>* m_unreadFiredbuffer = new Array<bool>;
 
 	public:
 		ServerDataHandler();
@@ -47,7 +81,7 @@ namespace G3D {
 
 		//updateing values in Handler
 		void UpdateCframe(String playerID, CoordinateFrame cframe, int frameNum, bool fromClient);
-		void UpdateFired(String playerID, bool fired, int frameNum);
+		void UpdateFired(String playerID, int frameNum);
 		void ValidateData(String playerID, int frameNum);
 		int lastValidFromFrameNum(String playerID, int frameNum);
 
@@ -62,8 +96,11 @@ namespace G3D {
 		void DeleteClient(String playerID);
 
 		//unreadFrameBuffer
-		Array<ServerDataInput>* GetFrameBuffer();
-		void FlushBuffer();
+		Array<ServerDataInput>* GetCFrameBuffer();
+		void FlushCFrameBuffer();
+
+		Array<bool>* GetFiredBuffer();
+		void FlushFiredBuffer();
 	};
 
 

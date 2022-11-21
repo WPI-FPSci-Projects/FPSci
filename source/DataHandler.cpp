@@ -1,23 +1,17 @@
 ﻿#include "DataHandler.h"
 /**********************ServerDataInput********************/
 G3D::ServerDataInput::ServerDataInput() 
-	: m_fired(false), m_cframe(CoordinateFrame()), m_valid(false)
+	: m_cframe(CoordinateFrame()), m_valid(false)
 {
 }
 
-G3D::ServerDataInput::ServerDataInput(CoordinateFrame cframe, bool fired, bool valid) 
-	: m_fired(fired), m_cframe(cframe), m_valid(valid){
+G3D::ServerDataInput::ServerDataInput(CoordinateFrame cframe, bool valid) 
+	: m_cframe(cframe), m_valid(valid){
 
 }
 
 G3D::ServerDataInput::~ServerDataInput() {}
 
-bool G3D::ServerDataInput::GetFired() {
-	return m_fired;
-}
-void G3D::ServerDataInput::SetFired(bool fired) {
-	m_fired = fired;
-}
 G3D::CoordinateFrame G3D::ServerDataInput::GetCFrame()
 {
 	return m_cframe;
@@ -36,7 +30,6 @@ void G3D::ServerDataInput::SetValid(bool valid) {
 }
 
 /**********************ServerDataHandler**************************/
-//TODO: unqiue newgetFrameInputs // also clientdatahandler
 
 void G3D::ServerDataHandler::NewCurrentFrame(int frameNum)
 {
@@ -49,30 +42,32 @@ void G3D::ServerDataHandler::NewCurrentFrame(int frameNum)
 	}
 }
 
-void G3D::ServerDataHandler::UpdateFired(String playerID, bool fired, int frameNum)
+void G3D::ServerDataHandler::UpdateFired(String playerID, int frameNum)
 {
 	if (CheckFrameAcceptable(frameNum)) {
-		ServerDataInput* input = new ServerDataInput(*new CoordinateFrame(), fired, false);
-		m_DataInputs->get(playerID)->getCArray()[m_currentFrame - frameNum].SetFired(fired);
-
-		m_unreadFrameBuffer->push(*input);
+		m_unreadFiredbuffer->push(true);
 	}
 }
 
 void G3D::ServerDataHandler::UpdateCframe(String playerID, CoordinateFrame cframe, int frameNum, bool fromClient)
 {
 	if (CheckFrameAcceptable(frameNum)) {
-		ServerDataInput* input = new ServerDataInput(cframe, false, false);
+		ServerDataInput* input = new ServerDataInput(cframe, false);
 		m_DataInputs->get(playerID)->getCArray()[m_currentFrame - frameNum].SetCFrame(cframe);
 		if (fromClient) {
-			m_unreadFrameBuffer->push(*input);
+			m_unreadCFrameBuffer->push(*input);
+			if (frameNum > m_clientLatestFrame->get(playerID)) {
+				m_clientLatestFrame->set(playerID, frameNum);
+			}
 		}
 	}
 }
 
 void G3D::ServerDataHandler::ValidateData(String playerID, int frameNum) {
 	m_DataInputs->get(playerID)->getCArray()[m_currentFrame - frameNum].SetValid(true);
-	m_clientLastValid->get(playerID) = frameNum;
+	if (frameNum > m_clientLastValid->get(playerID)){
+		m_clientLastValid->get(playerID) = frameNum;
+	}
 }
 
 int G3D::ServerDataHandler::lastValidFromFrameNum(String playerID, int frameNum){
@@ -88,6 +83,9 @@ G3D::ServerDataHandler::ServerDataHandler()
 {
 	m_DataInputs = new Table<String, Array<ServerDataInput>*>;
 	m_clientLastValid = new Table<String, int>;
+	m_clientLatestFrame = new Table<String, int>;
+	m_unreadCFrameBuffer = new Array<ServerDataInput>;
+	m_unreadFiredbuffer = new Array<bool>;
 }
 
 G3D::ServerDataHandler::~ServerDataHandler() {}
@@ -116,28 +114,40 @@ void G3D::ServerDataHandler::AddNewClient(String playerID) {
 	m_DataInputs->set(playerID, new Array<ServerDataInput>);// ->resize(m_pastFrames, false);
 	m_DataInputs->get(playerID)->resize(m_pastFrames, false);
 	m_clientLastValid->set(playerID, 0);
+	m_clientLatestFrame->set(playerID, 0);
 }
 
 void G3D::ServerDataHandler::DeleteClient(String playerID) {
 	m_DataInputs->remove(playerID);
 	m_clientLastValid->remove(playerID);
+	m_clientLatestFrame->remove(playerID);
 }
 
 /********UnreadFrameBuffer***********/
-Array<G3D::ServerDataInput>* G3D::ServerDataHandler::GetFrameBuffer() {
+Array<G3D::ServerDataInput>* G3D::ServerDataHandler::GetCFrameBuffer() {
 	//return buffer of all frames that have not yet been applied
-	return m_unreadFrameBuffer;
+	return m_unreadCFrameBuffer;
 }
 
-void G3D::ServerDataHandler::FlushBuffer()
+void G3D::ServerDataHandler::FlushCFrameBuffer()
 {
 	//clears the buffer of unapplied networkInputs must be called every frame
-	m_unreadFrameBuffer->clear();
+	m_unreadCFrameBuffer->clear();
+}
+
+Array<bool>* G3D::ServerDataHandler::GetFiredBuffer() {
+	//return buffer of all frames that have not yet been applied
+	return m_unreadFiredbuffer;
+}
+
+void G3D::ServerDataHandler::FlushFiredBuffer()
+{
+	//clears the buffer of unapplied networkInputs must be called every frame
+	m_unreadFiredbuffer->clear();
 }
 
 
 /********************************ClientsDataHandler************************************/
-//TODO: update on demand
 
 G3D::ClientDataHandler::ClientDataHandler()
 {

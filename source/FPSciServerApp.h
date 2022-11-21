@@ -49,6 +49,8 @@ public:
 
     // Utility functions
     void snapBackPlayer(uint8 playerID);                               ///< Snaps back a player to the position they were at last frame
+    void TimeWarpFrameSetup(uint32 guid);
+    void CurrentTimeFrameSetup();
     uint8 GUIDtoPlayerID(GUniqueID guid);
     GUniqueID playerIDtoGUID(uint8 playerID);
 };

@@ -408,7 +408,7 @@ void FPSciServerApp::onNetwork()
             case REPORT_FIRE:
                 {
                     ReportFirePacket* typedPacket = static_cast<ReportFirePacket*> (inPacket.get());
-                    m_dataHandler->UpdateFired(typedPacket->m_shooterID.toString16(), typedPacket->m_fired, typedPacket->m_frameNumber);
+                    m_dataHandler->UpdateFired(typedPacket->m_shooterID.toString16(), typedPacket->m_frameNumber);
                     break;
                 }
             case READY_UP_CLIENT: {
@@ -1172,6 +1172,22 @@ void FPSciServerApp::snapBackPlayer(uint8 playerID)
         m_connectedClients[playerID]->guid.toString16());
     m_dataHandler->UpdateCframe(m_connectedClients[playerID]->guid.toString16(), snapBackFrame, m_networkFrameNum, false);
     m_connectedClients[playerID]->entity->setFrame(snapBackFrame);
+}
+
+void FPSciServerApp::TimeWarpFrameSetup(uint32 frameNum) {
+    Array<shared_ptr<NetworkedEntity>> entityArray;
+    scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
+    for (shared_ptr<NetworkedEntity> e : entityArray) {
+        e->setFrame(m_dataHandler->GetCFrame(m_dataHandler->lastValidFromFrameNum(e->name(), frameNum), e->name()));
+    }
+}
+
+void FPSciServerApp::CurrentTimeFrameSetup() {
+    Array<shared_ptr<NetworkedEntity>> entityArray;
+    scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
+    for (shared_ptr<NetworkedEntity> e : entityArray) {
+        e->setFrame(m_dataHandler->GetCFrame(m_dataHandler->m_clientLastValid->get(e->name()), e->name()));
+    }
 }
 
 uint8 FPSciServerApp::GUIDtoPlayerID(GUniqueID guid)
