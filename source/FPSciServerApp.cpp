@@ -115,6 +115,7 @@ void FPSciServerApp::onNetwork() {
             }
             case BATCH_ENTITY_UPDATE: {
                 BatchEntityUpdatePacket* typedPacket = static_cast<BatchEntityUpdatePacket*> (inPacket.get());
+                client->frameNumber = typedPacket->m_frameNumber;
                 for (BatchEntityUpdatePacket::EntityUpdate e : typedPacket->m_updates) {
                     shared_ptr<NetworkedEntity> entity = (*scene()).typedEntity<NetworkedEntity>(e.name);
                     if (entity == nullptr) {
