@@ -22,6 +22,7 @@ ExperimentConfig::ExperimentConfig(const Any& any) : FpsConfig(any) {
 		reader.getIfPresent("pastFrame", pastFrame);
 		reader.getIfPresent("extrapolationEnabled", extrapolationEnabled);
 		reader.getIfPresent("extrapolationType", extrapolationType);
+		reader.getIfPresent("timeWarpEnabled", timeWarpEnabled);		
 
 		logPrintf("serverAddress is : %s:%d\n", serverAddress.c_str(), serverPort);
 		break;

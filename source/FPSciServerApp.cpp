@@ -1155,7 +1155,6 @@ void FPSciServerApp::checkFrameValidity()
             double dist = sqrt(pow(player1Pos.x - player2Pos.x, 2) + pow(player1Pos.y - player2Pos.y, 2) + pow(player1Pos.z - player2Pos.z, 2));
             // Hardcoded to 1.5 * 2 m based on sphere parameters in PlayerEntity, maybe move to config later?
             if (dist < 3 && e1->getPlayerID() != e2->getPlayerID()) {
-                debugPrintf("%d colliding with %d\n", e1->getPlayerID(), e2->getPlayerID()); //TODO remove
                 snapBackPlayer(e1->getPlayerID());
                 snapBackPlayer(e2->getPlayerID());
             }
