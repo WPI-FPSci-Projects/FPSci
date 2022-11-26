@@ -1388,6 +1388,10 @@ void FPSciApp::onNetwork() {
 				sessConfig->clientScore++;
 				debugPrintf("Enemy Hit! Points Added!\n");
 				scene()->typedEntity<PlayerEntity>("player")->respawn();
+				if (experimentConfig.concealShotSound)
+				{
+					weapon->playSound(true, true);
+				}
 				break;
 			}
 			case RESET_CLIENT_ROUND: {
@@ -1518,7 +1522,10 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 		}
 #		endif
 	}
-	weapon->playSound(shotFired, shootButtonUp);
+	if (!experimentConfig.concealShotSound)
+	{
+		weapon->playSound(shotFired, shootButtonUp);
+	}
 
 	// TODO (or NOTTODO): The following can be cleared at the cost of one more level of inheritance.
 	sess->onSimulation(rdt, sdt, idt);
