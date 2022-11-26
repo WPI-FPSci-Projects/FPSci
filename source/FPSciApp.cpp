@@ -1165,7 +1165,8 @@ void FPSciApp::onNetwork() {
 							shared_ptr<Entity> entity;
 							if (e.name == m_playerGUID.toString16())
 							{
-								entity = (*scene()).typedEntity<PlayerEntity>("player");
+								// TODO: Check if server frame mismatch with history, if so, allow override
+								// entity = (*scene()).typedEntity<PlayerEntity>("player");
 
 							} else
 							{
