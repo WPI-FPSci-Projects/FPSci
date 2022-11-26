@@ -1505,6 +1505,16 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 	if (shotFired)
 	{
 		weapon->setLastFireTime(newLastFireTime);
+		if (experimentConfig.isNetworked && experimentConfig.isAuthoritativeServer)
+		{
+			// Send fire report if server authoritative weapon simulation
+			if (sess->currentState == networkedSessionRoundStart)
+			{
+				shared_ptr<ReportFirePacket> outPacket = GenericPacket::createReliable<ReportFirePacket>(m_serverPeer);
+				outPacket->populate(m_networkFrameNum, true, m_playerGUID);
+				NetworkUtils::send(outPacket);
+			}
+		}
 	}
 	weapon->playSound(shotFired, shootButtonUp);
 
