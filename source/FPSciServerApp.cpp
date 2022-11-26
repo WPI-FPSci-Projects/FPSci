@@ -346,6 +346,8 @@ void FPSciServerApp::onNetwork()
                         respawnPacket->populate();
                         NetworkUtils::send(respawnPacket);
                         //respawnPacket->send();
+                        // Set the target translation
+                        target->setFrame(CFrame(position));
                     }
 
                     //Add to Datahandler
