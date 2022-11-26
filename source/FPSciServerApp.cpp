@@ -1171,8 +1171,13 @@ void FPSciServerApp::snapBackPlayer(uint8 playerID)
     CoordinateFrame snapBackFrame = m_dataHandler->GetCFrame(
         m_dataHandler->m_clientLastValid->get((m_connectedClients[playerID]->guid.toString16())),
         m_connectedClients[playerID]->guid.toString16());
-    m_dataHandler->UpdateCframe(m_connectedClients[playerID]->guid.toString16(), snapBackFrame, m_networkFrameNum, false);
-    m_connectedClients[playerID]->entity->setFrame(snapBackFrame);
+    // snap back to the last valid position if not zero
+    auto zeroFrame = new CoordinateFrame();
+    if (snapBackFrame != *zeroFrame)
+    {
+        m_dataHandler->UpdateCframe(m_connectedClients[playerID]->guid.toString16(), snapBackFrame, m_networkFrameNum, false);
+        m_connectedClients[playerID]->entity->setFrame(snapBackFrame);
+    }
 }
 
 void FPSciServerApp::TimeWarpFrameSetup(uint32 frameNum) {
