@@ -1153,8 +1153,8 @@ void FPSciServerApp::checkFrameValidity()
         for (shared_ptr<NetworkedEntity> e2 : entityArray) {
             Point3 player2Pos = e2->frame().translation;
             double dist = sqrt(pow(player1Pos.x - player2Pos.x, 2) + pow(player1Pos.y - player2Pos.y, 2) + pow(player1Pos.z - player2Pos.z, 2));
-            // Hardcoded to 1.5 * 2 m based on sphere parameters in PlayerEntity, maybe move to config later?
-            if (dist < 3 && e1->getPlayerID() != e2->getPlayerID()) {
+            // Hardcoded to 1.0 * 2 m based on sphere parameters in PlayerEntity, maybe move to config later?
+            if (dist < 2 && e1->getPlayerID() != e2->getPlayerID()) {
                 snapBackPlayer(e1->getPlayerID());
                 snapBackPlayer(e2->getPlayerID());
             }
