@@ -19,7 +19,7 @@ public:
 	int pingSMASize = 5;								///< Sample size used for calculating SMA for ping
 	int numPlayers = 2;									///< Number of connections to wait for before starting the game
 	bool isNetworked;									///< Checks if the experiment is networked or not
-	bool isAuthoritativeServer;							///< Checks if using authoritative server; false if using client
+	bool isAuthoritativeServer = false;					///< Checks if using authoritative server; false if using client
 	bool concealShotSound = false;						///< Checks if, under AS, want to play fire sound without server confirming shot hit
 	int pastFrame = 10;
 	bool extrapolationEnabled = false;
