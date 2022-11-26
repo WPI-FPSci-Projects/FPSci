@@ -45,8 +45,9 @@ public:
     Table <uint32, Array<uint16>> getClientRTTStatistics() { return m_clientRTTStatistics; }
 
     // Authoritative server functions
-    void onASBroadcast();
-    void checkFrameValidity();
+    void checkFrameValidity(); ///< Checks if the current movements received from the clients are valid
+    void simulateWeapons(); ///< Simulates the weapons of the clients after verifying their movements
+    void onASBroadcast(); ///< Broadcasts the current state of the world to all clients
 
     // Utility functions
     void snapBackPlayer(uint8 playerID);                               ///< Snaps back a player to the position they were at last frame

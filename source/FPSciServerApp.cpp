@@ -359,6 +359,7 @@ void FPSciServerApp::onNetwork()
                     break;
             }
             case PacketType::REPORT_HIT: {
+                // Any changes to this might also need to be reflected in Server side Sim (FPSciServerApp::simulateWeapons())
                     // This just causes everyone to respawn
                     ReportHitPacket* typedPacket = static_cast<ReportHitPacket*> (inPacket.get());
                     shared_ptr<NetworkedEntity> hitEntity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_shotID.toString16());
@@ -673,6 +674,7 @@ void FPSciServerApp::oneFrame() {
 
             onBeforeSimulation(rdt, sdt, idt);
             onSimulation(rdt, sdt, idt);
+            simulateWeapons();
             onAfterSimulation(rdt, sdt, idt);
 
             m_previousSimTimeStep = float(sdt);
@@ -1174,8 +1176,111 @@ void FPSciServerApp::checkFrameValidity()
     }
 }
 
-        }       
+void FPSciServerApp::simulateWeapons()
+{
+    for (auto input : *m_dataHandler->m_unreadFiredbuffer)
+    {
+        if (input.m_fired)
+        {
+            Array<shared_ptr<Entity>> dontHit;
+            dontHit.append(m_explosions);
+            dontHit.append(sess->unhittableTargets());
+            Model::HitInfo info;
+            float hitDist = finf();
+            int hitIdx = -1;
+
+            shared_ptr<TargetEntity> target;
+            NetworkUtils::ConnectedClient *shooter = nullptr;
+            Array<shared_ptr<TargetEntity>> targets;
+            for (auto client : m_connectedClients)
+            {
+                if (client->guid.toString16() == input.m_playerID)
+                {
+                    // Don't hit shooter
+                    dontHit.append(client->entity);
+                    shooter = client;
+                }
+                else
+                {
+                    targets.append(client->entity);
+                }
+            }
+
+            if (shooter != nullptr) // Fire the weapon
+            {
+                target = shooter->weapon->fire(targets, hitIdx, hitDist, info, dontHit, false);
+            }
+            if (!isNull(target)) // Hit case
+            {
+                debugPrintf("Player %s hit target %s", input.m_playerID.c_str(), target->name().c_str());
+
+                // Any changes to this might also need to be reflected in Server side Sim (case PacketType::REPORT_HIT:)
+
+                // This just causes everyone to respawn
+                shared_ptr<NetworkedEntity> hitEntity = dynamic_pointer_cast<NetworkedEntity>(target);
+                // Log the hit on the server
+                const shared_ptr<NetworkedEntity> shooterEntity = scene()->typedEntity<NetworkedEntity>(input.m_playerID);
+                auto rpa = RemotePlayerAction();
+                rpa.time = sess->logger->getFileTime();
+                rpa.viewDirection = shooterEntity->getLookAzEl();
+                rpa.position = shooterEntity->frame().translation;
+                rpa.state = sess->currentState;
+                rpa.action = Hit;
+                rpa.actorID = input.m_playerID;
+                rpa.affectedID = input.m_playerID;
+                sess->logger->logRemotePlayerAction(rpa);
+
+                float damage = 1.001 / sessConfig->hitsToKill;
+
+                if (hitEntity->doDamage(damage))
+                {
+                    //TODO: PARAMETERIZE THIS DAMAGE VALUE SOME HOW! DO IT! DON'T FORGET!  DON'T DO IT! (huh it looks like you still haven't done it)
+                    debugPrintf("Server determined a player died! Resetting game...\n");
+                    m_clientsReady = 0;
+                    //static_cast<NetworkedSession*>(sess.get())->resetSession();
+                     netSess->resetRound();
+                    scene()->typedEntity<PlayerEntity>("player")->setPlayerMovement(true);
+                    //Allow the server to move freely
+
+                    Array<shared_ptr<NetworkedEntity>> entities;
+                    scene()->getTypedEntityArray<NetworkedEntity>(entities);
+                    for (shared_ptr<NetworkedEntity> entity : entities)
+                    {
+                        entity->respawn();
+                    }
+
+                    /* Send a respawn packet to everyone */
+                    shared_ptr<RespawnClientPacket> respawnPacket = GenericPacket::createForBroadcast<RespawnClientPacket>();
+                    respawnPacket->populate(m_networkFrameNum);
+                    NetworkUtils::broadcastReliable(respawnPacket, m_localHost);
+                    // Find the connected client's ENetPeer to add point
+                    // TODO: Server Authoritative points system
+                    for (auto client : m_connectedClients)
+                    {
+                        if (client->guid.toString16() == input.m_playerID)
+                        {
+                            shared_ptr<AddPointPacket> pointPacket = GenericPacket::createReliable<AddPointPacket>(client->peer);
+                            NetworkUtils::send(pointPacket);
+                        }
+                    }
+                }
+                // Notify every player of the hit
+                shared_ptr<PlayerInteractPacket> interactPacket = GenericPacket::createForBroadcast<
+                    PlayerInteractPacket>();
+                interactPacket->populate(m_networkFrameNum, Hit, GUniqueID::fromString16(input.m_playerID));
+                Array<ENetAddress*> clientAddresses;
+                for (NetworkUtils::ConnectedClient* c : m_connectedClients)
+                {
+                    clientAddresses.append(&c->unreliableAddress);
+                }
+                /* Send this as a player interact packet so that clients log it */
+                NetworkUtils::broadcastUnreliable(interactPacket, &m_unreliableSocket, clientAddresses);
+                break;
+            }
+        }
     }
+
+    m_dataHandler->FlushFiredBuffer();
 }
 
 void FPSciServerApp::snapBackPlayer(uint8 playerID)
