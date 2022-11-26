@@ -1505,6 +1505,7 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 	if (shotFired)
 	{
 		weapon->setLastFireTime(newLastFireTime);
+#		if !defined FPSciServerMode
 		if (experimentConfig.isNetworked && experimentConfig.isAuthoritativeServer)
 		{
 			// Send fire report if server authoritative weapon simulation
@@ -1515,6 +1516,7 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 				NetworkUtils::send(outPacket);
 			}
 		}
+#		endif
 	}
 	weapon->playSound(shotFired, shootButtonUp);
 

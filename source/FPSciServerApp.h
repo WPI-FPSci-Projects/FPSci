@@ -5,6 +5,7 @@
 #pragma once
 #include "FPSciApp.h"
 #include "NoWindow.h"
+#define FPSciServerMode
 
 class FPSciServerApp : public FPSciApp {
 
