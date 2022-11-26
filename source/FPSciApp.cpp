@@ -1888,7 +1888,6 @@ void FPSciApp::setScopeView(bool scoped) {
 }
 
 void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
-	//TODO:: Need to adjust this function so when using authioitative server client doesnt try to predict
 	// Damage the target
 	float damage = m_currentWeaponDamage;
 	target->doDamage(damage);
@@ -1900,19 +1899,11 @@ void FPSciApp::hitTarget(shared_ptr<TargetEntity> target) {
 			shared_ptr<ReportHitPacket> outPacket = GenericPacket::createReliable<ReportHitPacket>(m_serverPeer);
 			outPacket->populate(m_networkFrameNum, GUniqueID::fromString16(target->name().c_str()), m_playerGUID);
 			NetworkUtils::send(outPacket);
-		} // TODO::FIRE and include `if (sess->currentState == PresentationState::networkedSessionRoundStart)`
-		// else if (experimentConfig.isNetworked && experimentConfig.isAuthoritativeServer) {
-		// 	NetworkUtils::sendFireReport(m_playerGUID, m_playerID, m_serverPeer, m_networkFrameNum);
-		// 	return;
-		// }
+		}
 		return;
 	}
 	else if (experimentConfig.isNetworked && experimentConfig.isAuthoritativeServer) {
-		if (sess->currentState == PresentationState::networkedSessionRoundStart) {
-			shared_ptr<ReportFirePacket> outPacket = GenericPacket::createReliable<ReportFirePacket>(m_serverPeer);
-			outPacket->populate(m_networkFrameNum, true, m_playerGUID);
-			NetworkUtils::send(outPacket);
-		}
+		// ignore if server authoritative weapon simulation
 		return;
 	}
 
