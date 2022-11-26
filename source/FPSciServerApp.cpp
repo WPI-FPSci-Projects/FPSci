@@ -1141,11 +1141,18 @@ void FPSciServerApp::checkFrameValidity()
         // Player displacement check
         // Check if a player is moving too quickly, based on player max speed and frame rate
         // If so, snap the player to the last valid position
-        /* 
+        CoordinateFrame pastFrame = m_dataHandler->GetCFrame(m_networkFrameNum, i1->guid.toString16());
+        CoordinateFrame currentFrame = e1->frame();
+        float dist = (currentFrame.translation - pastFrame.translation).length();
+        float maxDist = 0.012; // magic number
+        // 0.0114698 is calculated moving average of player speed in game units when moveRate is 7m/s
+        int framesElapsed = 1; //TODO: get frames elapsed since last valid frame
+        if (dist > maxDist * framesElapsed)
         {
-            snapBackPlayer(-1);
+            logPrintf("Player %d moved too far in the past %d frames. Moving back to last valid position.\n", i1->playerID, framesElapsed);
+            snapBackPlayer(i1->playerID);
         }
-        */
+
         // Player to player collision detection
         // Check if two players are too close, based on body radius
         // If so, snap the players to the last valid positions
