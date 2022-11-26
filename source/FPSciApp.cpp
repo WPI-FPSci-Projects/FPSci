@@ -2019,10 +2019,13 @@ void FPSciApp::missEvent() {
 
 		// If this is a networked experiment send this miss data to the server
 		if (experimentConfig.isNetworked && m_socketConnected) {
-			shared_ptr<PlayerInteractPacket> outPacket = GenericPacket::createUnreliable<PlayerInteractPacket>(&m_unreliableSocket, &m_unreliableServerAddress);
-			outPacket->populate(m_networkFrameNum, PlayerActionType::Miss, m_playerGUID);
-			NetworkUtils::send(outPacket);
-			//outPacket->send();
+			if (!experimentConfig.isAuthoritativeServer)
+			{
+				shared_ptr<PlayerInteractPacket> outPacket = GenericPacket::createUnreliable<PlayerInteractPacket>(&m_unreliableSocket, &m_unreliableServerAddress);
+				outPacket->populate(m_networkFrameNum, Miss, m_playerGUID);
+				NetworkUtils::send(outPacket);
+				//outPacket->send();
+			}
 		}
 	}
 }
