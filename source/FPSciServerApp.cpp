@@ -1182,6 +1182,15 @@ void FPSciServerApp::simulateWeapons()
     {
         if (input.m_fired)
         {
+            // Time Warp
+            if (experimentConfig.timeWarpEnabled)
+            {
+                TimeWarpFrameSetup(input.m_frameNum);
+            }
+            else // Use latest frame data
+            {
+                CurrentTimeFrameSetup();
+            }
             Array<shared_ptr<Entity>> dontHit;
             dontHit.append(m_explosions);
             dontHit.append(sess->unhittableTargets());
@@ -1276,6 +1285,11 @@ void FPSciServerApp::simulateWeapons()
                 /* Send this as a player interact packet so that clients log it */
                 NetworkUtils::broadcastUnreliable(interactPacket, &m_unreliableSocket, clientAddresses);
                 break;
+            }
+            // Time Warp
+            if (experimentConfig.timeWarpEnabled)
+            {
+                CurrentTimeFrameSetup();
             }
         }
     }
