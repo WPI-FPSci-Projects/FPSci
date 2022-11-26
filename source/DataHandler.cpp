@@ -45,7 +45,11 @@ void G3D::ServerDataHandler::NewCurrentFrame(int frameNum)
 void G3D::ServerDataHandler::UpdateFired(String playerID, int frameNum)
 {
 	if (CheckFrameAcceptable(frameNum)) {
-		m_unreadFiredbuffer->push(true);
+		auto newFireInput = new ServerFireInput();
+		newFireInput->m_fired = true;
+		newFireInput->m_playerID = playerID;
+		newFireInput->m_frameNum = frameNum;
+		m_unreadFiredbuffer->append(*newFireInput);
 	}
 }
 
@@ -85,7 +89,7 @@ G3D::ServerDataHandler::ServerDataHandler()
 	m_clientLastValid = new Table<String, int>;
 	m_clientLatestFrame = new Table<String, int>;
 	m_unreadCFrameBuffer = new Array<ServerDataInput>;
-	m_unreadFiredbuffer = new Array<bool>;
+	m_unreadFiredbuffer = new Array<ServerFireInput>;
 }
 
 G3D::ServerDataHandler::~ServerDataHandler() {}
@@ -135,7 +139,8 @@ void G3D::ServerDataHandler::FlushCFrameBuffer()
 	m_unreadCFrameBuffer->clear();
 }
 
-Array<bool>* G3D::ServerDataHandler::GetFiredBuffer() {
+Array<ServerFireInput>* ServerDataHandler::GetFiredBuffer()
+{
 	//return buffer of all frames that have not yet been applied
 	return m_unreadFiredbuffer;
 }

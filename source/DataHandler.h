@@ -58,6 +58,12 @@ namespace G3D {
 
 	};
 
+	struct ServerFireInput
+	{
+		bool m_fired;
+		String m_playerID;
+		int m_frameNum;
+	};
 
 	class ServerDataHandler{
 	public:
@@ -67,7 +73,7 @@ namespace G3D {
 		Table<String, int>* m_clientLastValid;
 		Table<String, int>* m_clientLatestFrame;
 		Array<ServerDataInput>* m_unreadCFrameBuffer;
-		Array<bool>* m_unreadFiredbuffer = new Array<bool>;
+		Array<ServerFireInput>* m_unreadFiredbuffer = new Array<ServerFireInput>;
 
 	public:
 		ServerDataHandler();
@@ -99,7 +105,7 @@ namespace G3D {
 		Array<ServerDataInput>* GetCFrameBuffer();
 		void FlushCFrameBuffer();
 
-		Array<bool>* GetFiredBuffer();
+		Array<ServerFireInput>* GetFiredBuffer();
 		void FlushFiredBuffer();
 	};
 
