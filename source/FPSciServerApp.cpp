@@ -314,6 +314,8 @@ void FPSciServerApp::onNetwork()
                     const String* name = new String("camera" + std::to_string(m_connectedClients.size()));
                     m_connectedClients.last()->camera = Camera::create(*name);
                     m_connectedClients.last()->weapon = Weapon::create(&experimentConfig.weapon, scene(), m_connectedClients.last()->camera);
+                    m_connectedClients.last()->weapon->setHitCallback(std::bind(&FPSciServerApp::hitTarget, this, std::placeholders::_1));
+                    m_connectedClients.last()->weapon->setMissCallback(std::bind(&FPSciServerApp::missEvent, this));
 
                     (*scene()).insert(m_connectedClients.last()->camera);
 
