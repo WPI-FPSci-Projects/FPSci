@@ -1185,6 +1185,11 @@ void FPSciApp::onNetwork() {
 									entity->setFrame(e.frame);
 									if (m_dataHandler != nullptr && e.name != m_playerGUID.toString16()) {
 										m_dataHandler->UpdateCframe(e.name, e.frame, m_networkFrameNum, typedPacket->m_frameNumber);
+										
+										if (m_dataHandler->m_historicalCFrames->size() >= m_dataHandler->m_pastFrames) {
+											m_dataHandler->m_historicalCFrames->remove(m_dataHandler->m_historicalCFrames->begin().key());
+										}
+										m_dataHandler->m_historicalCFrames->set(m_networkFrameNum, &e.frame);									
 									}
 									break;
 								}

@@ -30,6 +30,7 @@ Client datahandler
 	m_clientHeading is transition matrix for each client from calculated result
 	m_clientVectors is transition vector for each client from calculated result
 	m_frameLag keeps track how far behind in time is each client to local clients
+	m_historicalCFrames stores a history of past client CFrames associated with a frame number
 
 	PredictEntityFrame is used to calculate 1 frames worth of movement based on client vector and heading
 	RecalulateClient re-extraoplates the position based on new data and frame lag
@@ -124,6 +125,9 @@ namespace G3D {
 		Table<String, Vector3>* m_clientVectors = new Table<String, Vector3>;
 		Table<String, Matrix3>* m_clientHeading = new Table<String, Matrix3>;
 		Table<String, int8>* m_frameLag = new Table<String, int8>;
+		int m_pastFrames = 10;
+		Table<uint32, CoordinateFrame*>* m_historicalCFrames = new Table<uint32, CoordinateFrame*>;
+
 	public:
 		ClientDataHandler();
 		~ClientDataHandler();
