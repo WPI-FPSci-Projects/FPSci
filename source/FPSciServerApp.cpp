@@ -60,7 +60,8 @@ void FPSciServerApp::initExperiment() {
     /* This is where added code begins */
     
     //Setup dataHandler
-    m_dataHandler->SetParameters(experimentConfig.pastFrame);
+    m_dataHandler = new ServerDataHandler();
+    //m_dataHandler->SetParameters(experimentConfig.pastFrame);
     
     // Setup the network and start listening for clients
     ENetAddress localAddress;
@@ -1140,12 +1141,15 @@ void FPSciServerApp::checkFrameValidity()
 {
     for (auto& i1 : m_connectedClients)
     {
+        bool valid = true;
         shared_ptr<NetworkedEntity> e1 = i1->entity;
 
         // Player displacement check
         // Check if a player is moving too quickly, based on player max speed and frame rate
         // If so, snap the player to the last valid position
-        CoordinateFrame pastFrame = m_dataHandler->GetCFrame(m_networkFrameNum, i1->guid.toString16());
+        CoordinateFrame pastFrame = m_dataHandler->GetCFrame(
+            m_dataHandler->m_clientLatestFrame->get(i1->guid.toString16()),
+            i1->guid.toString16());
         CoordinateFrame currentFrame = e1->frame();
         float dist = (currentFrame.translation - pastFrame.translation).length();
         float maxDist = 0.012; // magic number
@@ -1155,6 +1159,7 @@ void FPSciServerApp::checkFrameValidity()
         {
             logPrintf("Player %d moved too far in the past %d frames. Moving back to last valid position.\n", i1->playerID, framesElapsed);
             snapBackPlayer(i1->playerID);
+            valid = false;
         }
 
         // Player to player collision detection
@@ -1171,7 +1176,11 @@ void FPSciServerApp::checkFrameValidity()
                 debugPrintf("%d collided with %d\n", i1->playerID, i2->playerID);
                 snapBackPlayer(i1->playerID);
                 snapBackPlayer(i2->playerID);
+                valid = false;
             }
+        }
+        if (valid) {
+            m_dataHandler->ValidateData(i1->guid.toString16(), m_dataHandler->m_clientLatestFrame->get(i1->guid.toString16()));
         }
     }
 }
@@ -1300,10 +1309,12 @@ void FPSciServerApp::simulateWeapons()
 void FPSciServerApp::snapBackPlayer(uint8 playerID)
 {
     // change the player's position to the last valid position
-    CoordinateFrame snapBackFrame = m_dataHandler->GetCFrame(
-        m_dataHandler->m_clientLastValid->get((m_connectedClients[playerID]->guid.toString16())),
-        m_connectedClients[playerID]->guid.toString16());
+    int snapBackFrameNum = m_dataHandler->lastValidFromFrameNum(
+          m_connectedClients[playerID]->guid.toString16(), 
+        m_dataHandler->m_clientLastValid->get((m_connectedClients[playerID]->guid.toString16())));
     // snap back to the last valid position if not zero
+    CoordinateFrame snapBackFrame = m_dataHandler->GetCFrame(snapBackFrameNum,
+        m_connectedClients[playerID]->guid.toString16());
     auto zeroFrame = new CoordinateFrame();
     if (snapBackFrame != *zeroFrame)
     {
