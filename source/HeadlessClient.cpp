@@ -10,7 +10,7 @@
 ENetHost* localHost;
 ENetAddress reliableServerAddress;
 ENetAddress unreliableServerAddress;
-String serverAddressStr = "localhost";
+String serverAddressStr = "192.168.1.150";
 int serverPort = 18821;
 ENetPeer* serverPeer;
 ENetSocket unreliableSocket;
