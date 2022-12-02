@@ -24,7 +24,7 @@ protected:
     uint8 m_historicalPlayerCount = 0;
     ///> Number of players that have ever connected to the server, used for assigning playerIDs
 
-    ServerDataHandler* m_dataHandler = new ServerDataHandler();
+    ServerDataHandler* m_dataHandler;
 
 public:
     FPSciServerApp(const GApp::Settings& settings);

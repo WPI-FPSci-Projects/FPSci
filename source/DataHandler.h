@@ -68,7 +68,7 @@ namespace G3D {
 
 	class ServerDataHandler{
 	public:
-		int m_pastFrames = 10;
+		int m_pastFrames = 500;
 		uint32 m_currentFrame = 0;
 		Table<String, Array<ServerDataInput>*>* m_DataInputs;
 		Table<String, int>* m_clientLastValid;

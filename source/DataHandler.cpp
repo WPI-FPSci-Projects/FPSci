@@ -49,7 +49,7 @@ void G3D::ServerDataHandler::UpdateFired(String playerID, int frameNum)
 		newFireInput->m_fired = true;
 		newFireInput->m_playerID = playerID;
 		newFireInput->m_frameNum = frameNum;
-		m_unreadFiredbuffer->append(*newFireInput);
+		m_unreadFiredbuffer->push(*newFireInput);
 	}
 }
 
@@ -69,7 +69,8 @@ void G3D::ServerDataHandler::UpdateCframe(String playerID, CoordinateFrame cfram
 
 void G3D::ServerDataHandler::ValidateData(String playerID, int frameNum) {
 	m_DataInputs->get(playerID)->getCArray()[m_currentFrame - frameNum].SetValid(true);
-	if (frameNum > m_clientLastValid->get(playerID)){
+	int i = m_clientLastValid->get(playerID);
+	if (frameNum > i){
 		m_clientLastValid->get(playerID) = frameNum;
 	}
 }
@@ -77,7 +78,7 @@ void G3D::ServerDataHandler::ValidateData(String playerID, int frameNum) {
 int G3D::ServerDataHandler::lastValidFromFrameNum(String playerID, int frameNum){
 	for (int i = m_currentFrame - frameNum; i < m_pastFrames; i++) {
 		if (m_DataInputs->get(playerID)->getCArray()[i].GetValid()) {
-			return i;
+			return m_currentFrame - i;
 		}
 	}
 	return -1;
@@ -111,7 +112,7 @@ void G3D::ServerDataHandler::SetParameters(int frameCutoff)
 bool G3D::ServerDataHandler::CheckFrameAcceptable(int frameNum)
 {
 	//i have a feeling this may cause issues in the future
-	return (m_currentFrame - frameNum >= 0 && m_currentFrame - frameNum < m_pastFrames);
+	return (m_currentFrame - frameNum >= 0 && m_currentFrame - frameNum <= m_pastFrames);
 }
 
 void G3D::ServerDataHandler::AddNewClient(String playerID) {

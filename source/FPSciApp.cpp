@@ -1173,7 +1173,7 @@ void FPSciApp::onNetwork() {
 								entity = (*scene()).typedEntity<NetworkedEntity>(e.name);
 							}
 							if (entity == nullptr) {
-								debugPrintf("Client: Recieved update for entity %s, but it doesn't exist\n", e.name.c_str());
+								//debugPrintf("Client: Recieved update for entity %s, but it doesn't exist\n", e.name.c_str());
 							}
 							else {
 								switch (typedPacket->m_updateType) {
