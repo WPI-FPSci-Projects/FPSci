@@ -935,7 +935,7 @@ void FPSciServerApp::updateSession(const String& id, bool forceReload) {
     }
 
     // Create and check log file name
-    const String logFileBasename = sessConfig->logger.logToSingleDb ? experimentConfig.description + "_" + userStatusTable.currentUser + "_" + m_expConfigHash : id + "_" + userStatusTable.currentUser + "_" + String(FPSciLogger::genFileTimestamp());
+    const String logFileBasename = sessConfig->logger.logToSingleDb ? experimentConfig.description + "_" + userStatusTable.currentUser + "_" + m_expConfigHash + "_" + String(FPSciLogger::genFileTimestamp()) : id + "_" + userStatusTable.currentUser + "_" + String(FPSciLogger::genFileTimestamp());
     const String logFilename = FilePath::makeLegalFilename(logFileBasename);
     // This is the specified path and log basename with illegal characters replaced, but not suffix (.db)
     const String logPath = resultsDirPath + logFilename;
