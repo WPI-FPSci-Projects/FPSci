@@ -80,6 +80,10 @@ void FPSciServerApp::initExperiment() {
     debugPrintf("Began listening\n");
     shared_ptr<PlayerEntity> player = scene()->typedEntity<PlayerEntity>("player");
     player->setPlayerMovement(true);
+
+
+    //EVAL
+    Profiler::setEnabled(true);
 }
 
 void FPSciServerApp::onNetwork() {
@@ -139,6 +143,11 @@ void FPSciServerApp::onNetwork() {
                 rpa.actorID = typedPacket->m_actorID.toString16();
                 sess->logger->logRemotePlayerAction(rpa);
                 break;
+            }
+            case SEQUENCE_NUMBER: {
+                //EVAL UNRELIABLE SN PACKET RECIEVED
+                SNPacket* typedPacket = static_cast<SNPacket*> (inPacket.get());
+                sess->logger->logSNTimestamp(m_networkFrameNum, typedPacket->m_sequenceNumber, true, false);
             }
             default:
                 debugPrintf("WARNING: unhandled packet receved on the unreliable channel of type: %d\n", inPacket->type());
@@ -307,6 +316,10 @@ void FPSciServerApp::onNetwork() {
                 }
                 break;
             }
+            case SEQUENCE_NUMBER: {
+                SNPacket* typedPacket = static_cast<SNPacket*> (inPacket.get());
+                sess->logger->logSNTimestamp(m_networkFrameNum, typedPacket->m_sequenceNumber, true, true);
+            }
             default:
                 debugPrintf("WARNING: unhandled packet receved on the reliable channel of type: %d\n", inPacket->type());
                 break;
@@ -350,6 +363,30 @@ void FPSciServerApp::onNetwork() {
         }
         configPacket->populate(sessConfig->player);
         NetworkUtils::send(configPacket);
+    }
+
+    //EVAL
+    if (notNull(sess->logger)) {
+        sess->logger->logBytesSent(m_networkFrameNum, NetworkUtils::getByteCount());
+    }
+    NetworkUtils::resetByteCount();
+
+    if (m_networkFrameNum % 100 == 0) {
+        auto packet = GenericPacket::createForBroadcast<SNPacket>();
+        packet->populate(SN);
+        NetworkUtils::broadcastReliable(packet, m_localHost);
+        if (notNull(sess->logger)) {
+            sess->logger->logSNTimestamp(m_networkFrameNum, SN, false, true);
+        }
+        SN++;
+
+        packet = GenericPacket::createForBroadcast<SNPacket>();
+        packet->populate(SN);
+        NetworkUtils::broadcastUnreliable(packet, &m_unreliableSocket, clientAddresses);
+        if (notNull(sess->logger)) {
+            sess->logger->logSNTimestamp(m_networkFrameNum, SN, false, false);
+        }
+        SN++;
     }
 }
 
@@ -415,10 +452,15 @@ void FPSciServerApp::oneFrame() {
     }
 
     for (int repeat = 0; repeat < max(1, m_renderPeriod); ++repeat) {
-        //const Array< const Array< Profiler::Event& >*>& eventTree;
-        //Array< const Array< Profiler::Event >*> eventTrees = Array< const Array< Profiler::Event >*>();
-        //Profiler::getEvents(eventTrees);
-        //https://casual-effects.com/g3d/G3D10/build/manual/class_g3_d_1_1_profiler.html
+        
+        // EVAL
+        RealTime onNetworkTime, onNetworkTimeGFX, simulationTime, simulationTimeGFX, graphicsTime, graphicsTimeGFX;
+        Profiler::getEventTime("FPSciNetworkApp::onNetwork", onNetworkTime, onNetworkTimeGFX);
+        Profiler::getEventTime("Simulation", simulationTime, simulationTimeGFX);
+        Profiler::getEventTime("Graphics", graphicsTime, graphicsTimeGFX);
+
+        sess->logger->logProfilerStatus(m_networkFrameNum, onNetworkTime, simulationTime, graphicsTime);
+
         Profiler::nextFrame();
         m_lastTime = m_now;
         m_now = System::time();

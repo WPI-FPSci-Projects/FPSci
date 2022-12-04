@@ -65,6 +65,10 @@ void FPSciLogger::initResultsFile(const String& filename,
 		createQuestionsTable();
 		createUsersTable();
 		createNetworkedClientTable();
+		//EVAL
+		createBytesSentTable();
+		createSNTimestampTable();
+		createProfilerStatusTable();
 	}
 
 	// Add the session info to the sessions table
@@ -563,22 +567,22 @@ void FPSciLogger::createSNTimestampTable() {
 	Columns snColumns = {
 		{"time", "text"},
 		{"frameNum", "real"},
-		{"SNSent", "real"},
-		{"SNReceived", "real"}
+		{"SN", "real"},
+		{"received", "text"},
+		{"reliable", "text"}
 	};
 	createTableInDB(m_db, "SNTimestamps", snColumns);
 }
 
-void FPSciLogger::logSNTimestamp(int frameNum, int SN, bool recieved) {
+void FPSciLogger::logSNTimestamp(int frameNum, int SN, bool received, bool reliable) {
 	const String time = genUniqueTimestamp();
-	String sent = !recieved ? "" : String(SN);
-	String received = recieved ? "" : String(SN);
 
 		RowEntry row = {
 			"'" + time + "'",
 			String(std::to_string(frameNum)),
-			"'" + sent + "'",
-			"'" + received + "'"
+			String(std::to_string(SN)),
+			String(std::to_string(received)),
+			String(std::to_string(reliable))
 	};
 	m_SNTimestamp.append(row);
 }
@@ -589,19 +593,21 @@ void FPSciLogger::createProfilerStatusTable() {
 		{"time", "text"},
 		{"frameNum", "real"},
 		{"networkDuration", "real"},
-		{"totalDuration", "real"}
+		{"simulationDuration", "real"},
+		{"graphicsDuration", "real"}
 	};
 	createTableInDB(m_db, "ProfilerStatus", profilerColumns);
 }
 
-void FPSciLogger::logProfilerStatus(int frameNum, double networkDuration, double totalDuration) {
+void FPSciLogger::logProfilerStatus(int frameNum, double networkDuration, double simulationDuration, double graphicsDuration) {
 	const String time = genUniqueTimestamp();
 
 	RowEntry row = {
 		"'" + time + "'",
 		String(std::to_string(frameNum)),
 		String(std::to_string(networkDuration)),
-		String(std::to_string(totalDuration)),
+		String(std::to_string(simulationDuration)),
+		String(std::to_string(graphicsDuration)),
 	};
 	m_ProfilerStatus.append(row);
 }

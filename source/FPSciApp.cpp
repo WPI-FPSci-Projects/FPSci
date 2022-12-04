@@ -112,6 +112,9 @@ void FPSciApp::initExperiment() {
 		m_enetConnected = false;
 		m_socketConnected = false;
 	}
+
+	//EVAL
+	Profiler::setEnabled(true);
 }
 
 void FPSciApp::toggleUserSettingsMenu() {
@@ -1064,8 +1067,9 @@ void FPSciApp::onNetwork() {
 				break;
 			}
 			case SEQUENCE_NUMBER: {
+				//EVAL UNRELIABLE SN PACKET RECIEVED
 				SNPacket* typedPacket = static_cast<SNPacket*> (inPacket.get());
-				//LOG typedPacket->m_sequenceNumber; (UNRELIABLE)
+				sess->logger->logSNTimestamp(m_networkFrameNum, typedPacket->m_sequenceNumber, true, false);
 			}
 			default:
 				debugPrintf("WARNING: Unhandled packet received on unreliable channel of type %d\n", inPacket->type());
@@ -1210,7 +1214,7 @@ void FPSciApp::onNetwork() {
 			}
 			case SEQUENCE_NUMBER: {
 				SNPacket* typedPacket = static_cast<SNPacket*> (inPacket.get());
-				//LOG typedPacket->m_sequenceNumber; (RELIABLE)
+				sess->logger->logSNTimestamp(m_networkFrameNum, typedPacket->m_sequenceNumber, true, true);
 			}
 			default:
 				debugPrintf("WARNING: unhandled packet received on reliable channel of type: %d\n", inPacket->type());
@@ -1219,10 +1223,29 @@ void FPSciApp::onNetwork() {
 		inPacket = NetworkUtils::receivePacket(m_localHost, &m_unreliableSocket);
 	}
 
-	//TODO log NetworkUtils::getByteCount();
+	//EVAL
+	if (notNull(sess->logger)) {
+		sess->logger->logBytesSent(m_networkFrameNum, NetworkUtils::getByteCount());
+	}
 	NetworkUtils::resetByteCount();
 
-	//TODO log profiler output
+	if (m_networkFrameNum % 100 == 0) {
+		auto packet = GenericPacket::createReliable<SNPacket>(m_serverPeer);
+		packet->populate(SN);
+		NetworkUtils::send(packet);
+		if (notNull(sess->logger)) {
+			sess->logger->logSNTimestamp(m_networkFrameNum, SN, false, true);
+		}
+		SN++;
+
+		packet = GenericPacket::createUnreliable<SNPacket>(&m_unreliableSocket, &m_unreliableServerAddress);
+		packet->populate(SN);
+		NetworkUtils::send(packet);
+		if (notNull(sess->logger)) {
+			sess->logger->logSNTimestamp(m_networkFrameNum, SN, false, false);
+		}
+		SN++;
+	}
 }
 
 void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
@@ -2024,6 +2047,14 @@ void FPSciApp::oneFrame() {
 
 	for (int repeat = 0; repeat < max(1, m_renderPeriod); ++repeat)
 	{
+		// EVAL
+		RealTime onNetworkTime, onNetworkTimeGFX, simulationTime, simulationTimeGFX, graphicsTime, graphicsTimeGFX;
+		Profiler::getEventTime("FPSciApp::onNetwork", onNetworkTime, onNetworkTimeGFX);
+		Profiler::getEventTime("Simulation", simulationTime, simulationTimeGFX);
+		Profiler::getEventTime("Graphics", graphicsTime, graphicsTimeGFX);
+
+		sess->logger->logProfilerStatus(m_networkFrameNum, onNetworkTime, simulationTime, graphicsTime);
+
 		Profiler::nextFrame();
 		m_lastTime = m_now;
 		m_now = System::time();
@@ -2040,7 +2071,7 @@ void FPSciApp::oneFrame() {
 		m_userInputWatch.tock();
 
 		// Network
-		BEGIN_PROFILER_EVENT("GApp::onNetwork");
+		BEGIN_PROFILER_EVENT("FPSciApp::onNetwork");
 		m_networkWatch.tick();
 		if (experimentConfig.isNetworked) {
 			onNetwork();

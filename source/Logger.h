@@ -180,8 +180,8 @@ public:
 
 	//EVAL
 	void logBytesSent(int frameNum, int bytes);
-	void logSNTimestamp(int frameNum, int SN, bool recieved);
-	void logProfilerStatus(int frameNum, double networkDuration, double totalDuration);
+	void logSNTimestamp(int frameNum, int SN, bool received, bool reliable);
+	void logProfilerStatus(int frameNum, double networkDuration, double simulationDuration, double graphicsDuration);
 
 	/** Wakes up the logging thread and flushes even if the buffer limit is not reached yet. */
 	void flush(bool blockUntilDone);

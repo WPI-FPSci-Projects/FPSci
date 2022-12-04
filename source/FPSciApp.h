@@ -350,6 +350,10 @@ public:
 	void pushRdStateWithDelay(RenderDevice* rd, Array<shared_ptr<Framebuffer>>& delayBufferQueue, int& delayIndex, int lagFrames = 0);
 	/** calls rd->popState and advances the delayIndex. Copies the latest delay buffer into the current framebuffer */
 	void popRdStateWithDelay(RenderDevice* rd, const Array<shared_ptr<Framebuffer>>& delayBufferQueue, int& delayIndex, int lagFrames = 0);
+	
+	//EVAL
+protected:
+	int SN = Random().integer(0, INT_MAX);
 };
 
 // The "old" way of animation
