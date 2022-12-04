@@ -1024,6 +1024,7 @@ void FPSciApp::onNetwork() {
 			case BATCH_ENTITY_UPDATE: {
 				/* Take a set of entity updates from the server and apply them to local entities */
 				BatchEntityUpdatePacket* typedPacket = static_cast<BatchEntityUpdatePacket*>(inPacket.get());
+				m_serverFrame = typedPacket->m_frameNumber;
 				//TODO: refactor this out into some other place, maybe NetworkUtils??
 				for (BatchEntityUpdatePacket::EntityUpdate e : typedPacket->m_updates) {
 					if (e.name != m_playerGUID.toString16()) { // Don't listen to updates for this client
