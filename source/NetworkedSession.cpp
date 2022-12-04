@@ -59,6 +59,7 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 			}
 		}
 	}
+	accumulatePlayerAction(PlayerActionType::Move);
 }
 
 void NetworkedSession::onInit(String filename, String description)
