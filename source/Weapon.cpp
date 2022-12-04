@@ -438,7 +438,7 @@ shared_ptr<TargetEntity> Weapon::fire(
 		}
 	}
 
-	END_PROFILER_EVENT();
+	//END_PROFILER_EVENT(); Causing crashes; doesn't seem to have matching BEGIN
 
 	return target;
 }
