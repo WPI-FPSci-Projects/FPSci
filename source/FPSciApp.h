@@ -353,7 +353,7 @@ public:
 	
 	//EVAL
 protected:
-	int SN = Random().integer(0, INT_MAX);
+	int SN = Random(time(NULL)).integer(0, INT_MAX);
 };
 
 // The "old" way of animation

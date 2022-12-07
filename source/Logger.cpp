@@ -546,18 +546,25 @@ void FPSciLogger::createBytesSentTable() {
 	Columns bytesColumns = {
 		{"time", "text"},
 		{"frameNum", "real"},
-		{"bytes", "real"}
+		{"bytes", "real"},
+		{"bytesIn", "real"},
+		{"packets", "real"},
+		{"packetsIn", "real"}
 	};
 	createTableInDB(m_db, "BytesSent", bytesColumns);
 }
 
-void FPSciLogger::logBytesSent(int frameNum, int bytes) {
+void FPSciLogger::logBytesSent(int frameNum, int bytes, int bytesIn, int packets, int packetsIn) {
 	const String time = genUniqueTimestamp();
 
 	RowEntry row = {
 		"'" + time + "'",
 		String(std::to_string(frameNum)),
-		String(std::to_string(bytes))
+		String(std::to_string(bytes)),
+		String(std::to_string(bytesIn)),
+		String(std::to_string(packets)),
+		String(std::to_string(packetsIn))
+
 	};
 	m_bytesSent.append(row);
 }
@@ -594,12 +601,13 @@ void FPSciLogger::createProfilerStatusTable() {
 		{"frameNum", "real"},
 		{"networkDuration", "real"},
 		{"simulationDuration", "real"},
-		{"graphicsDuration", "real"}
+		{"graphicsDuration", "real"},
+		{"waitDuration", "real"}
 	};
 	createTableInDB(m_db, "ProfilerStatus", profilerColumns);
 }
 
-void FPSciLogger::logProfilerStatus(int frameNum, double networkDuration, double simulationDuration, double graphicsDuration) {
+void FPSciLogger::logProfilerStatus(int frameNum, double networkDuration, double simulationDuration, double graphicsDuration, double waitDuration) {
 	const String time = genUniqueTimestamp();
 
 	RowEntry row = {
@@ -608,6 +616,7 @@ void FPSciLogger::logProfilerStatus(int frameNum, double networkDuration, double
 		String(std::to_string(networkDuration)),
 		String(std::to_string(simulationDuration)),
 		String(std::to_string(graphicsDuration)),
+		String(std::to_string(waitDuration))
 	};
 	m_ProfilerStatus.append(row);
 }

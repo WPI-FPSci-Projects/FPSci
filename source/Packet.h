@@ -5,7 +5,7 @@
 #include "FPSConfig.h"
 
 enum PacketType {
-	UNINTALIZED_TYPE,
+	UNINITIALIZED_TYPE,
 
 	BATCH_ENTITY_UPDATE,
 	CREATE_ENTITY,
@@ -161,7 +161,7 @@ protected:
 	bool m_inbound = false;								///< indicates if the packet is inbound or outbound (also determines if m_srcAddr is initalized)
 
 private:
-	PacketType m_type = UNINTALIZED_TYPE;				///< Type of packet
+	PacketType m_type = UNINITIALIZED_TYPE;				///< Type of packet
 };
 
 /** A Packet contining updates for multiple entities at once

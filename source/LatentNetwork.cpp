@@ -7,7 +7,7 @@ void LatentNetwork::networkThreadTick()
 	std::unique_lock<std::mutex> lk(m_queueMutex);
 	lk.unlock();
 
-	auto tickDuration = std::chrono::nanoseconds(500);
+	auto tickDuration = std::chrono::microseconds(500);	
 	std::chrono::time_point<std::chrono::high_resolution_clock> start_timer = std::chrono::high_resolution_clock::now();
 
 	while (m_threadRunning) {
@@ -35,6 +35,7 @@ void LatentNetwork::networkThreadTick()
 		while (m_packetHeap.length() > 0 && m_packetHeap[0]->timeToSend <= now) {
 			std::pop_heap(m_packetHeap.begin(), m_packetHeap.end(), PacketSendtimeCompare());
 			NetworkUtils::addByteCount(m_packetHeap.back()->encapsulatedPacket->send());
+			NetworkUtils::addPacketCount(1);
 			m_packetHeap.pop_back();
 		}
 		//debugPrintf("Packet heap length: %d\n", m_packetHeap.length());
