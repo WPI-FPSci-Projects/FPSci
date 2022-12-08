@@ -764,8 +764,16 @@ void FPSciApp::updateSession(const String& id, bool forceReload) {
 		m_userSettingsWindow->setSelectedSession(id);
 		// Create the session based on the loaded config
 		if (experimentConfig.isNetworked) {
+			// Need to perserve hittable targets across sessions so players can shoot eachother after selecting a different session
+			Array<shared_ptr<TargetEntity>> hittableTargets;
+			if (netSess != nullptr) {
+				hittableTargets = netSess->hittableTargets();
+			}
 			netSess = NetworkedSession::create(this, sessConfig);
 			sess = (shared_ptr<Session>)netSess;
+			for (shared_ptr<TargetEntity> target : hittableTargets) {
+				netSess->addHittableTarget(target);
+			}
 		}
 		else {
 			sess = Session::create(this, sessConfig);

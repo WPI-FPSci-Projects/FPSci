@@ -243,7 +243,7 @@ public:
 	Color4 lerpColor(Array<Color4> colors, float a);
 
 	shared_ptr<Session> sess;		 ///< Pointer to the experiment
-	shared_ptr<NetworkedSession> netSess;		 ///< Pointer to the experiment, as a NetworkedSession so we can avoid doing static_casts.  Watch out, because this only exists when a networked experiment is defined!
+	shared_ptr<NetworkedSession> netSess = nullptr;		 ///< Pointer to the experiment, as a NetworkedSession so we can avoid doing static_casts.  Watch out, because this only exists when a networked experiment is defined!
 	shared_ptr<Camera> playerCamera; ///< Pointer to the player camera
 	shared_ptr<Weapon> weapon;		 ///< Current weapon
 
