@@ -84,9 +84,9 @@ shared_ptr<GenericPacket> NetworkUtils::createTypedPacket(PacketType type, ENetA
 shared_ptr<GenericPacket> NetworkUtils::receivePacket(ENetHost* host, ENetSocket* socket) {
 	ENetAddress srcAddr;
 	ENetBuffer buff;
-	void* data = malloc(ENET_HOST_DEFAULT_MTU);  //Allocate 1 mtu worth of space for the data from the packet
+	void* data = malloc(65535);  //Allocate enough space to fit 1 IP packet
 	buff.data = data;
-	buff.dataLength = ENET_HOST_DEFAULT_MTU;
+	buff.dataLength = 65535;
 	shared_ptr<GenericPacket> packet = nullptr;
 	if (enet_socket_receive(*socket, &srcAddr, &buff, 1)) {
 		BinaryInput inBuffer((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);

@@ -22,8 +22,9 @@ int localFrameNumber = 0;
 int framerate = 60;
 String csvFile = "positions.csv";
 std::fstream file;
+bool notifiedReady = false;
 
-G3D_START_AT_MAIN();
+//G3D_START_AT_MAIN();
 
 void connectToServer() {
 	if (enet_initialize() != 0) {
@@ -45,7 +46,7 @@ void connectToServer() {
 	{
 		throw std::runtime_error("Could not create a connection to the server");
 	}
-	debugPrintf("created a peer with the server at %s:%d (the connection may not have been accepeted by the server)", serverAddressStr, serverPort);
+	printf("created a peer with the server at %s:%d (the connection may not have been accepeted by the server)", serverAddressStr.c_str(), serverPort);
 
 	enet_address_set_host(&unreliableServerAddress, serverAddressStr.c_str());
 	unreliableServerAddress.port = serverPort + 1;
@@ -88,7 +89,7 @@ void sendLocation() {
 			NetworkUtils::send(updatePacket);
 		}
 		else {
-			debugPrintf("Reached the end of the file quitting this client now\n");
+			printf("Reached the end of the file quitting this client now\n");
 			enet_peer_disconnect(serverPeer, NULL);
 			enet_host_service(localHost, nullptr, NULL);
 			Sleep(1000);
@@ -96,13 +97,26 @@ void sendLocation() {
 		}
 	}
 	else {
-		debugPrintf("ERROR: File is not open!\n");
+		printf("ERROR: File is not open!\n");
 		throw std::runtime_error("CSV file was not open");
 	}
 }
 
 int main(int argc, const char* argv[]) {
-	std::chrono::nanoseconds interframeTime = std::chrono::nanoseconds(1000000000) / framerate;
+	if (argc < 4) {
+		printf("Wrong number of arguments provided. Run this progam as follows: \n\
+\tHeadlessClient.exe <server IP> <framerate> <path to CSV data> [network latency]\n");
+		exit(-1);
+	}
+	else {
+		serverAddressStr = argv[1];
+		framerate = std::stoi(argv[2]);
+		csvFile = argv[3];
+		if (argc == 5) {
+			networkLatency = std::stoi(argv[4]);
+		}
+	}
+	std::chrono::nanoseconds interframeTime = std::chrono::microseconds(1000000) / framerate;
 	auto nextUpdate = std::chrono::high_resolution_clock::now() + interframeTime;
 	file = std::fstream(csvFile.c_str(), std::ios::in);
 
@@ -123,10 +137,10 @@ int main(int argc, const char* argv[]) {
 				switch (inPacket->type()) {
 				case HANDSHAKE_REPLY: {
 					socketConnected = true;
-					debugPrintf("INFO: Received HANDSHAKE_REPLY from server\n");
+					printf("INFO: Received HANDSHAKE_REPLY from server\n");
 					/* Tell the server we are ready as soon as we are connected */
-					if (enetConnected && socketConnected) {
-						debugPrintf("INFO: Sending a ready packet\n");
+					if (enetConnected && socketConnected && !notifiedReady) {
+						printf("INFO: Sending a ready packet\n");
 						shared_ptr<ReadyUpClientPacket> outPacket = GenericPacket::createReliable<ReadyUpClientPacket>(serverPeer);
 						NetworkUtils::send(outPacket);
 					}
@@ -141,40 +155,42 @@ int main(int argc, const char* argv[]) {
 					enet_socket_get_address(unreliableSocket, &localAddress);
 					char ipStr[16];
 					enet_address_get_host_ip(&localAddress, ipStr, 16);
-					debugPrintf("Registering client...\n");
-					debugPrintf("\tPort: %i\n", localAddress.port);
-					debugPrintf("\tHost: %s\n", ipStr);
+					printf("Registering client...\n");
+					printf("\tPort: %i\n", localAddress.port);
+					printf("\tHost: %s\n", ipStr);
 					shared_ptr<RegisterClientPacket> registrationPacket = GenericPacket::createReliable<RegisterClientPacket>(serverPeer);
 					registrationPacket->populate(serverPeer, playerGUID, localAddress.port);
 					NetworkUtils::send(registrationPacket);
 					break;
 				}
 				case RELIABLE_DISCONNECT: {
-					debugPrintf("Disconnected from peer\n");
+					printf("Disconnected from peer\n");
+					exit(-1);
 				}
 				case CLIENT_REGISTRATION_REPLY: {
 					RegistrationReplyPacket* typedPacket = static_cast<RegistrationReplyPacket*>(inPacket.get());
-					debugPrintf("INFO: Received registration reply...\n");
+					printf("INFO: Received registration reply...\n");
 					if (typedPacket->m_guid == playerGUID) {
 						if (typedPacket->m_status == 0) {
 							enetConnected = true;
-							debugPrintf("INFO: Received registration from server\n");
+							printf("INFO: Received registration from server\n");
 
 							/* Set the amount of latency to add */
 							NetworkUtils::setAddressLatency(unreliableServerAddress, networkLatency);
 							NetworkUtils::setAddressLatency(typedPacket->srcAddr(), networkLatency);
 
 							/* Tell the server we are ready as soon as we are connected */
-							if (enetConnected && socketConnected) {
+							if (enetConnected && socketConnected && !notifiedReady) {
+								printf("INFO: Sending a ready packet\n");
 								shared_ptr<ReadyUpClientPacket> outPacket = GenericPacket::createReliable<ReadyUpClientPacket>(serverPeer);
 								NetworkUtils::send(outPacket);
 							}
 							else {
-								debugPrintf("WARNING: Reliable connection ready before unreliable\n");
+								printf("WARNING: Reliable connection ready before unreliable\n");
 							}
 						}
 						else {
-							debugPrintf("WARN: Server connection refused (%i)\n", typedPacket->m_status);
+							printf("WARN: Server connection refused (%i)\n", typedPacket->m_status);
 						}
 					}
 					break;
@@ -182,12 +198,12 @@ int main(int argc, const char* argv[]) {
 				case START_NETWORKED_SESSION: {
 					StartSessionPacket* typedPacket = static_cast<StartSessionPacket*> (inPacket.get());
 					localFrameNumber = typedPacket->m_frameNumber; // Set the frame number to sync with the server
-					if (enetConnected && socketConnected) {
-						debugPrintf("Starting a trial (sending data now)\n");
+					if (enetConnected && socketConnected && !runningTrial) {
+						printf("Starting a trial (sending data now)\n");
 						runningTrial = true;
 					}
 					else {
-						debugPrintf("WARNING: Supposed to be starting trial but not connected yet (%d,%d)\n", enetConnected, socketConnected);
+						printf("WARNING: Supposed to be starting trial but not connected yet (%d,%d)\n", enetConnected, socketConnected);
 					}
 					break;
 				}
@@ -198,12 +214,12 @@ int main(int argc, const char* argv[]) {
 
 		/* If we are running a trial and there has been the right amount of time since the last frame send the next frame */
 		auto now = std::chrono::high_resolution_clock::now();
-		if (runningTrial && now >= nextUpdate) {
-			sendLocation();
-			nextUpdate = std::chrono::high_resolution_clock::now() + interframeTime;
+		if (now >= nextUpdate) {
+			nextUpdate += interframeTime;
+			if (runningTrial) {
+				sendLocation();
+			}
 		}
-		else {
-			std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::nanoseconds(500));
-		}
+	std::this_thread::sleep_until(nextUpdate);
 	}
 }
