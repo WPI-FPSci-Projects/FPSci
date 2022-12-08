@@ -148,6 +148,10 @@ void FPSciServerApp::onNetwork() {
                 //EVAL UNRELIABLE SN PACKET RECIEVED
                 SNPacket* typedPacket = static_cast<SNPacket*> (inPacket.get());
                 sess->logger->logSNTimestamp(m_networkFrameNum, typedPacket->m_sequenceNumber, true, false);
+                NetworkUtils::ConnectedClient* client = getClientFromAddress(typedPacket->srcAddr());
+                shared_ptr<SNPacket> outPacket = GenericPacket::createUnreliable<SNPacket>(&m_unreliableSocket, &client->unreliableAddress);
+                outPacket->populate(typedPacket->m_sequenceNumber);
+                NetworkUtils::send(outPacket);
             }
             default:
                 debugPrintf("WARNING: unhandled packet receved on the unreliable channel of type: %d\n", inPacket->type());
@@ -319,6 +323,10 @@ void FPSciServerApp::onNetwork() {
             case SEQUENCE_NUMBER: {
                 SNPacket* typedPacket = static_cast<SNPacket*> (inPacket.get());
                 sess->logger->logSNTimestamp(m_networkFrameNum, typedPacket->m_sequenceNumber, true, true);
+                NetworkUtils::ConnectedClient* client = getClientFromAddress(typedPacket->srcAddr());
+                shared_ptr<SNPacket> outPacket = GenericPacket::createReliable<SNPacket>(client->peer);
+                outPacket->populate(typedPacket->m_sequenceNumber);
+                NetworkUtils::send(outPacket);
             }
             default:
                 debugPrintf("WARNING: unhandled packet receved on the reliable channel of type: %d\n", inPacket->type());
@@ -375,6 +383,7 @@ void FPSciServerApp::onNetwork() {
     NetworkUtils::resetPacketCount();
     NetworkUtils::resetPacketCountIn();
 
+/*
     if (m_networkFrameNum % 100 == 0) {
         auto packet = GenericPacket::createForBroadcast<SNPacket>();
         packet->populate(SN);
@@ -392,6 +401,8 @@ void FPSciServerApp::onNetwork() {
         }
         SN++;
     }
+*/
+
 }
 
 void FPSciServerApp::onInit() {
