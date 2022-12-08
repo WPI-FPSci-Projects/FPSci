@@ -143,6 +143,18 @@ public:
 		static void resetByteCount();
 		static int getByteCount();
 		static void addByteCount(int bytes);
+		static void resetByteCountIn() { NetworkUtils::byteCountIn = 0; };
+		static int getByteCountIn() { return byteCountIn; };
+		static void addByteCountIn(int bytes) { byteCountIn += bytes; };
+		static void resetPacketCount() { packetCount = 0; };
+		static int getPacketCount() { return packetCount; };
+		static void addPacketCount(int packets) { packetCount += packets; };
+		static void resetPacketCountIn() { packetCountIn = 0; };
+		static int getPacketCountIn() { return packetCountIn; };
+		static void addPacketCountIn(int packets) { packetCountIn += packets; };
 	protected:
 		static int byteCount;
+		static int byteCountIn;
+		static int packetCount;
+		static int packetCountIn;
 };

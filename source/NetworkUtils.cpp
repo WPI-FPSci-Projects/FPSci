@@ -87,13 +87,17 @@ shared_ptr<GenericPacket> NetworkUtils::receivePacket(ENetHost* host, ENetSocket
 	void* data = malloc(65535);  //Allocate enough space to fit 1 IP packet
 	buff.data = data;
 	buff.dataLength = 65535;
+	int received_size = 0;
 	shared_ptr<GenericPacket> packet = nullptr;
-	if (enet_socket_receive(*socket, &srcAddr, &buff, 1)) {
+	received_size = enet_socket_receive(*socket, &srcAddr, &buff, 1);
+	if (received_size) {
 		BinaryInput inBuffer((const uint8*)buff.data, buff.dataLength, G3D_BIG_ENDIAN, false, true);
 		packet =  GenericPacket::createReceive<GenericPacket>(srcAddr, inBuffer); // Create a generic packet that reads just the type
 		inBuffer.setPosition(0);
 		packet = NetworkUtils::createTypedPacket(packet->type(), srcAddr, inBuffer); // Create a typed packet that reads all data based on type
 		packet->m_reliable = false;
+		NetworkUtils::addPacketCountIn(1);
+		NetworkUtils::addByteCountIn(received_size);
 		return packet; // Return here so we only read from the socket and dont drop packets
 	}
 	ENetEvent event;
@@ -115,6 +119,8 @@ shared_ptr<GenericPacket> NetworkUtils::receivePacket(ENetHost* host, ENetSocket
 			 inBuffer.setPosition(0);
 			 packet = NetworkUtils::createTypedPacket(genPacket->type(), event.peer->address, inBuffer, &event);
 			 packet->m_reliable = true;
+			 NetworkUtils::addPacketCountIn(1);
+			 NetworkUtils::addByteCountIn(event.packet->dataLength);
 			 break;
 		 }
 		 }
@@ -186,10 +192,12 @@ void NetworkUtils::send(shared_ptr<GenericPacket> packet)
 
 	if (latency == 0) { // don't bother the other thread if we don't want any delay
 		NetworkUtils::byteCount += packet->send();
+		NetworkUtils::addPacketCount(1);
 	}
 	else {
 		sendPacketDelayed(packet, latency);
 	}
+
 }
 
 void NetworkUtils::resetByteCount() {
@@ -209,3 +217,6 @@ int NetworkUtils::defaultLatency = 0;
 std::map<ENetAddress, int, ENetAddressCompare> NetworkUtils::latencyMap;
 
 int NetworkUtils::byteCount = 0;
+int NetworkUtils::byteCountIn = 0;
+int NetworkUtils::packetCount = 0;
+int NetworkUtils::packetCountIn = 0;

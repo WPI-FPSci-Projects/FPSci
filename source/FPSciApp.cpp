@@ -1226,9 +1226,13 @@ void FPSciApp::onNetwork() {
 
 	//EVAL
 	if (notNull(sess->logger)) {
-		sess->logger->logBytesSent(m_networkFrameNum, NetworkUtils::getByteCount());
+		sess->logger->logBytesSent(m_networkFrameNum, NetworkUtils::getByteCount(), NetworkUtils::getByteCountIn(), 
+			NetworkUtils::getPacketCount(), NetworkUtils::getPacketCountIn());
 	}
-	NetworkUtils::resetByteCount();
+	NetworkUtils::resetByteCount();    
+	NetworkUtils::resetByteCountIn();
+	NetworkUtils::resetPacketCount();
+	NetworkUtils::resetPacketCountIn();
 
 	if (m_networkFrameNum % 100 == 0) {
 		auto packet = GenericPacket::createReliable<SNPacket>(m_serverPeer);
@@ -2049,12 +2053,13 @@ void FPSciApp::oneFrame() {
 	for (int repeat = 0; repeat < max(1, m_renderPeriod); ++repeat)
 	{
 		// EVAL
-		RealTime onNetworkTime, onNetworkTimeGFX, simulationTime, simulationTimeGFX, graphicsTime, graphicsTimeGFX;
+		RealTime onNetworkTime, onNetworkTimeGFX, simulationTime, simulationTimeGFX, graphicsTime, graphicsTimeGFX, waitTime, waitTimeGFX;
 		Profiler::getEventTime("FPSciApp::onNetwork", onNetworkTime, onNetworkTimeGFX);
 		Profiler::getEventTime("Simulation", simulationTime, simulationTimeGFX);
 		Profiler::getEventTime("Graphics", graphicsTime, graphicsTimeGFX);
+		Profiler::getEventTime("Wait", waitTime, waitTimeGFX);
 
-		sess->logger->logProfilerStatus(m_networkFrameNum, onNetworkTime, simulationTime, graphicsTime);
+		sess->logger->logProfilerStatus(m_networkFrameNum, onNetworkTime, simulationTime, graphicsTime, waitTime);
 
 		Profiler::nextFrame();
 		m_lastTime = m_now;

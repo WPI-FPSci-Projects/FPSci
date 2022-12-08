@@ -179,9 +179,9 @@ public:
 	void logNetworkedClient(const NetworkedClient& client) { addToQueue(m_networkedClients, client); }
 
 	//EVAL
-	void logBytesSent(int frameNum, int bytes);
+	void logBytesSent(int frameNum, int bytes, int bytesIn, int packets, int packetsIn);
 	void logSNTimestamp(int frameNum, int SN, bool received, bool reliable);
-	void logProfilerStatus(int frameNum, double networkDuration, double simulationDuration, double graphicsDuration);
+	void logProfilerStatus(int frameNum, double networkDuration, double simulationDuration, double graphicsDuration, double waitTime);
 
 	/** Wakes up the logging thread and flushes even if the buffer limit is not reached yet. */
 	void flush(bool blockUntilDone);
