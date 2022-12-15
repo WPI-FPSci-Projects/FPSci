@@ -152,6 +152,9 @@ void FPSciServerApp::onNetwork()
 
     //if (!static_cast<NetworkedSession*>(sess.get())->currentState == PresentationState::networkedSessionRoundStart) {
     m_networkFrameNum++;
+    if (sess->currentState == networkedSessionRoundStart) {
+        m_dataHandler->NewCurrentFrame(m_networkFrameNum);
+    }
     //}
     
     /* First we receive on the unreliable connection */
@@ -314,11 +317,14 @@ void FPSciServerApp::onNetwork()
                     //add camera and weapon
                     const String* name = new String("camera" + std::to_string(m_connectedClients.size()));
                     m_connectedClients.last()->camera = Camera::create(*name);
+                    (*scene()).insert(m_connectedClients.last()->camera);
                     m_connectedClients.last()->weapon = Weapon::create(&experimentConfig.weapon, scene(), m_connectedClients.last()->camera);
                     m_connectedClients.last()->weapon->setHitCallback(std::bind(&FPSciServerApp::hitTarget, this, std::placeholders::_1));
                     m_connectedClients.last()->weapon->setMissCallback(std::bind(&FPSciServerApp::missEvent, this));
+                    m_connectedClients.last()->weapon->setScene(scene());
+                    m_connectedClients.last()->weapon->setCamera(m_connectedClients.last()->camera);
 
-                    (*scene()).insert(m_connectedClients.last()->camera);
+                    
 
                     /* ADD NEW CLIENT TO OTHER CLIENTS, ADD OTHER CLIENTS TO NEW CLIENT */
                     shared_ptr<CreateEntityPacket> createEntityPacket = GenericPacket::createForBroadcast<CreateEntityPacket>();
@@ -469,6 +475,11 @@ void FPSciServerApp::onNetwork()
                             startSessPacket->populate(m_networkFrameNum);
                             NetworkUtils::broadcastReliable(startSessPacket, m_localHost);
                             m_clientFeedbackSubmitted = 0;
+                            m_dataHandler = new ServerDataHandler();
+                            m_dataHandler->SetParameters(experimentConfig.pastFrame);
+                            for (auto c : m_connectedClients) {
+                                m_dataHandler->AddNewClient(c->guid.toString16());
+                            }
                             netSess.get()->startRound();
                             debugPrintf("All PLAYERS ARE READY!\n");
                         }
@@ -578,7 +589,6 @@ void FPSciServerApp::oneFrame() {
     // Count this frame (for shaders)
     m_frameNumber++;
 
-    m_dataHandler->NewCurrentFrame(m_frameNumber);
 
     // Target frame time (only call this method once per one frame!)
     RealTime targetFrameTime = sess->targetFrameTime();
@@ -1141,6 +1151,7 @@ void FPSciServerApp::checkFrameValidity()
 {
     for (auto& i1 : m_connectedClients)
     {
+
         bool valid = true;
         shared_ptr<NetworkedEntity> e1 = i1->entity;
 
@@ -1148,14 +1159,15 @@ void FPSciServerApp::checkFrameValidity()
         // Check if a player is moving too quickly, based on player max speed and frame rate
         // If so, snap the player to the last valid position
         CoordinateFrame pastFrame = m_dataHandler->GetCFrame(
-            m_dataHandler->m_clientLatestFrame->get(i1->guid.toString16()),
+            m_dataHandler->m_clientLastValid->get(i1->guid.toString16()),
             i1->guid.toString16());
         CoordinateFrame currentFrame = e1->frame();
         float dist = (currentFrame.translation - pastFrame.translation).length();
         float maxDist = 0.012; // magic number
         // 0.0114698 is calculated moving average of player speed in game units when moveRate is 7m/s
         int framesElapsed = 1; //TODO: get frames elapsed since last valid frame
-        if (dist > maxDist * framesElapsed)
+        auto zeroFrame = new CoordinateFrame();
+        if (dist > maxDist * framesElapsed && pastFrame.translation != zeroFrame->translation)
         {
             logPrintf("Player %d moved too far in the past %d frames. Moving back to last valid position.\n", i1->playerID, framesElapsed);
             snapBackPlayer(i1->playerID);
@@ -1181,8 +1193,12 @@ void FPSciServerApp::checkFrameValidity()
         }
         if (valid) {
             m_dataHandler->ValidateData(i1->guid.toString16(), m_dataHandler->m_clientLatestFrame->get(i1->guid.toString16()));
+            i1->camera->setFrame(m_dataHandler->GetCFrame(m_dataHandler->m_clientLastValid->get(i1->guid.toString16()),
+                i1->guid.toString16()));
         }
     }
+    Array<int32>* values = new Array<int32>;
+    m_dataHandler->m_clientLastValid->getValues(*values);
 }
 
 void FPSciServerApp::simulateWeapons()
@@ -1319,7 +1335,11 @@ void FPSciServerApp::snapBackPlayer(uint8 playerID)
     if (snapBackFrame != *zeroFrame)
     {
         m_dataHandler->UpdateCframe(m_connectedClients[playerID]->guid.toString16(), snapBackFrame, m_networkFrameNum, false);
+        m_connectedClients[playerID]->camera->setFrame(snapBackFrame);
         m_connectedClients[playerID]->entity->setFrame(snapBackFrame);
+    }
+    else {
+        
     }
 }
 
@@ -1327,7 +1347,10 @@ void FPSciServerApp::TimeWarpFrameSetup(uint32 frameNum) {
     Array<shared_ptr<NetworkedEntity>> entityArray;
     scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
     for (shared_ptr<NetworkedEntity> e : entityArray) {
+        m_connectedClients[e->getPlayerID()]->camera->setFrame(
+            m_dataHandler->GetCFrame(m_dataHandler->lastValidFromFrameNum(e->name(), frameNum), e->name()));
         e->setFrame(m_dataHandler->GetCFrame(m_dataHandler->lastValidFromFrameNum(e->name(), frameNum), e->name()));
+
     }
 }
 
@@ -1335,6 +1358,8 @@ void FPSciServerApp::CurrentTimeFrameSetup() {
     Array<shared_ptr<NetworkedEntity>> entityArray;
     scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
     for (shared_ptr<NetworkedEntity> e : entityArray) {
+        m_connectedClients[e->getPlayerID()]->camera->setFrame(
+            m_dataHandler->GetCFrame(m_dataHandler->lastValidFromFrameNum(e->name(), m_dataHandler->m_clientLastValid->get(e->name())), e->name()));
         e->setFrame(m_dataHandler->GetCFrame(m_dataHandler->m_clientLastValid->get(e->name()), e->name()));
     }
 }
