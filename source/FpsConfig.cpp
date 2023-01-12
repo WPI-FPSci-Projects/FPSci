@@ -183,6 +183,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("headBobAmplitude", headBobAmplitude);
 		reader.getIfPresent("headBobFrequency", headBobFrequency);
 		reader.getIfPresent("respawnPos", respawnPos);
+		reader.getIfPresent("respawnHeading", respawnHeading);
 		reader.getIfPresent("accelerationEnabled", accelerationEnabled);
 		reader.getIfPresent("movementAcceleration", movementAcceleration);
 		reader.getIfPresent("movementDeceleration", movementDeceleration);
@@ -198,9 +199,12 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("resetPlayerPositionBetweenTrials", resetPositionPerTrial);
 		reader.getIfPresent("movementRestrictionX", movementRestrictionX);
 		reader.getIfPresent("movementRestrictionZ", movementRestrictionZ);
+		reader.getIfPresent("restrictionBoxAngle", restrictionBoxAngle);
 		reader.getIfPresent("restrictedMovementEnabled", restrictedMovementEnabled);
 		reader.getIfPresent("counterStrafing", counterStrafing);
-		reader.getIfPresent("propagatePlayerConfigs", propagatePlayerConfigsToAll);
+		reader.getIfPresent("counterStrafing", counterStrafing);
+		reader.getIfPresent("cornerPosition", cornerPosition);
+		reader.getIfPresent("defenderRandomDisplacementAngle", defenderRandomDisplacementAngle);
 
 		clientPlayerConfigs.push_back(PlayerConfig());
 		clientPlayerConfigs.push_back(PlayerConfig());
@@ -213,6 +217,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client1headBobAmplitude", clientPlayerConfigs[0].headBobAmplitude);
 		reader.getIfPresent("Client1headBobFrequency", clientPlayerConfigs[0].headBobFrequency);
 		reader.getIfPresent("Client1respawnPos", clientPlayerConfigs[0].respawnPos);
+		reader.getIfPresent("Client1respawnHeading", clientPlayerConfigs[0].respawnHeading);
 		reader.getIfPresent("Client1accelerationEnabled", clientPlayerConfigs[0].accelerationEnabled);
 		reader.getIfPresent("Client1movementAcceleration", clientPlayerConfigs[0].movementAcceleration);
 		reader.getIfPresent("Client1movementDeceleration", clientPlayerConfigs[0].movementDeceleration);
@@ -228,9 +233,12 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client1resetPlayerPositionBetweenTrials", clientPlayerConfigs[0].resetPositionPerTrial);
 		reader.getIfPresent("Client1movementRestrictionX", clientPlayerConfigs[0].movementRestrictionX);
 		reader.getIfPresent("Client1movementRestrictionZ", clientPlayerConfigs[0].movementRestrictionZ);
+		reader.getIfPresent("Client1restrictionBoxAngle", clientPlayerConfigs[0].restrictionBoxAngle);
 		reader.getIfPresent("Client1restrictedMovementEnabled", clientPlayerConfigs[0].restrictedMovementEnabled);
 		reader.getIfPresent("Client1counterStrafing", clientPlayerConfigs[0].counterStrafing);
 		reader.getIfPresent("Client1propagatePlayerConfigs", clientPlayerConfigs[0].propagatePlayerConfigsToAll);
+		reader.getIfPresent("Client1cornerPosition", clientPlayerConfigs[0].cornerPosition);
+		reader.getIfPresent("Client1defenderRandomDisplacementAngle", clientPlayerConfigs[0].defenderRandomDisplacementAngle);
 
 		// For Client 2
 		reader.getIfPresent("Client2moveRate", clientPlayerConfigs[1].moveRate);
@@ -240,6 +248,7 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client2headBobAmplitude", clientPlayerConfigs[1].headBobAmplitude);
 		reader.getIfPresent("Client2headBobFrequency", clientPlayerConfigs[1].headBobFrequency);
 		reader.getIfPresent("Client2respawnPos", clientPlayerConfigs[1].respawnPos);
+		reader.getIfPresent("Client2respawnHeading", clientPlayerConfigs[1].respawnHeading);
 		reader.getIfPresent("Client2accelerationEnabled", clientPlayerConfigs[1].accelerationEnabled);
 		reader.getIfPresent("Client2movementAcceleration", clientPlayerConfigs[1].movementAcceleration);
 		reader.getIfPresent("Client2movementDeceleration", clientPlayerConfigs[1].movementDeceleration);
@@ -255,11 +264,25 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("Client2resetPlayerPositionBetweenTrials", clientPlayerConfigs[1].resetPositionPerTrial);
 		reader.getIfPresent("Client2movementRestrictionX", clientPlayerConfigs[1].movementRestrictionX);
 		reader.getIfPresent("Client2movementRestrictionZ", clientPlayerConfigs[1].movementRestrictionZ);
+		reader.getIfPresent("Client2restrictionBoxAngle", clientPlayerConfigs[0].restrictionBoxAngle);
 		reader.getIfPresent("Client2restrictedMovementEnabled", clientPlayerConfigs[1].restrictedMovementEnabled);
 		reader.getIfPresent("Client2counterStrafing", clientPlayerConfigs[1].counterStrafing);
 		reader.getIfPresent("Client2propagatePlayerConfigs", clientPlayerConfigs[1].propagatePlayerConfigsToAll);
+		reader.getIfPresent("Client2cornerPosition", clientPlayerConfigs[1].cornerPosition);
+		reader.getIfPresent("Client2defenderRandomDisplacementAngle", clientPlayerConfigs[1].defenderRandomDisplacementAngle);
 
-		//TODO: CHECK FOR TYPOS
+		reader.getIfPresent("respawnPosArray", respawnPosArray);
+		reader.getIfPresent("moveRateArray", moveRateArray);
+		reader.getIfPresent("respawnHeadingArray", respawnHeadingArray);
+		reader.getIfPresent("movementRestrictionXArray", movementRestrictionXArray);
+		reader.getIfPresent("movementRestrictionZArray", movementRestrictionZArray);
+		reader.getIfPresent("restrictedMovementEnabledArray", restrictedMovementEnabledArray);
+		reader.getIfPresent("restrictionBoxAngleArray", restrictionBoxAngleArray);
+
+		reader.getIfPresent("cornerPositionArray", cornerPositionArray);
+		reader.getIfPresent("defenderRandomDisplacementAngleArray", defenderRandomDisplacementAngleArray);
+
+		reader.getIfPresent("clientLatencyArray", clientLatencyArray);
 
 		break;
 	default:
@@ -270,17 +293,38 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 
 Any PlayerConfig::addToAny(Any a, bool forceAll) const {
 	PlayerConfig def;
-	if (forceAll || def.moveRate != moveRate)			a["moveRate"] = moveRate;
-	if (forceAll || def.moveScale != moveScale)			a["moveScale"] = moveScale;
-	if (forceAll || def.height != height)				a["playerHeight"] = height;
-	if (forceAll || def.crouchHeight != crouchHeight)	a["crouchHeight"] = crouchHeight;
-	if (forceAll || def.jumpVelocity != jumpVelocity)	a["jumpVelocity"] = jumpVelocity;
-	if (forceAll || def.jumpInterval != jumpInterval)	a["jumpInterval"] = jumpInterval;
-	if (forceAll || def.jumpTouch != jumpTouch)			a["jumpTouch"] = jumpTouch;
-	if (forceAll || def.gravity != gravity)				a["playerGravity"] = gravity;
-	if (forceAll || def.axisLock != axisLock)			a["playerAxisLock"] = axisLock;
-	if (forceAll || def.stillBetweenTrials != stillBetweenTrials)		a["disablePlayerMotionBetweenTrials"] = stillBetweenTrials;
-	if (forceAll || def.resetPositionPerTrial != resetPositionPerTrial)	a["resetPlayerPositionBetweenTrials"] = resetPositionPerTrial;
+	if (forceAll || def.moveRate != moveRate)								a["moveRate"] = moveRate;
+	if (forceAll || def.moveScale != moveScale)								a["moveScale"] = moveScale;
+	if (forceAll || def.height != height)									a["playerHeight"] = height;
+	if (forceAll || def.crouchHeight != crouchHeight)						a["crouchHeight"] = crouchHeight;
+	if (forceAll || def.jumpVelocity != jumpVelocity)						a["jumpVelocity"] = jumpVelocity;
+	if (forceAll || def.jumpInterval != jumpInterval)						a["jumpInterval"] = jumpInterval;
+	if (forceAll || def.jumpTouch != jumpTouch)								a["jumpTouch"] = jumpTouch;
+	if (forceAll || def.gravity != gravity)									a["playerGravity"] = gravity;
+	if (forceAll || def.axisLock != axisLock)								a["playerAxisLock"] = axisLock;
+	if (forceAll || def.stillBetweenTrials != stillBetweenTrials)			a["disablePlayerMotionBetweenTrials"] = stillBetweenTrials;
+	if (forceAll || def.resetPositionPerTrial != resetPositionPerTrial)		a["resetPlayerPositionBetweenTrials"] = resetPositionPerTrial;
+	if (forceAll || def.sprintMultiplier != sprintMultiplier)				a["sprintMultiplier"] = sprintMultiplier;
+	if (forceAll || def.headBobEnabled != headBobEnabled)					a["headBobEnabled"] = headBobEnabled;
+	if (forceAll || def.headBobAmplitude != headBobAmplitude)				a["headBobAmplitude"] = headBobAmplitude;
+	if (forceAll || def.headBobFrequency != headBobFrequency)				a["headBobFrequency"] = headBobFrequency;
+	if (forceAll || def.accelerationEnabled != accelerationEnabled)			a["accelerationEnabled"] = accelerationEnabled;
+	if (forceAll || def.movementAcceleration != movementAcceleration)		a["movementAcceleration"] = movementAcceleration;
+	if (forceAll || def.movementDeceleration != movementDeceleration)		a["movementDeceleration"] = movementDeceleration;
+	if (forceAll || def.respawnPos != respawnPos)							a["respawnPos"] = respawnPos;
+	if (forceAll || def.respawnHeading != respawnHeading)					a["respawnHeading"] = respawnHeading;
+	if (forceAll || def.respawnToPos != respawnToPos)						a["respawnToPos"] = respawnToPos;
+	if (forceAll || def.movementRestrictionX != movementRestrictionX)		a["movementRestrictionX"] = movementRestrictionX;
+	if (forceAll || def.movementRestrictionZ != movementRestrictionZ)		a["movementRestrictionZ"] = movementRestrictionZ;
+	if (forceAll || def.restrictedMovementEnabled != restrictedMovementEnabled)	a["restrictedMovementEnabled"] = restrictedMovementEnabled;
+	if (forceAll || def.restrictionBoxAngle != restrictionBoxAngle)			a["restrictionBoxAngle"] = restrictionBoxAngle;
+	if (forceAll || def.counterStrafing != counterStrafing)					a["counterStrafing"] = counterStrafing;
+	if (forceAll || def.selectedClientIdx != selectedClientIdx)				a["selectedClientIdx"] = selectedClientIdx;
+	if (forceAll || def.playerType != playerType)							a["playerType"] = playerType;
+	if (forceAll || def.clientLatency != clientLatency)						a["clientLatency"] = clientLatency;
+	if (forceAll || def.cornerPosition != cornerPosition)					a["cornerPosition"] = cornerPosition;
+	if (forceAll || def.defenderRandomDisplacementAngle != defenderRandomDisplacementAngle)	a["defenderRandomDisplacementAngle"] = defenderRandomDisplacementAngle;
+
 	return a;
 }
 

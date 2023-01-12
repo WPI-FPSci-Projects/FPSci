@@ -512,9 +512,13 @@ void FPSciApp::drawHUD(RenderDevice *rd, Vector2 resolution) {
 		String time_string = time < 10000.f ? format("%0.1f", time) : "---";		// Only allow up to 3 digit time strings
 
 		float prog = sess->getProgress();
-		String prog_string = "";
-		if (!isnan(prog)) {
+		String prog_string = "0%";
+
+		if (!isnan(prog) && (sessConfig->isNetworked == nullptr || !(*sessConfig->isNetworked))) {
 			prog_string = format("%d", (int)G3D::round(100.0f*prog)) + "%";
+		}
+		else if(sessConfig->isNetworked != nullptr && *sessConfig->isNetworked) {
+			prog_string = format("%d", (int)G3D::round(100.0f*(sessConfig->networkedSessionProgress)))+ "%";
 		}
 
 		const double score = sess->getScore();
@@ -532,12 +536,13 @@ void FPSciApp::drawHUD(RenderDevice *rd, Vector2 resolution) {
 			score_string = format("%dB", (int)G3D::round(score / 1e9));
 		}
 
-		if (sessConfig->hud.bannerTimerMode != "none" && sess->inTask()) {
+		if (sessConfig->hud.bannerTimerMode != "none" && (sess->inTask() || (sessConfig->isNetworked != nullptr && *sessConfig->isNetworked))) {
 			hudFont->draw2D(rd, time_string, hudCenter - Vector2(80, 0) * scale.x, scale.x * sessConfig->hud.bannerSmallFontSize, 
 				Color3::white(), Color4::clear(), GFont::XALIGN_RIGHT, GFont::YALIGN_CENTER);
 		}
-		if(sessConfig->hud.bannerShowProgress) hudFont->draw2D(rd, prog_string, hudCenter + Vector2(0, -1), scale.x * sessConfig->hud.bannerLargeFontSize, Color3::white(), Color4::clear(), GFont::XALIGN_CENTER, GFont::YALIGN_CENTER);
+		if(sessConfig->hud.bannerShowProgress) hudFont->draw2D(rd, prog_string, hudCenter + Vector2(0, -10), scale.x * sessConfig->hud.bannerLargeFontSize, Color3::white(), Color4::clear(), GFont::XALIGN_CENTER, GFont::YALIGN_CENTER);
 		if(sessConfig->hud.bannerShowScore) hudFont->draw2D(rd, score_string, hudCenter + Vector2(125, 0) * scale, scale.x * sessConfig->hud.bannerSmallFontSize, Color3::white(), Color4::clear(), GFont::XALIGN_RIGHT, GFont::YALIGN_CENTER);
+		if(sessConfig->isNetworked != nullptr && *sessConfig->isNetworked) hudFont->draw2D(rd, sessConfig->player.playerType, hudCenter + Vector2(0, 11) * scale, scale.x * sessConfig->hud.bannerSmallFontSize + 3, Color3::white(), Color4::clear(), GFont::XALIGN_CENTER, GFont::YALIGN_CENTER);
 	}
 
 	// Draw any static HUD elements

@@ -230,6 +230,11 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 		c->setWidth(width * 0.95f);
 	}movePane->endRow();
 	movePane->beginRow(); {
+		auto c = movePane->addNumberBox("Restriction Box Angle", &(config.player.restrictionBoxAngle), "\xB0", GuiTheme::LINEAR_SLIDER, -90.0f, 90.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	}movePane->endRow();
+	movePane->beginRow(); {
 		auto c = movePane->addCheckBox("Use Headbob?", &(config.player.headBobEnabled));
 		c->setCaptionWidth(width / 2);
 		c->setWidth(width * 0.95f);
@@ -276,6 +281,11 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 	} positionPane->endRow();
 	positionPane->beginRow(); {
 		auto c = positionPane->addNumberBox("Respawn Z", &(config.player.respawnPos.z), "", GuiTheme::LINEAR_SLIDER, -1000.0f, 1000.0f);
+		c->setCaptionWidth(width / 2);
+		c->setWidth(width * 0.95f);
+	} positionPane->endRow();
+	positionPane->beginRow(); {
+		auto c = positionPane->addNumberBox("Respawn Heading", &(config.player.respawnHeading), "\xB0", GuiTheme::LINEAR_SLIDER, 0.0f, 360.0f);
 		c->setCaptionWidth(width / 2);
 		c->setWidth(width * 0.95f);
 	} positionPane->endRow();

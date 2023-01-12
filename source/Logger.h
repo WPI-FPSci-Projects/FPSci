@@ -5,6 +5,10 @@
 #include "Session.h"
 #include "NetworkedSession.h"
 #include "Dialogs.h"
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
 
 using RowEntry = Array<String>;
 using Columns = Array<Array<String>>;
@@ -28,6 +32,7 @@ public:
 	using QuestionResult = RowEntry;
 	using TrialValues = RowEntry;
 	using UserValues = RowEntry;
+	using PlayerValues = RowEntry;
 
 protected:
 	sqlite3* m_db = nullptr;						///< The db used for logging
@@ -58,6 +63,7 @@ protected:
 	Array<TrialValues> m_trials;						///< Trial ID, start/end time etc.
 	Array<UserValues> m_users;
 	Array<NetworkedClient> m_networkedClients;
+	Array<PlayerValues> m_playerConfigs;
 
 	size_t getTotalQueueBytes()
 	{
@@ -68,7 +74,8 @@ protected:
 			queueBytes(m_targetLocations) +
 			queueBytes(m_targets) +
 			queueBytes(m_trials) + 
-			queueBytes(m_networkedClients);
+			queueBytes(m_networkedClients) +
+			queueBytes(m_playerConfigs);
 	}
 
 	template<typename ItemType> void addToQueue(Array<ItemType>& queue, const ItemType& item)
@@ -126,6 +133,7 @@ protected:
 	void createQuestionsTable();
 	void createUsersTable();
 	void createNetworkedClientTable();
+	void createPlayerConfigTable();
 
 	// Functions that assume the schema from above
 	//void insertSession(sessionInfo);
@@ -160,6 +168,7 @@ public:
 	void logTargetTypes(const Array<shared_ptr<TargetConfig>>& targets);
 
 	void logNetworkedClient(const NetworkedClient& client) { addToQueue(m_networkedClients, client); }
+	void logPlayerConfig(const PlayerConfig& playerConfig, const GUniqueID& id, int trialNumber);
 
 	/** Wakes up the logging thread and flushes even if the buffer limit is not reached yet. */
 	void flush(bool blockUntilDone);
@@ -178,4 +187,7 @@ public:
 
 	/** Add a target to an experiment */
 	void addTarget(const String& name, const shared_ptr<TargetConfig>& targetConfig, const String& spawnTime, const float& size, const Point2& spawnEcc);
+
+	/** Write to CSV failsafe **/
+	void writeToFile(String folderName, String fileName, RowEntry data);
 };
