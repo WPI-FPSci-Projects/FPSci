@@ -1522,6 +1522,7 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 			{
 				shared_ptr<ReportFirePacket> outPacket = GenericPacket::createReliable<ReportFirePacket>(m_serverPeer);
 				outPacket->populate(m_networkFrameNum, true, m_playerGUID);
+				debugPrintf("%d\n", m_networkFrameNum);
 				NetworkUtils::send(outPacket);
 			}
 		}

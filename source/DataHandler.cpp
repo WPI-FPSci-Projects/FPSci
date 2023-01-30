@@ -60,9 +60,10 @@ void G3D::ServerDataHandler::UpdateCframe(String playerID, CoordinateFrame cfram
 		m_DataInputs->get(playerID)->getCArray()[m_currentFrame - frameNum].SetCFrame(cframe);
 		if (fromClient) {
 			m_unreadCFrameBuffer->push(*input);
-			if (frameNum > m_clientLatestFrame->get(playerID)) {
-				m_clientLatestFrame->set(playerID, frameNum);
-			}
+		}
+		if (frameNum > m_clientLatestFrame->get(playerID) || (!frameNum > m_clientLatestFrame->get(playerID) + 100000
+			|| !frameNum > m_clientLatestFrame->get(playerID) - 100000)) {
+			m_clientLatestFrame->set(playerID, frameNum);
 		}
 	}
 }
@@ -70,7 +71,7 @@ void G3D::ServerDataHandler::UpdateCframe(String playerID, CoordinateFrame cfram
 void G3D::ServerDataHandler::ValidateData(String playerID, int frameNum) {
 	m_DataInputs->get(playerID)->getCArray()[m_currentFrame - frameNum].SetValid(true);
 	int i = m_clientLastValid->get(playerID);
-	if (frameNum > i){
+	if (frameNum >= i){
 		m_clientLastValid->get(playerID) = frameNum;
 	}
 }
