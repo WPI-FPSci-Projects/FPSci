@@ -25,6 +25,7 @@ public:
 	bool extrapolationEnabled = false;
 	int extrapolationType = 1;							///< Type of extrapolation to perform. 0 None, 1 linear, 2 quadratic
 	bool timeWarpEnabled = false;						///< Primary flag for enabling Time Warp latency compensation
+	Array<int> pingThresholds = { 50, 100 };			///< Thresholds for when the ping display updates its color values
 
 	ExperimentConfig() { init(); }
 	ExperimentConfig(const Any& any);
