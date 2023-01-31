@@ -24,6 +24,9 @@ ExperimentConfig::ExperimentConfig(const Any& any) : FpsConfig(any) {
 		reader.getIfPresent("extrapolationType", extrapolationType);
 		reader.getIfPresent("timeWarpEnabled", timeWarpEnabled);		
 		reader.getIfPresent("pingThresholds", pingThresholds);
+		reader.getIfPresent("placeboPingEnabled", placeboPingEnabled);
+		reader.getIfPresent("placeboPingType", placeboPingType);
+		reader.getIfPresent("placeboPingModifier", placeboPingModifier);
 
 		logPrintf("serverAddress is : %s:%d\n", serverAddress.c_str(), serverPort);
 		break;

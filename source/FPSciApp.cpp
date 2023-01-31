@@ -1068,7 +1068,7 @@ void FPSciApp::onNetwork() {
 					}
 				};
 
-				auto pingAck = [](ENetSocket socket, NetworkUtils::PingStatistics& stats, bool& pinging) {
+				auto pingAck = [](ENetSocket socket, NetworkUtils::PingStatistics& stats, bool& pinging, bool& usingPlacebo, int& pingModifier, int& modifierType) {
 					while (pinging) {
 						shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePing(&socket);
 						while (inPacket != nullptr) {
@@ -1078,6 +1078,25 @@ void FPSciApp::onNetwork() {
 							if (inPacket->type() == PacketType::PING) {
 								PingPacket* pingPacket = static_cast<PingPacket*>(inPacket.get());
 								long long rtt = pingPacket->m_RTT;
+
+								// Placebo modifier
+								if (usingPlacebo) {
+									switch (modifierType) {
+										case 0: {
+											rtt = pingModifier;
+											break;
+										}
+										case 1: {
+											rtt += pingModifier;
+											break;
+										}
+										case 2: {
+											rtt *= pingModifier;
+											break;
+										}
+										default: break;
+									}
+								}
 
 								stats.pingQueue.pushBack(rtt);
 
@@ -1114,7 +1133,7 @@ void FPSciApp::onNetwork() {
 				std::thread c2sPing_Th(c2sPing, m_pingSocket, m_pingServerAddress, m_pingInterval, std::ref(m_pinging));
 				c2sPing_Th.detach();
 
-				std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_pingStats), std::ref(m_pinging));
+				std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_pingStats), std::ref(m_pinging), std::ref(experimentConfig.placeboPingEnabled), std::ref(experimentConfig.placeboPingModifier), std::ref(experimentConfig.placeboPingType));
 				pingAck_Th.detach();
 
 				debugPrintf("Initialized ping threads\n");
