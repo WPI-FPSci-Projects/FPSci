@@ -68,13 +68,14 @@ namespace G3D {
 
 	class ServerDataHandler{
 	public:
-		int m_pastFrames = 1500;
+		int m_pastFrames = 500;
 		uint32 m_currentFrame = 0;
 		Table<String, Array<ServerDataInput>*>* m_DataInputs;
 		Table<String, int>* m_clientLastValid;
 		Table<String, int>* m_clientLatestFrame;
 		Array<ServerDataInput>* m_unreadCFrameBuffer;
 		Array<ServerFireInput>* m_unreadFiredbuffer = new Array<ServerFireInput>;
+		Array<Vector3>* m_respawnLocations;
 
 	public:
 		ServerDataHandler();

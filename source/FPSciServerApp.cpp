@@ -61,6 +61,7 @@ void FPSciServerApp::initExperiment() {
     
     //Setup dataHandler
     m_dataHandler = new ServerDataHandler();
+    m_dataHandler->m_respawnLocations = &sessConfig->player.respawnPosArray;
     //m_dataHandler->SetParameters(experimentConfig.pastFrame);
     
     // Setup the network and start listening for clients
@@ -189,7 +190,8 @@ void FPSciServerApp::onNetwork()
                                 // Do nothing (No-Op)
                                 break;
                             case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
-                                entity->setFrame(e.frame);
+                                //entity->setFrame(e.frame);
+                                updateEntityAndCamera(entity, &e.frame);
                                 if (m_dataHandler != nullptr) {
                                     m_dataHandler->UpdateCframe(e.name, e.frame, typedPacket->m_frameNumber, true);
                                 }
@@ -567,6 +569,10 @@ void FPSciServerApp::onNetwork()
             }
             configPacket->populate(sessConfig->player, sessConfig->networkedSessionProgress);
             NetworkUtils::send(configPacket);
+        }
+
+        for (auto client : m_connectedClients) {
+            client->camera->setFrame(client->entity->frame());
         }
     }
 }
@@ -1154,6 +1160,7 @@ void FPSciServerApp::checkFrameValidity()
 
         bool valid = true;
         shared_ptr<NetworkedEntity> e1 = i1->entity;
+        Vector3 player1Pos = e1->frame().translation;
 
         // Player displacement check
         // Check if a player is moving too quickly, based on player max speed and frame rate
@@ -1167,7 +1174,8 @@ void FPSciServerApp::checkFrameValidity()
         // 0.0114698 is calculated moving average of player speed in game units when moveRate is 7m/s
         int framesElapsed = 1; //TODO: get frames elapsed since last valid frame
         auto zeroFrame = new CoordinateFrame();
-        if (dist > maxDist * framesElapsed && pastFrame.translation != zeroFrame->translation)
+        if (dist > maxDist * framesElapsed && pastFrame.translation != zeroFrame->translation &&
+            m_dataHandler->m_respawnLocations->contains(player1Pos))
         {
             logPrintf("Player %d moved too far in the past %d frames. Moving back to last valid position.\n", i1->playerID, framesElapsed);
             snapBackPlayer(i1->playerID);
@@ -1177,7 +1185,7 @@ void FPSciServerApp::checkFrameValidity()
         // Player to player collision detection
         // Check if two players are too close, based on body radius
         // If so, snap the players to the last valid positions
-        Point3 player1Pos = e1->frame().translation;
+        
         for (auto& i2 : m_connectedClients)
         {
             shared_ptr<NetworkedEntity> e2 = i2->entity;
@@ -1191,6 +1199,7 @@ void FPSciServerApp::checkFrameValidity()
                 valid = false;
             }
         }
+       
         if (valid) {
             m_dataHandler->ValidateData(i1->guid.toString16(), m_dataHandler->m_clientLatestFrame->get(i1->guid.toString16()));
             i1->camera->setFrame(m_dataHandler->GetCFrame(m_dataHandler->m_clientLastValid->get(i1->guid.toString16()),
@@ -1272,7 +1281,7 @@ void FPSciServerApp::simulateWeapons()
                     debugPrintf("Server determined a player died! Resetting game...\n");
                     m_clientsReady = 0;
                     //static_cast<NetworkedSession*>(sess.get())->resetSession();
-                     netSess->resetRound();
+                    //netSess->resetRound();
                     scene()->typedEntity<PlayerEntity>("player")->setPlayerMovement(true);
                     //Allow the server to move freely
 
@@ -1309,7 +1318,6 @@ void FPSciServerApp::simulateWeapons()
                 }
                 /* Send this as a player interact packet so that clients log it */
                 NetworkUtils::broadcastUnreliable(interactPacket, &m_unreliableSocket, clientAddresses);
-                break;
             }
             // Time Warp
             if (experimentConfig.timeWarpEnabled)
@@ -1334,9 +1342,9 @@ void FPSciServerApp::snapBackPlayer(uint8 playerID)
     auto zeroFrame = new CoordinateFrame();
     if (snapBackFrame != *zeroFrame)
     {
-        m_dataHandler->UpdateCframe(m_connectedClients[playerID]->guid.toString16(), snapBackFrame, m_networkFrameNum, false);
-        m_connectedClients[playerID]->camera->setFrame(snapBackFrame);
-        m_connectedClients[playerID]->entity->setFrame(snapBackFrame);
+        //m_dataHandler->UpdateCframe(m_connectedClients[playerID]->guid.toString16(), snapBackFrame, m_networkFrameNum, false);
+        //m_connectedClients[playerID]->camera->setFrame(snapBackFrame);
+        //m_connectedClients[playerID]->entity->setFrame(snapBackFrame);
     }
     else {
         
@@ -1361,6 +1369,15 @@ void FPSciServerApp::CurrentTimeFrameSetup() {
         m_connectedClients[e->getPlayerID()]->camera->setFrame(
             m_dataHandler->GetCFrame(m_dataHandler->lastValidFromFrameNum(e->name(), m_dataHandler->m_clientLastValid->get(e->name())), e->name()));
         e->setFrame(m_dataHandler->GetCFrame(m_dataHandler->m_clientLastValid->get(e->name()), e->name()));
+    }
+}
+
+void FPSciServerApp::updateEntityAndCamera(shared_ptr<NetworkedEntity> entity, CoordinateFrame* cframe) {
+    entity->setFrame(*cframe);
+    for (auto client : m_connectedClients) {
+        if (entity->name() == client->guid.toString16()) {
+            client->camera->setFrame(*cframe);
+        }
     }
 }
 

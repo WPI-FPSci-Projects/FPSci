@@ -92,6 +92,7 @@ G3D::ServerDataHandler::ServerDataHandler()
 	m_clientLatestFrame = new Table<String, int>;
 	m_unreadCFrameBuffer = new Array<ServerDataInput>;
 	m_unreadFiredbuffer = new Array<ServerFireInput>;
+	m_respawnLocations = new Array<Vector3>;
 }
 
 G3D::ServerDataHandler::~ServerDataHandler() {}

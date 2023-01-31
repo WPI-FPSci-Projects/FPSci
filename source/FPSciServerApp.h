@@ -55,4 +55,5 @@ public:
     void CurrentTimeFrameSetup();
     uint8 GUIDtoPlayerID(GUniqueID guid);
     GUniqueID playerIDtoGUID(uint8 playerID);
+    void updateEntityAndCamera(shared_ptr<NetworkedEntity> entity, CoordinateFrame* cframe);
 };
