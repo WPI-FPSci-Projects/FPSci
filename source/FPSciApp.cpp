@@ -1186,33 +1186,44 @@ void FPSciApp::onNetwork() {
 				BatchEntityUpdatePacket* typedPacket = static_cast<BatchEntityUpdatePacket*>(inPacket.get());
 				//TODO: refactor this out into some other place, maybe NetworkUtils??
 					for (BatchEntityUpdatePacket::EntityUpdate e : typedPacket->m_updates) {
-						if (e.name != m_playerGUID.toString16() || experimentConfig.isAuthoritativeServer) { // Don't listen to updates for this client
-							shared_ptr<Entity> entity;
-							if (e.name == m_playerGUID.toString16())
-							{
-								// TODO: Check if server frame mismatch with history, if so, allow override
-								// entity = (*scene()).typedEntity<PlayerEntity>("player");
-
-							} else
-							{
-								entity = (*scene()).typedEntity<NetworkedEntity>(e.name);
-							}
-							if (entity == nullptr) {
-								//debugPrintf("Client: Recieved update for entity %s, but it doesn't exist\n", e.name.c_str());
-							}
-							else {
-								switch (typedPacket->m_updateType) {
-								case BatchEntityUpdatePacket::NetworkUpdateType::NOOP:
-									// Do nothing (No-Op)
-									break;
-								case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
-									
-									entity->setFrame(e.frame);
-									if (m_dataHandler != nullptr && e.name != m_playerGUID.toString16()) {
-										m_dataHandler->UpdateCframe(e.name, e.frame, m_networkFrameNum, typedPacket->m_frameNumber);
+						auto zeroFrame = new CoordinateFrame();
+						if (e.frame != *zeroFrame) // Don't accept empty frames from server
+						{
+							if (e.name != m_playerGUID.toString16() || experimentConfig.isAuthoritativeServer) { // Don't listen to updates for this client
+								shared_ptr<Entity> entity;
+								// if the client is local
+								if (e.name == m_playerGUID.toString16())
+								{
+									// Check if server frame mismatch with history, if so, allow override
+									if (m_dataHandler->m_historicalCFrames->containsKey(e.frameNumber))
+									{
+										if (e.frame != m_dataHandler->m_historicalCFrames->get(e.frameNumber))
+										{
+											entity = (*scene()).typedEntity<PlayerEntity>("player");
+											// TODO: Also override all history items after this frame, up to the current one
 										}
 									}
-									break;
+								} else
+								{
+									entity = (*scene()).typedEntity<NetworkedEntity>(e.name);
+								}
+							
+								if (entity == nullptr) {
+									//debugPrintf("Client: Recieved update for entity %s, but it doesn't exist\n", e.name.c_str());
+								}
+								else {
+									switch (typedPacket->m_updateType) {
+									case BatchEntityUpdatePacket::NetworkUpdateType::NOOP:
+										// Do nothing (No-Op)
+										break;
+									case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
+									
+										entity->setFrame(e.frame);
+										if (m_dataHandler != nullptr && e.name != m_playerGUID.toString16()) {
+											m_dataHandler->UpdateCframe(e.name, e.frame, m_networkFrameNum, e.frameNumber);								
+										}
+										break;
+									}
 								}
 							}
 						}
