@@ -191,7 +191,7 @@ void FPSciServerApp::onNetwork()
                             case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
                                 entity->setFrame(e.frame);
                                 if (m_dataHandler != nullptr) {
-                                    m_dataHandler->UpdateCframe(e.name, e.frame, typedPacket->m_frameNumber, true);
+                                    m_dataHandler->UpdateCframe(e.name, e.frame, e.frameNumber, true);
                                 }
                                 break;
                             }

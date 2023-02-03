@@ -1160,8 +1160,8 @@ void FPSciApp::onNetwork() {
 		}
 		shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createUnreliable<BatchEntityUpdatePacket>(&m_unreliableSocket, &m_unreliableServerAddress);
 		Array<BatchEntityUpdatePacket::EntityUpdate> updates;
-		updates.append(BatchEntityUpdatePacket::EntityUpdate(scene()->entity("player")->frame(), m_playerGUID.toString16(), m_playerID));
-		updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
+		updates.append(BatchEntityUpdatePacket::EntityUpdate(scene()->entity("player")->frame(), m_playerGUID.toString16(), m_playerID, m_networkFrameNum));
+		updatePacket->populate(updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
 		NetworkUtils::send(updatePacket);
 		//updatePacket->send();
 		// record CFrames locally
