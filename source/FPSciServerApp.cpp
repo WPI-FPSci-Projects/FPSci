@@ -1151,8 +1151,6 @@ void FPSciServerApp::checkFrameValidity()
 {
     for (auto& i1 : m_connectedClients)
     {
-
-        bool valid = true;
         shared_ptr<NetworkedEntity> e1 = i1->entity;
 
         // Player displacement check
@@ -1171,7 +1169,6 @@ void FPSciServerApp::checkFrameValidity()
         {
             logPrintf("Player %d moved too far in the past %d frames. Moving back to last valid position.\n", i1->playerID, framesElapsed);
             snapBackPlayer(i1->playerID);
-            valid = false;
         }
 
         // Player to player collision detection
@@ -1188,14 +1185,10 @@ void FPSciServerApp::checkFrameValidity()
                 debugPrintf("%d collided with %d\n", i1->playerID, i2->playerID);
                 snapBackPlayer(i1->playerID);
                 snapBackPlayer(i2->playerID);
-                valid = false;
             }
         }
-        if (valid) {
-            m_dataHandler->ValidateData(i1->guid.toString16(), m_dataHandler->m_clientLatestFrame->get(i1->guid.toString16()));
-            i1->camera->setFrame(m_dataHandler->GetCFrame(m_dataHandler->m_clientLastValid->get(i1->guid.toString16()),
-                i1->guid.toString16()));
-        }
+        m_dataHandler->ValidateData(i1->guid.toString16(), m_dataHandler->m_clientLatestFrame->get(i1->guid.toString16()));
+        i1->camera->setFrame(m_dataHandler->GetCFrame(m_dataHandler->m_clientLastValid->get(i1->guid.toString16()), i1->guid.toString16()));
     }
     Array<int32>* values = new Array<int32>;
     m_dataHandler->m_clientLastValid->getValues(*values);
