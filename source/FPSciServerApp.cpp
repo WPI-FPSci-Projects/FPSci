@@ -193,7 +193,7 @@ void FPSciServerApp::onNetwork()
                                 //entity->setFrame(e.frame);
                                 updateEntityAndCamera(entity, &e.frame);
                                 if (m_dataHandler != nullptr) {
-                                    m_dataHandler->UpdateCframe(e.name, e.frame, typedPacket->m_frameNumber, true);
+                                    m_dataHandler->UpdateCframe(e.name, e.frame, e.frameNumber, true);
                                 }
                                 break;
                             }
@@ -534,20 +534,20 @@ void FPSciServerApp::onNetwork()
     // only do if not in authoritative server mode, if yes, onASBroadcast() will handle this
     if (!experimentConfig.isAuthoritativeServer)
     {
-        /* Now we send the position of all entities to all connected clients */
+        /* Now we send the latest position of all entities to all connected clients */
         Array<shared_ptr<NetworkedEntity>> entityArray;
         scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
         Array<BatchEntityUpdatePacket::EntityUpdate> updates;
-        for (shared_ptr<NetworkedEntity> e : entityArray) {
-            updates.append(BatchEntityUpdatePacket::EntityUpdate(e->frame(), e->name(), e->getPlayerID()));
-        }
-        shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
-        updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
-    
+        // make update of latest validated position for each entity
         Array<ENetAddress*> clientAddresses;
         for (NetworkUtils::ConnectedClient* c : m_connectedClients) {
+            String name = c->guid.toString16();
+            int frameNum = m_dataHandler->lastValidFromFrameNum(name, m_networkFrameNum);
+            updates.append(BatchEntityUpdatePacket::EntityUpdate(m_dataHandler->GetCFrame(frameNum, name), name, c->playerID, frameNum));
             clientAddresses.append(&c->unreliableAddress);
         }
+        shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
+        updatePacket->populate(updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
         NetworkUtils::broadcastUnreliable(updatePacket, &m_unreliableSocket, clientAddresses);
 
         // Broadcast the PlayerConfig to all clients
@@ -1114,20 +1114,20 @@ void FPSciServerApp::onASBroadcast()
     // only do if in authoritative server mode
     if (experimentConfig.isAuthoritativeServer)
     {
-        /* Now we send the position of all entities to all connected clients */
+        /* Now we send the latest position of all entities to all connected clients */
         Array<shared_ptr<NetworkedEntity>> entityArray;
         scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
         Array<BatchEntityUpdatePacket::EntityUpdate> updates;
-        for (shared_ptr<NetworkedEntity> e : entityArray) {
-            updates.append(BatchEntityUpdatePacket::EntityUpdate(e->frame(), e->name(), e->getPlayerID()));
-        }
-        shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
-        updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
-    
+        // make update of latest validated position for each entity
         Array<ENetAddress*> clientAddresses;
         for (NetworkUtils::ConnectedClient* c : m_connectedClients) {
+            String name = c->guid.toString16();
+            int frameNum = m_dataHandler->lastValidFromFrameNum(name, m_networkFrameNum);
+            updates.append(BatchEntityUpdatePacket::EntityUpdate(m_dataHandler->GetCFrame(frameNum, name), name, c->playerID, frameNum));
             clientAddresses.append(&c->unreliableAddress);
         }
+        shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
+        updatePacket->populate(updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
         NetworkUtils::broadcastUnreliable(updatePacket, &m_unreliableSocket, clientAddresses);
 
         // Broadcast the PlayerConfig to all clients
@@ -1342,9 +1342,9 @@ void FPSciServerApp::snapBackPlayer(uint8 playerID)
     auto zeroFrame = new CoordinateFrame();
     if (snapBackFrame != *zeroFrame)
     {
-        //m_dataHandler->UpdateCframe(m_connectedClients[playerID]->guid.toString16(), snapBackFrame, m_networkFrameNum, false);
-        //m_connectedClients[playerID]->camera->setFrame(snapBackFrame);
-        //m_connectedClients[playerID]->entity->setFrame(snapBackFrame);
+        m_dataHandler->UpdateCframe(m_connectedClients[playerID]->guid.toString16(), snapBackFrame, m_networkFrameNum, false);
+        m_connectedClients[playerID]->camera->setFrame(snapBackFrame);
+        m_connectedClients[playerID]->entity->setFrame(snapBackFrame);
     }
     else {
         

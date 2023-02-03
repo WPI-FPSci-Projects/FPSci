@@ -424,11 +424,19 @@ void FPSciApp::updateFPSIndicator(RenderDevice* rd, Vector2 resolution) {
 void FPSciApp::updatePingIndicator(RenderDevice* rd, Vector2 resolution) {
 	if (renderPing) {
 
-		auto getColor = [](long long val) {
-			if (val < 50) {
+		Array<int> thresholds = experimentConfig.pingThresholds;
+
+		if (thresholds[0] > thresholds[1]) {
+			int copy = thresholds[1];
+			thresholds[1] = thresholds[0];
+			thresholds[0] = copy;
+		}
+
+		auto getColor = [&thresholds](long long val) {
+			if (val < thresholds[0]) {
 				return Color3::green();
 			}
-			else if (val < 100) {
+			else if (val < thresholds[1]) {
 				return Color3::yellow();
 			}
 			else {

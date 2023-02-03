@@ -191,11 +191,13 @@ public:
 		CFrame frame;								///< CFrame to use in the update
 		String name;								///< Name of the entity this update applies to
 		uint8 playerID;								///< playerID of the entity this update applies to
+		uint32 frameNumber;							///< frame number of the data in this update
 		/** Constructor to create and populate an update */
-		EntityUpdate(CFrame entityFrame, String entityName, uint8 PID) {
+		EntityUpdate(CFrame entityFrame, String entityName, uint8 PID, uint32 frameNum) {
 			frame = entityFrame;
 			name = entityName;
 			playerID = PID;
+			frameNumber = frameNum;
 		}
 		EntityUpdate() {}
 	};
@@ -209,7 +211,7 @@ public:
 	shared_ptr<GenericPacket> clone() override { return createShared<BatchEntityUpdatePacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
-	void populate(uint32 frameNumber, Array<EntityUpdate> updates, NetworkUpdateType updateType);
+	void populate(Array<EntityUpdate> updates, NetworkUpdateType updateType);
 
 protected:
 	void serialize(BinaryOutput& outBuffer) override;
@@ -218,7 +220,6 @@ protected:
 
 public:
 	Array<EntityUpdate> m_updates;					///< Array of updates to be applied
-	uint32 m_frameNumber;							///< Frame number that these updates apply to
 	NetworkUpdateType m_updateType;					///< type of update (how to apply updates)
 };
 

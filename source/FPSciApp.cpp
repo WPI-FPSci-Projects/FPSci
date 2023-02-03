@@ -1068,7 +1068,7 @@ void FPSciApp::onNetwork() {
 					}
 				};
 
-				auto pingAck = [](ENetSocket socket, NetworkUtils::PingStatistics& stats, bool& pinging) {
+				auto pingAck = [](ENetSocket socket, NetworkUtils::PingStatistics& stats, bool& pinging, bool& usingPlacebo, int& pingModifier, int& modifierType) {
 					while (pinging) {
 						shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePing(&socket);
 						while (inPacket != nullptr) {
@@ -1078,6 +1078,25 @@ void FPSciApp::onNetwork() {
 							if (inPacket->type() == PacketType::PING) {
 								PingPacket* pingPacket = static_cast<PingPacket*>(inPacket.get());
 								long long rtt = pingPacket->m_RTT;
+
+								// Placebo modifier
+								if (usingPlacebo) {
+									switch (modifierType) {
+										case 0: {
+											rtt = pingModifier;
+											break;
+										}
+										case 1: {
+											rtt += pingModifier;
+											break;
+										}
+										case 2: {
+											rtt *= pingModifier;
+											break;
+										}
+										default: break;
+									}
+								}
 
 								stats.pingQueue.pushBack(rtt);
 
@@ -1114,7 +1133,7 @@ void FPSciApp::onNetwork() {
 				std::thread c2sPing_Th(c2sPing, m_pingSocket, m_pingServerAddress, m_pingInterval, std::ref(m_pinging));
 				c2sPing_Th.detach();
 
-				std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_pingStats), std::ref(m_pinging));
+				std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_pingStats), std::ref(m_pinging), std::ref(experimentConfig.placeboPingEnabled), std::ref(experimentConfig.placeboPingModifier), std::ref(experimentConfig.placeboPingType));
 				pingAck_Th.detach();
 
 				debugPrintf("Initialized ping threads\n");
@@ -1141,10 +1160,16 @@ void FPSciApp::onNetwork() {
 		}
 		shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createUnreliable<BatchEntityUpdatePacket>(&m_unreliableSocket, &m_unreliableServerAddress);
 		Array<BatchEntityUpdatePacket::EntityUpdate> updates;
-		updates.append(BatchEntityUpdatePacket::EntityUpdate(scene()->entity("player")->frame(), m_playerGUID.toString16(), m_playerID));
-		updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
+		updates.append(BatchEntityUpdatePacket::EntityUpdate(scene()->entity("player")->frame(), m_playerGUID.toString16(), m_playerID, m_networkFrameNum));
+		updatePacket->populate(updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
 		NetworkUtils::send(updatePacket);
 		//updatePacket->send();
+		// record CFrames locally
+		if (m_dataHandler->m_historicalCFrames->size() >= m_dataHandler->m_pastFrames)
+		{
+			m_dataHandler->m_historicalCFrames->remove(m_dataHandler->m_historicalCFrames->begin().key());
+		}
+		m_dataHandler->m_historicalCFrames->set(m_networkFrameNum, scene()->entity("player")->frame());
 	}
 
 	/* Recevie and handle any packets */
@@ -1161,37 +1186,44 @@ void FPSciApp::onNetwork() {
 				BatchEntityUpdatePacket* typedPacket = static_cast<BatchEntityUpdatePacket*>(inPacket.get());
 				//TODO: refactor this out into some other place, maybe NetworkUtils??
 					for (BatchEntityUpdatePacket::EntityUpdate e : typedPacket->m_updates) {
-						if (e.name != m_playerGUID.toString16() || experimentConfig.isAuthoritativeServer) { // Don't listen to updates for this client
-							shared_ptr<Entity> entity;
-							if (e.name == m_playerGUID.toString16())
-							{
-								// TODO: Check if server frame mismatch with history, if so, allow override
-								// entity = (*scene()).typedEntity<PlayerEntity>("player");
-
-							} else
-							{
-								entity = (*scene()).typedEntity<NetworkedEntity>(e.name);
-							}
-							if (entity == nullptr) {
-								//debugPrintf("Client: Recieved update for entity %s, but it doesn't exist\n", e.name.c_str());
-							}
-							else {
-								switch (typedPacket->m_updateType) {
-								case BatchEntityUpdatePacket::NetworkUpdateType::NOOP:
-									// Do nothing (No-Op)
-									break;
-								case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
-									
-									entity->setFrame(e.frame);
-									if (m_dataHandler != nullptr && e.name != m_playerGUID.toString16()) {
-										m_dataHandler->UpdateCframe(e.name, e.frame, m_networkFrameNum, typedPacket->m_frameNumber);
-										
-										if (m_dataHandler->m_historicalCFrames->size() >= m_dataHandler->m_pastFrames) {
-											m_dataHandler->m_historicalCFrames->remove(m_dataHandler->m_historicalCFrames->begin().key());
+						auto zeroFrame = new CoordinateFrame();
+						if (e.frame != *zeroFrame) // Don't accept empty frames from server
+						{
+							if (e.name != m_playerGUID.toString16() || experimentConfig.isAuthoritativeServer) { // Don't listen to updates for this client
+								shared_ptr<Entity> entity;
+								// if the client is local
+								if (e.name == m_playerGUID.toString16())
+								{
+									// Check if server frame mismatch with history, if so, allow override
+									if (m_dataHandler->m_historicalCFrames->containsKey(e.frameNumber))
+									{
+										if (e.frame != m_dataHandler->m_historicalCFrames->get(e.frameNumber))
+										{
+											entity = (*scene()).typedEntity<PlayerEntity>("player");
+											// TODO: Also override all history items after this frame, up to the current one
 										}
-										m_dataHandler->m_historicalCFrames->set(m_networkFrameNum, &e.frame);									
 									}
-									break;
+								} else
+								{
+									entity = (*scene()).typedEntity<NetworkedEntity>(e.name);
+								}
+							
+								if (entity == nullptr) {
+									//debugPrintf("Client: Recieved update for entity %s, but it doesn't exist\n", e.name.c_str());
+								}
+								else {
+									switch (typedPacket->m_updateType) {
+									case BatchEntityUpdatePacket::NetworkUpdateType::NOOP:
+										// Do nothing (No-Op)
+										break;
+									case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
+									
+										entity->setFrame(e.frame);
+										if (m_dataHandler != nullptr && e.name != m_playerGUID.toString16()) {
+											m_dataHandler->UpdateCframe(e.name, e.frame, m_networkFrameNum, e.frameNumber);								
+										}
+										break;
+									}
 								}
 							}
 						}

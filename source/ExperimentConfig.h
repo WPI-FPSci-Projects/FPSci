@@ -25,6 +25,10 @@ public:
 	bool extrapolationEnabled = false;
 	int extrapolationType = 1;							///< Type of extrapolation to perform. 0 None, 1 linear, 2 quadratic
 	bool timeWarpEnabled = false;						///< Primary flag for enabling Time Warp latency compensation
+	Array<int> pingThresholds = { 50, 100 };			///< Thresholds for when the ping display updates its color values
+	bool placeboPingEnabled = false;					///< Flag for enabling placebo (fake) ping values
+	int placeboPingType = 0;							///< Integer specifying the type of placebo ping: 0: fixed value, 1: additive modifier, 2: multiplicative modifier
+	int placeboPingModifier = 0;						///< Latency modifier value for placebo ping
 
 	ExperimentConfig() { init(); }
 	ExperimentConfig(const Any& any);

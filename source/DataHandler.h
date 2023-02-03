@@ -127,7 +127,7 @@ namespace G3D {
 		Table<String, Matrix3>* m_clientHeading = new Table<String, Matrix3>;
 		Table<String, int8>* m_frameLag = new Table<String, int8>;
 		int m_pastFrames = 300;
-		Table<uint32, CoordinateFrame*>* m_historicalCFrames = new Table<uint32, CoordinateFrame*>;
+		Table<uint32, CoordinateFrame>* m_historicalCFrames = new Table<uint32, CoordinateFrame>;
 
 	public:
 		ClientDataHandler();
