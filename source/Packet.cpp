@@ -58,15 +58,13 @@ void GenericPacket::deserialize(BinaryInput& inBuffer) {
  * Batch Entity Udpate Packet *
  ******************************/
 
-void BatchEntityUpdatePacket::populate(uint32 frameNumber, Array<EntityUpdate> updates, NetworkUpdateType updateType) {
+void BatchEntityUpdatePacket::populate(Array<EntityUpdate> updates, NetworkUpdateType updateType) {
 	m_updates = updates;
-	m_frameNumber = frameNumber;
 	m_updateType = updateType;
 }
 
 void BatchEntityUpdatePacket::serialize(BinaryOutput& outBuffer) {
 	GenericPacket::serialize(outBuffer);	// Call the super serialize
-	outBuffer.writeUInt32(m_frameNumber);
 	outBuffer.writeUInt8(m_updates.size());
 	outBuffer.writeUInt8(m_updateType);
 	for (EntityUpdate e : m_updates) {
@@ -77,12 +75,12 @@ void BatchEntityUpdatePacket::serialize(BinaryOutput& outBuffer) {
 		guid.serialize(outBuffer);
 		e.frame.serialize(outBuffer);
 		outBuffer.writeUInt8(e.playerID);
+		outBuffer.writeUInt32(e.frameNumber);
 	}
 }
 
 void BatchEntityUpdatePacket::deserialize(BinaryInput& inBuffer) {
 	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
-	m_frameNumber = inBuffer.readUInt32();
 	uint8 numEntities = inBuffer.readUInt8();
 	m_updateType = (NetworkUpdateType)inBuffer.readUInt8();
 	m_updates = Array<EntityUpdate>();
@@ -95,7 +93,9 @@ void BatchEntityUpdatePacket::deserialize(BinaryInput& inBuffer) {
 			frame.deserialize(inBuffer);
 			uint8 playerID;
 			playerID = inBuffer.readUInt8();
-			m_updates.append(EntityUpdate(frame, guid.toString16(), playerID));
+			uint32 frameNumber;
+			frameNumber = inBuffer.readUInt32();
+			m_updates.append(EntityUpdate(frame, guid.toString16(), playerID, frameNumber));
 		}
 	}
 }
