@@ -532,20 +532,20 @@ void FPSciServerApp::onNetwork()
     // only do if not in authoritative server mode, if yes, onASBroadcast() will handle this
     if (!experimentConfig.isAuthoritativeServer)
     {
-        /* Now we send the position of all entities to all connected clients */
+        /* Now we send the latest position of all entities to all connected clients */
         Array<shared_ptr<NetworkedEntity>> entityArray;
         scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
         Array<BatchEntityUpdatePacket::EntityUpdate> updates;
-        for (shared_ptr<NetworkedEntity> e : entityArray) {
-            updates.append(BatchEntityUpdatePacket::EntityUpdate(e->frame(), e->name(), e->getPlayerID()));
-        }
-        shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
-        updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
-    
+        // make update of latest validated position for each entity
         Array<ENetAddress*> clientAddresses;
         for (NetworkUtils::ConnectedClient* c : m_connectedClients) {
+            String name = c->guid.toString16();
+            int frameNum = m_dataHandler->lastValidFromFrameNum(name, m_networkFrameNum);
+            updates.append(BatchEntityUpdatePacket::EntityUpdate(m_dataHandler->GetCFrame(frameNum, name), name, c->playerID, frameNum));
             clientAddresses.append(&c->unreliableAddress);
         }
+        shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
+        updatePacket->populate(updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
         NetworkUtils::broadcastUnreliable(updatePacket, &m_unreliableSocket, clientAddresses);
 
         // Broadcast the PlayerConfig to all clients
@@ -1108,20 +1108,20 @@ void FPSciServerApp::onASBroadcast()
     // only do if in authoritative server mode
     if (experimentConfig.isAuthoritativeServer)
     {
-        /* Now we send the position of all entities to all connected clients */
+        /* Now we send the latest position of all entities to all connected clients */
         Array<shared_ptr<NetworkedEntity>> entityArray;
         scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
         Array<BatchEntityUpdatePacket::EntityUpdate> updates;
-        for (shared_ptr<NetworkedEntity> e : entityArray) {
-            updates.append(BatchEntityUpdatePacket::EntityUpdate(e->frame(), e->name(), e->getPlayerID()));
-        }
-        shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
-        updatePacket->populate(m_networkFrameNum, updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
-    
+        // make update of latest validated position for each entity
         Array<ENetAddress*> clientAddresses;
         for (NetworkUtils::ConnectedClient* c : m_connectedClients) {
+            String name = c->guid.toString16();
+            int frameNum = m_dataHandler->lastValidFromFrameNum(name, m_networkFrameNum);
+            updates.append(BatchEntityUpdatePacket::EntityUpdate(m_dataHandler->GetCFrame(frameNum, name), name, c->playerID, frameNum));
             clientAddresses.append(&c->unreliableAddress);
         }
+        shared_ptr<BatchEntityUpdatePacket> updatePacket = GenericPacket::createForBroadcast<BatchEntityUpdatePacket>();
+        updatePacket->populate(updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
         NetworkUtils::broadcastUnreliable(updatePacket, &m_unreliableSocket, clientAddresses);
 
         // Broadcast the PlayerConfig to all clients
