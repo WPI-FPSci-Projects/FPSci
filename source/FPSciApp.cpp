@@ -133,6 +133,7 @@ void FPSciApp::initExperiment() {
 
 			// Initialize ping statistics
 			m_pingStats.pingQueue.pushBack(0);
+			m_pingStats.rawPingQueue.pushBack(0);
 			experimentConfig.pingSMASize > 0 ? m_pingStats.smaRTTSize = experimentConfig.pingSMASize : m_pingStats.smaRTTSize = 5;
 		}
 
@@ -1069,6 +1070,33 @@ void FPSciApp::onNetwork() {
 				};
 
 				auto pingAck = [](ENetSocket socket, NetworkUtils::PingStatistics& stats, bool& pinging, bool& usingPlacebo, int& pingModifier, int& modifierType) {
+
+					auto updateStatistics = [stats](Queue<long long>* pingQueue, long long* smaPing, long long* minPing, long long* maxPing, long long& rtt) {
+						pingQueue->pushBack(rtt);
+
+						// Update the simple moving average for RTT
+						if (pingQueue->length() > stats.smaRTTSize) {
+							pingQueue->popFront();
+						}
+
+						long long sum = 0;
+						for (int i = 0; i < pingQueue->length(); i++) {
+							sum += (*pingQueue)[i];
+						}
+
+						if (pingQueue->length() == stats.smaRTTSize) {
+							*smaPing = sum / stats.smaRTTSize;
+						}
+
+						// Check the minimum and maximum recorded RTT values
+						if (stats.minPing == -1 || rtt < stats.minPing) {
+							*minPing = rtt;
+						}
+						if (rtt > stats.maxPing) {
+							*maxPing = rtt;
+						}
+					};
+
 					while (pinging) {
 						shared_ptr<GenericPacket> inPacket = NetworkUtils::receivePing(&socket);
 						while (inPacket != nullptr) {
@@ -1078,6 +1106,8 @@ void FPSciApp::onNetwork() {
 							if (inPacket->type() == PacketType::PING) {
 								PingPacket* pingPacket = static_cast<PingPacket*>(inPacket.get());
 								long long rtt = pingPacket->m_RTT;
+
+								updateStatistics(&stats.rawPingQueue, &stats.rawSMAPing, &stats.rawMinPing, &stats.rawMaxPing, rtt);
 
 								// Placebo modifier
 								if (usingPlacebo) {
@@ -1098,29 +1128,8 @@ void FPSciApp::onNetwork() {
 									}
 								}
 
-								stats.pingQueue.pushBack(rtt);
+								updateStatistics(&stats.pingQueue, &stats.smaPing, &stats.minPing, &stats.maxPing, rtt);
 
-								// Update the simple moving average for RTT
-								if (stats.pingQueue.length() > stats.smaRTTSize) {
-									stats.pingQueue.popFront();
-								}
-
-								long long sum = 0;
-								for (int i = 0; i < stats.pingQueue.length(); i++) {
-									sum += stats.pingQueue[i];
-								}
-
-								if (stats.pingQueue.length() == stats.smaRTTSize) {
-									stats.smaPing = sum / stats.smaRTTSize;
-								}
-
-								// Check the minimum and maximum recorded RTT values
-								if (stats.minPing == -1 || rtt < stats.minPing) {
-									stats.minPing = rtt;
-								}
-								if (rtt > stats.maxPing) {
-									stats.maxPing = rtt;
-								}
 							}
 							else {
 								logPrintf("WARNING: recieved a non-ping packet via sockets dedicated for ping.");

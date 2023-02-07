@@ -31,6 +31,7 @@
 #include "FpsConfig.h"
 #include <ctime>
 #include "Session.h"
+#include "NetworkUtils.h"
 
 struct RemotePlayerAction {
 	FILETIME			time;
@@ -100,18 +101,29 @@ struct NetworkedClient {
 
 /* Ping statistics designated for logging */
 struct LoggedPingStatistics {
-	Queue<long long> pingQueue;
+	long long latestPing;
 	long long smaPing;
 	long long maxPing;
 	long long minPing;
+	
+	long long rawLatest;
+	long long rawSMA;
+	long long rawMin;
+	long long rawMax;
 
 	LoggedPingStatistics() {};
 
-	LoggedPingStatistics(Queue<long long> rttQueue, long long smaRTT, long long maxRTT, long long minRTT) {
-		pingQueue = rttQueue;
-		smaPing = smaRTT;
-		maxPing = maxRTT;
-		minPing = minRTT;
+	LoggedPingStatistics(NetworkUtils::PingStatistics stats) {
+
+		latestPing = stats.pingQueue.last();
+		smaPing = stats.smaPing;
+		minPing = stats.minPing;
+		maxPing = stats.maxPing;
+		
+		rawLatest = stats.rawPingQueue.last();
+		rawSMA = stats.rawSMAPing;
+		rawMin = stats.rawMinPing;
+		rawMax = stats.rawMaxPing;
 	}
 };
 

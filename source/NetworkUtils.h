@@ -151,6 +151,13 @@ public:
 		long long maxPing = 0;
 		// Minimum Recorded RTT
 		long long minPing = -1;
+
+		// Corresponding raw statistics without any placebo modifications
+		Queue<long long> rawPingQueue;
+		long long rawSMAPing = 0;
+		long long rawMaxPing = 0;
+		long long rawMinPing = -1;
+
 	};
 	
 	static int sendRegisterClient(GUniqueID id, uint16 port, ENetPeer* peer);

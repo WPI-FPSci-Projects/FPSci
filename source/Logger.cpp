@@ -549,7 +549,11 @@ void FPSciLogger::createPingStatisticsTable() {
 		{"latest_RTT", "real"},
 		{"sma_RTT", "real"},
 		{"min_RTT", "real"},
-		{"max_RTT", "real"}
+		{"max_RTT", "real"},
+		{"raw_latest_RTT", "real"},
+		{"raw_sma_RTT", "real"},
+		{"raw_min_RTT", "real"},
+		{"raw_max_RTT", "real"}
 	};
 	createTableInDB(m_db, "Client_Ping_Statistics", clientPingColumns);
 }
@@ -560,10 +564,14 @@ void FPSciLogger::recordPingStatistics(const Array<LoggedPingStatistics>& pingSt
 		const String time = genUniqueTimestamp();
 		Array<String> pingValues = {
 			"'" + time + "'",
-			String(std::to_string(pingStat.pingQueue.last())),
+			String(std::to_string(pingStat.latestPing)),
 			String(std::to_string(pingStat.smaPing)),
 			String(std::to_string(pingStat.minPing)),
-			String(std::to_string(pingStat.maxPing))
+			String(std::to_string(pingStat.maxPing)),
+			String(std::to_string(pingStat.rawLatest)),
+			String(std::to_string(pingStat.rawSMA)),
+			String(std::to_string(pingStat.rawMin)),
+			String(std::to_string(pingStat.rawMax))
 		};
 		rows.append(pingValues);
 	}

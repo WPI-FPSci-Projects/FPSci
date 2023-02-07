@@ -135,6 +135,7 @@ void FPSciServerApp::initExperiment() {
 
         // Initialize dummy ping statistics
         m_pingStats.pingQueue.pushBack(0);
+        m_pingStats.rawPingQueue.pushBack(0);
         experimentConfig.pingSMASize > 0 ? m_pingStats.smaRTTSize = experimentConfig.pingSMASize : m_pingStats.smaRTTSize = 5;
     }
 
