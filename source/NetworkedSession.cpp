@@ -66,8 +66,6 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 	else {
 		if (notNull(logger) && m_app->startupConfig.pingEnabled) {
 			NetworkUtils::PingStatistics pingStatistics = m_app->getPingStatistics();
-			int placeboType = m_app->experimentConfig.placeboPingEnabled ? m_app->experimentConfig.placeboPingType : -1;
-			int placeboModifier = m_app->experimentConfig.placeboPingModifier;
 			logger->logPingStatistics(LoggedPingStatistics(pingStatistics));
 		}
 	}
