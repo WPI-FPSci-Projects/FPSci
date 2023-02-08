@@ -15,6 +15,7 @@ struct RemotePlayerAction;
 struct FrameInfo;
 struct NetworkedClient;
 struct LoggedPingStatistics;
+struct RawRemoteFireInput;
 
 template<typename ItemType> static size_t queueBytes(Array<ItemType>& queue)
 {
@@ -60,6 +61,7 @@ protected:
 	Array<UserValues> m_users;
 	Array<NetworkedClient> m_networkedClients;
 	Array<LoggedPingStatistics> m_pingStatistics;
+	Array<RawRemoteFireInput> m_rawRemoteFireInputs;
 
 	size_t getTotalQueueBytes()
 	{
@@ -108,6 +110,9 @@ protected:
 	/** Record Ping statistics on client */
 	void recordPingStatistics(const Array<LoggedPingStatistics>& pingStats);
 
+	/** Record raw remote fire inputs for connected clients on server */
+	void recordRawRemoteFireInput(const Array<RawRemoteFireInput>& fireInputs);
+
 	/** Open a results file, or create it if it doesn't exist */
 	void initResultsFile(const String& filename, 
 		const String& subjectID, 
@@ -133,6 +138,7 @@ protected:
 	void createUsersTable();
 	void createNetworkedClientTable();
 	void createPingStatisticsTable();
+	void createRawRemoteFireInputTable();
 
 	// Functions that assume the schema from above
 	//void insertSession(sessionInfo);
@@ -169,6 +175,7 @@ public:
 	void logNetworkedClient(const NetworkedClient& client) { addToQueue(m_networkedClients, client); }
 
 	void logPingStatistics(const LoggedPingStatistics& pingStats) { addToQueue(m_pingStatistics, pingStats); }
+	void logRawRemoteFireInput(const RawRemoteFireInput& fireInput) { addToQueue(m_rawRemoteFireInputs, fireInput); }
 
 	/** Wakes up the logging thread and flushes even if the buffer limit is not reached yet. */
 	void flush(bool blockUntilDone);

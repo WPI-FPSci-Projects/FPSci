@@ -114,7 +114,6 @@ struct LoggedPingStatistics {
 	LoggedPingStatistics() {};
 
 	LoggedPingStatistics(NetworkUtils::PingStatistics stats) {
-
 		latestPing = stats.pingQueue.last();
 		smaPing = stats.smaPing;
 		minPing = stats.minPing;
@@ -125,6 +124,18 @@ struct LoggedPingStatistics {
 		rawMin = stats.rawMinPing;
 		rawMax = stats.rawMaxPing;
 	}
+};
+
+/* Simple Struct for logging raw simulated weapon fire inputs across the network */
+struct RawRemoteFireInput {
+	String shooterID = "";
+	String targetID_TW = "";
+	String targetID_No_TW = "";
+	bool hitTimeWarp = false;
+	bool hitNoTimeWarp = false;
+
+	RawRemoteFireInput() {};
+
 };
 
 

@@ -1217,6 +1217,7 @@ void FPSciServerApp::simulateWeapons()
     {
         if (input.m_fired)
         {
+            auto fireInput = RawRemoteFireInput();
             bool noWarpHit = false;
             bool timeWarpHit = false;
             Array<shared_ptr<Entity>> dontHit;
@@ -1255,10 +1256,14 @@ void FPSciServerApp::simulateWeapons()
             }
             if (!isNull(target)) // Hit case
             {
-                if (experimentConfig.timeWarpEnabled)
+                if (experimentConfig.timeWarpEnabled) {
                     timeWarpHit = true;
-                else
+                    fireInput.targetID_TW = target->name().c_str();
+                }
+                else {
                     noWarpHit = true;
+                    fireInput.targetID_No_TW = target->name().c_str();
+                }
                 debugPrintf("Player %s hit target %s", input.m_playerID.c_str(), target->name().c_str());
 
                 // Any changes to this might also need to be reflected in Server side Sim (case PacketType::REPORT_HIT:)
@@ -1332,12 +1337,20 @@ void FPSciServerApp::simulateWeapons()
                 target = shooter->weapon->fire(targets, hitIdx, hitDist, info, dontHit, false);
             if (!isNull(target)) // Hit case
             {
-                if (experimentConfig.timeWarpEnabled)
+                if (experimentConfig.timeWarpEnabled) {
                     noWarpHit = true;
-                else
+                    fireInput.targetID_No_TW = target->name().c_str();
+                }
+                else {
                     timeWarpHit = true;
+                    fireInput.targetID_TW = target->name().c_str();
+                }
             }
             // log both results
+            fireInput.shooterID = input.m_playerID.c_str();
+            fireInput.hitTimeWarp = timeWarpHit;
+            fireInput.hitNoTimeWarp = noWarpHit;
+            sess->logger->logRawRemoteFireInput(fireInput);
 
             CurrentTimeFrameSetup();
         }
