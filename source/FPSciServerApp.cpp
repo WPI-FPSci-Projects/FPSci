@@ -1217,15 +1217,8 @@ void FPSciServerApp::simulateWeapons()
     {
         if (input.m_fired)
         {
-            // Time Warp
-            if (experimentConfig.timeWarpEnabled)
-            {
-                TimeWarpFrameSetup(input.m_frameNum);
-            }
-            else // Use latest frame data
-            {
-                CurrentTimeFrameSetup();
-            }
+            bool noWarpHit = false;
+            bool timeWarpHit = false;
             Array<shared_ptr<Entity>> dontHit;
             dontHit.append(m_explosions);
             dontHit.append(sess->unhittableTargets());
@@ -1250,12 +1243,22 @@ void FPSciServerApp::simulateWeapons()
                 }
             }
 
+            // Time Warp
+            if (experimentConfig.timeWarpEnabled)
+                TimeWarpFrameSetup(input.m_frameNum);
+            else // Use latest frame data
+                CurrentTimeFrameSetup();
+
             if (shooter != nullptr) // Fire the weapon
             {
                 target = shooter->weapon->fire(targets, hitIdx, hitDist, info, dontHit, false);
             }
             if (!isNull(target)) // Hit case
             {
+                if (experimentConfig.timeWarpEnabled)
+                    timeWarpHit = true;
+                else
+                    noWarpHit = true;
                 debugPrintf("Player %s hit target %s", input.m_playerID.c_str(), target->name().c_str());
 
                 // Any changes to this might also need to be reflected in Server side Sim (case PacketType::REPORT_HIT:)
@@ -1320,11 +1323,23 @@ void FPSciServerApp::simulateWeapons()
                 /* Send this as a player interact packet so that clients log it */
                 NetworkUtils::broadcastUnreliable(interactPacket, &m_unreliableSocket, clientAddresses);
             }
-            // Time Warp
+            // reverse Time Warp
             if (experimentConfig.timeWarpEnabled)
-            {
                 CurrentTimeFrameSetup();
+            else
+                TimeWarpFrameSetup(input.m_frameNum);
+            if (shooter != nullptr) // Fire the weapon (again)
+                target = shooter->weapon->fire(targets, hitIdx, hitDist, info, dontHit, false);
+            if (!isNull(target)) // Hit case
+            {
+                if (experimentConfig.timeWarpEnabled)
+                    noWarpHit = true;
+                else
+                    timeWarpHit = true;
             }
+            // log both results
+
+            CurrentTimeFrameSetup();
         }
     }
 
