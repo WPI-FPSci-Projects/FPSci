@@ -1217,7 +1217,7 @@ void FPSciServerApp::simulateWeapons()
     {
         if (input.m_fired)
         {
-            auto fireInput = RawRemoteFireInput();
+            auto fireInput = RawRemoteFireInput(); 
             bool noWarpHit = false;
             bool timeWarpHit = false;
             Array<shared_ptr<Entity>> dontHit;
@@ -1253,6 +1253,7 @@ void FPSciServerApp::simulateWeapons()
             if (shooter != nullptr) // Fire the weapon
             {
                 target = shooter->weapon->fire(targets, hitIdx, hitDist, info, dontHit, false);
+                fireInput.shooterPos = shooter->entity.get()->frame().translation;
             }
             if (!isNull(target)) // Hit case
             {
@@ -1264,6 +1265,7 @@ void FPSciServerApp::simulateWeapons()
                     noWarpHit = true;
                     fireInput.targetID_No_TW = target->name().c_str();
                 }
+                fireInput.targetPos = target->frame().translation;
                 debugPrintf("Player %s hit target %s", input.m_playerID.c_str(), target->name().c_str());
 
                 // Any changes to this might also need to be reflected in Server side Sim (case PacketType::REPORT_HIT:)
@@ -1333,8 +1335,10 @@ void FPSciServerApp::simulateWeapons()
                 CurrentTimeFrameSetup();
             else
                 TimeWarpFrameSetup(input.m_frameNum);
-            if (shooter != nullptr) // Fire the weapon (again)
+            if (shooter != nullptr) { // Fire the weapon (again)
                 target = shooter->weapon->fire(targets, hitIdx, hitDist, info, dontHit, false);
+                fireInput.shooterPos = shooter->entity.get()->frame().translation;
+            }
             if (!isNull(target)) // Hit case
             {
                 if (experimentConfig.timeWarpEnabled) {
@@ -1347,6 +1351,7 @@ void FPSciServerApp::simulateWeapons()
                 }
             }
             // log both results
+            fireInput.frameNum = input.m_frameNum;
             fireInput.shooterID = input.m_playerID.c_str();
             fireInput.hitTimeWarp = timeWarpHit;
             fireInput.hitNoTimeWarp = noWarpHit;

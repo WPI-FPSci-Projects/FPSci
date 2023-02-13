@@ -129,10 +129,13 @@ struct LoggedPingStatistics {
 /* Simple Struct for logging raw simulated weapon fire inputs across the network */
 struct RawRemoteFireInput {
 	String shooterID = "";
+	Point3 shooterPos = Point3::zero();
 	String targetID_TW = "";
 	String targetID_No_TW = "";
+	Point3 targetPos = Point3::zero();
 	bool hitTimeWarp = false;
 	bool hitNoTimeWarp = false;
+	uint32 frameNum = 0;
 
 	RawRemoteFireInput() {};
 

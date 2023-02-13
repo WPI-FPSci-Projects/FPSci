@@ -583,10 +583,17 @@ void FPSciLogger::createRawRemoteFireInputTable() {
 	Columns rawRemoteFireInputColumns = {
 		{"time", "text"},
 		{"shooter_id", "text"},
+		{"shooter_position_x", "real"},
+		{"shooter_position_y", "real"},
+		{"shooter_position_z", "real"},
 		{"target_id_TimeWarp", "text"},
 		{"target_id_No_TimeWarp", "text"},
+		{"target_position_x", "real"},
+		{"target_position_y", "real"},
+		{"target_position_z", "real"},
 		{"Is_a_hit_with_TimeWarp", "boolean"},
-		{"Is_a_hit_without_TimeWarp", "boolean"}
+		{"Is_a_hit_without_TimeWarp", "boolean"},
+		{"frame_number", "real"}
 	};
 	createTableInDB(m_db, "Raw_Remote_Fire_Inputs", rawRemoteFireInputColumns);
 }
@@ -598,10 +605,17 @@ void FPSciLogger::recordRawRemoteFireInput(const Array<RawRemoteFireInput>& fire
 		Array<String> fireInput = {
 			"'" + time + "'",
 			"'" + fI.shooterID + "'",
+			String(std::to_string(fI.shooterPos.x)),
+			String(std::to_string(fI.shooterPos.y)),
+			String(std::to_string(fI.shooterPos.z)),
 			"'" + fI.targetID_TW + "'",
 			"'" + fI.targetID_No_TW + "'",
+			String(std::to_string(fI.targetPos.x)),
+			String(std::to_string(fI.targetPos.y)),
+			String(std::to_string(fI.targetPos.z)),
 			fI.hitTimeWarp ? "true" : "false",
-			fI.hitNoTimeWarp ? "true" : "false"
+			fI.hitNoTimeWarp ? "true" : "false",
+			String(std::to_string(fI.frameNum))
 		};
 		rows.append(fireInput);
 	}
