@@ -1217,7 +1217,7 @@ void FPSciServerApp::simulateWeapons()
     {
         if (input.m_fired)
         {
-            auto fireInput = RawRemoteFireInput(); 
+            auto fireInput = RawRemoteFireInput();
             bool noWarpHit = false;
             bool timeWarpHit = false;
             Array<shared_ptr<Entity>> dontHit;
@@ -1285,7 +1285,7 @@ void FPSciServerApp::simulateWeapons()
                 sess->logger->logRemotePlayerAction(rpa);
 
                 float damage = 1.001 / sessConfig->hitsToKill;
-
+                // Killed someone ;(
                 if (hitEntity->doDamage(damage))
                 {
                     //TODO: PARAMETERIZE THIS DAMAGE VALUE SOME HOW! DO IT! DON'T FORGET!  DON'T DO IT! (huh it looks like you still haven't done it)
@@ -1327,7 +1327,21 @@ void FPSciServerApp::simulateWeapons()
                 {
                     clientAddresses.append(&c->unreliableAddress);
                 }
-                /* Send this as a player interact packet so that clients log it */
+                /* Send this as a player interact packet so that clients log it and play a sound */
+                NetworkUtils::broadcastUnreliable(interactPacket, &m_unreliableSocket, clientAddresses);
+            }
+            else // no hit
+            {
+                // Notify every player of the (no) hit
+                shared_ptr<PlayerInteractPacket> interactPacket = GenericPacket::createForBroadcast<
+                    PlayerInteractPacket>();
+                interactPacket->populate(m_networkFrameNum, Miss, GUniqueID::fromString16(input.m_playerID));
+                Array<ENetAddress*> clientAddresses;
+                for (NetworkUtils::ConnectedClient* c : m_connectedClients)
+                {
+                    clientAddresses.append(&c->unreliableAddress);
+                }
+                /* Send this as a player interact packet so that clients can play a sound */
                 NetworkUtils::broadcastUnreliable(interactPacket, &m_unreliableSocket, clientAddresses);
             }
             // reverse Time Warp
