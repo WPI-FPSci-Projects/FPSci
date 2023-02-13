@@ -1247,7 +1247,24 @@ void FPSciApp::onNetwork() {
 			case PLAYER_INTERACT: {
 				PlayerInteractPacket* typedPacket = static_cast<PlayerInteractPacket*> (inPacket.get());
 				if (typedPacket->m_actorID != m_playerGUID) {
-					// Only log actions that happen on another machine
+					// Only react to actions that happen on another machine
+
+					// Play weapon fire sound
+					if (typedPacket->m_remoteAction == Hit)
+					{
+						// grab a random target, play target hit sound from it
+						Array<shared_ptr<NetworkedEntity>> entityArray;
+						scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
+						shared_ptr<NetworkedEntity> target = entityArray[Random::common().integer(0, entityArray.size() - 1)];
+						target->playHitSound();
+					}
+					else if (typedPacket->m_remoteAction == Miss)
+					{
+						// play the scene hit sound
+						m_sceneHitSound->play(sessConfig->audio.sceneHitSoundVol);
+					}
+
+					// logging
 					const shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_actorID.toString16());
 					RemotePlayerAction rpa = RemotePlayerAction();
 					rpa.time = sess->logger->getFileTime();
