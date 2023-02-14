@@ -56,4 +56,6 @@ public:
     uint8 GUIDtoPlayerID(GUniqueID guid);
     GUniqueID playerIDtoGUID(uint8 playerID);
     void updateEntityAndCamera(shared_ptr<NetworkedEntity> entity, CoordinateFrame* cframe);
+    int TestVisibility(CoordinateFrame shooter_pos, shared_ptr<TargetEntity> target, Model::HitInfo& hitInfo);
+    ///< returns 2 for both sides visible, 1 for single-side visible, 0 for not visible
 };
