@@ -1203,14 +1203,21 @@ void FPSciApp::onNetwork() {
 								// if the client is local
 								if (e.name == m_playerGUID.toString16())
 								{
+
 									// Check if server frame mismatch with history, if so, allow override
 									if (m_dataHandler->m_historicalCFrames->containsKey(e.frameNumber))
 									{
-										if (e.frame != m_dataHandler->m_historicalCFrames->get(e.frameNumber))
+										
+										if (e.frame.translation != m_dataHandler->m_historicalCFrames->get(e.frameNumber).translation)
 										{
+											debugPrintf("SAVVVVE ME  EEEEEE\n");
 											entity = (*scene()).typedEntity<PlayerEntity>("player");
 											// TODO: Also override all history items after this frame, up to the current one
 										}
+									}
+									else {
+										debugPrintf("SAVVVVE ME  EEEEEE\n");
+										entity = (*scene()).typedEntity<PlayerEntity>("player");
 									}
 								} else
 								{
