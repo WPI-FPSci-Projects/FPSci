@@ -136,6 +136,8 @@ struct RawRemoteFireInput {
 	bool hitTimeWarp = false;
 	bool hitNoTimeWarp = false;
 	uint32 frameNum = 0;
+	String visibilityType = "";
+	bool isShotAroundTheCorner = false;
 
 	RawRemoteFireInput() {};
 

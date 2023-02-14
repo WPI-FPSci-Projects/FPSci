@@ -593,7 +593,9 @@ void FPSciLogger::createRawRemoteFireInputTable() {
 		{"target_position_z", "real"},
 		{"Is_a_hit_with_TimeWarp", "boolean"},
 		{"Is_a_hit_without_TimeWarp", "boolean"},
-		{"frame_number", "real"}
+		{"frame_number", "real"},
+		{"visibility_type", "text"},
+		{"Is_shot_around_the_corner", "boolean"}
 	};
 	createTableInDB(m_db, "Raw_Remote_Fire_Inputs", rawRemoteFireInputColumns);
 }
@@ -615,7 +617,9 @@ void FPSciLogger::recordRawRemoteFireInput(const Array<RawRemoteFireInput>& fire
 			String(std::to_string(fI.targetPos.z)),
 			fI.hitTimeWarp ? "true" : "false",
 			fI.hitNoTimeWarp ? "true" : "false",
-			String(std::to_string(fI.frameNum))
+			String(std::to_string(fI.frameNum)),
+			"'" + fI.visibilityType + "'",
+			fI.isShotAroundTheCorner ? "true" : "false"
 		};
 		rows.append(fireInput);
 	}

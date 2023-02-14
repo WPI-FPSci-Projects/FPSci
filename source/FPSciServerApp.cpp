@@ -1382,6 +1382,29 @@ void FPSciServerApp::simulateWeapons()
             fireInput.shooterID = input.m_playerID.c_str();
             fireInput.hitTimeWarp = timeWarpHit;
             fireInput.hitNoTimeWarp = noWarpHit;
+            fireInput.isShotAroundTheCorner = shotAroundCorner;
+            String visibilityType = "";
+
+            switch (visibility) {
+                case(0): {
+                    visibilityType = "Not Visible";
+                    break;
+                }
+                case(1): {
+                    visibilityType = "Partially Visible";
+                    break;
+                }
+                case(2): {
+                    visibilityType = "Completely Visible";
+                    break;
+                }
+                default: {
+                    visibilityType = "Empty";
+                    break;
+                }
+            }
+
+            fireInput.visibilityType = visibilityType;
             sess->logger->logRawRemoteFireInput(fireInput);
 
             CurrentTimeFrameSetup();
