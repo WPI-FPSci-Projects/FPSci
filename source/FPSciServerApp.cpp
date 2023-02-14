@@ -1217,15 +1217,9 @@ void FPSciServerApp::simulateWeapons()
     {
         if (input.m_fired)
         {
-            // Time Warp
-            if (experimentConfig.timeWarpEnabled)
-            {
-                TimeWarpFrameSetup(input.m_frameNum);
-            }
-            else // Use latest frame data
-            {
-                CurrentTimeFrameSetup();
-            }
+            auto fireInput = RawRemoteFireInput();
+            bool noWarpHit = false;
+            bool timeWarpHit = false;
             Array<shared_ptr<Entity>> dontHit;
             dontHit.append(m_explosions);
             dontHit.append(sess->unhittableTargets());
@@ -1250,12 +1244,28 @@ void FPSciServerApp::simulateWeapons()
                 }
             }
 
+            // Time Warp
+            if (experimentConfig.timeWarpEnabled)
+                TimeWarpFrameSetup(input.m_frameNum);
+            else // Use latest frame data
+                CurrentTimeFrameSetup();
+
             if (shooter != nullptr) // Fire the weapon
             {
                 target = shooter->weapon->fire(targets, hitIdx, hitDist, info, dontHit, false);
+                fireInput.shooterPos = shooter->entity.get()->frame().translation;
             }
             if (!isNull(target)) // Hit case
             {
+                if (experimentConfig.timeWarpEnabled) {
+                    timeWarpHit = true;
+                    fireInput.targetID_TW = target->name().c_str();
+                }
+                else {
+                    noWarpHit = true;
+                    fireInput.targetID_No_TW = target->name().c_str();
+                }
+                fireInput.targetPos = target->frame().translation;
                 debugPrintf("Player %s hit target %s", input.m_playerID.c_str(), target->name().c_str());
 
                 // Any changes to this might also need to be reflected in Server side Sim (case PacketType::REPORT_HIT:)
@@ -1275,7 +1285,7 @@ void FPSciServerApp::simulateWeapons()
                 sess->logger->logRemotePlayerAction(rpa);
 
                 float damage = 1.001 / sessConfig->hitsToKill;
-
+                // Killed someone ;(
                 if (hitEntity->doDamage(damage))
                 {
                     //TODO: PARAMETERIZE THIS DAMAGE VALUE SOME HOW! DO IT! DON'T FORGET!  DON'T DO IT! (huh it looks like you still haven't done it)
@@ -1317,14 +1327,51 @@ void FPSciServerApp::simulateWeapons()
                 {
                     clientAddresses.append(&c->unreliableAddress);
                 }
-                /* Send this as a player interact packet so that clients log it */
+                /* Send this as a player interact packet so that clients log it and play a sound */
                 NetworkUtils::broadcastUnreliable(interactPacket, &m_unreliableSocket, clientAddresses);
             }
-            // Time Warp
-            if (experimentConfig.timeWarpEnabled)
+            else // no hit
             {
-                CurrentTimeFrameSetup();
+                // Notify every player of the (no) hit
+                shared_ptr<PlayerInteractPacket> interactPacket = GenericPacket::createForBroadcast<
+                    PlayerInteractPacket>();
+                interactPacket->populate(m_networkFrameNum, Miss, GUniqueID::fromString16(input.m_playerID));
+                Array<ENetAddress*> clientAddresses;
+                for (NetworkUtils::ConnectedClient* c : m_connectedClients)
+                {
+                    clientAddresses.append(&c->unreliableAddress);
+                }
+                /* Send this as a player interact packet so that clients can play a sound */
+                NetworkUtils::broadcastUnreliable(interactPacket, &m_unreliableSocket, clientAddresses);
             }
+            // reverse Time Warp
+            if (experimentConfig.timeWarpEnabled)
+                CurrentTimeFrameSetup();
+            else
+                TimeWarpFrameSetup(input.m_frameNum);
+            if (shooter != nullptr) { // Fire the weapon (again)
+                target = shooter->weapon->fire(targets, hitIdx, hitDist, info, dontHit, false);
+                fireInput.shooterPos = shooter->entity.get()->frame().translation;
+            }
+            if (!isNull(target)) // Hit case
+            {
+                if (experimentConfig.timeWarpEnabled) {
+                    noWarpHit = true;
+                    fireInput.targetID_No_TW = target->name().c_str();
+                }
+                else {
+                    timeWarpHit = true;
+                    fireInput.targetID_TW = target->name().c_str();
+                }
+            }
+            // log both results
+            fireInput.frameNum = input.m_frameNum;
+            fireInput.shooterID = input.m_playerID.c_str();
+            fireInput.hitTimeWarp = timeWarpHit;
+            fireInput.hitNoTimeWarp = noWarpHit;
+            sess->logger->logRawRemoteFireInput(fireInput);
+
+            CurrentTimeFrameSetup();
         }
     }
 

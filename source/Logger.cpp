@@ -66,6 +66,7 @@ void FPSciLogger::initResultsFile(const String& filename,
 		createUsersTable();
 		createNetworkedClientTable();
 		createPingStatisticsTable();
+		createRawRemoteFireInputTable();
 	}
 
 	// Add the session info to the sessions table
@@ -578,6 +579,49 @@ void FPSciLogger::recordPingStatistics(const Array<LoggedPingStatistics>& pingSt
 	insertRowsIntoDB(m_db, "Client_Ping_Statistics", rows);
 }
 
+void FPSciLogger::createRawRemoteFireInputTable() {
+	Columns rawRemoteFireInputColumns = {
+		{"time", "text"},
+		{"shooter_id", "text"},
+		{"shooter_position_x", "real"},
+		{"shooter_position_y", "real"},
+		{"shooter_position_z", "real"},
+		{"target_id_TimeWarp", "text"},
+		{"target_id_No_TimeWarp", "text"},
+		{"target_position_x", "real"},
+		{"target_position_y", "real"},
+		{"target_position_z", "real"},
+		{"Is_a_hit_with_TimeWarp", "boolean"},
+		{"Is_a_hit_without_TimeWarp", "boolean"},
+		{"frame_number", "real"}
+	};
+	createTableInDB(m_db, "Raw_Remote_Fire_Inputs", rawRemoteFireInputColumns);
+}
+
+void FPSciLogger::recordRawRemoteFireInput(const Array<RawRemoteFireInput>& fireInputs) {
+	Array<RowEntry> rows;
+	for (RawRemoteFireInput fI : fireInputs) {
+		const String time = genUniqueTimestamp();
+		Array<String> fireInput = {
+			"'" + time + "'",
+			"'" + fI.shooterID + "'",
+			String(std::to_string(fI.shooterPos.x)),
+			String(std::to_string(fI.shooterPos.y)),
+			String(std::to_string(fI.shooterPos.z)),
+			"'" + fI.targetID_TW + "'",
+			"'" + fI.targetID_No_TW + "'",
+			String(std::to_string(fI.targetPos.x)),
+			String(std::to_string(fI.targetPos.y)),
+			String(std::to_string(fI.targetPos.z)),
+			fI.hitTimeWarp ? "true" : "false",
+			fI.hitNoTimeWarp ? "true" : "false",
+			String(std::to_string(fI.frameNum))
+		};
+		rows.append(fireInput);
+	}
+	insertRowsIntoDB(m_db, "Raw_Remote_Fire_Inputs", rows);
+}
+
 void FPSciLogger::loggerThreadEntry()
 {
 	std::unique_lock<std::mutex> lk(m_queueMutex);
@@ -630,6 +674,10 @@ void FPSciLogger::loggerThreadEntry()
 		pingStats.swap(m_pingStatistics, pingStats);
 		m_pingStatistics.reserve(pingStats.size() * 2);
 
+		decltype(m_rawRemoteFireInputs) fireInputs;
+		fireInputs.swap(m_rawRemoteFireInputs, fireInputs);
+		m_rawRemoteFireInputs.reserve(fireInputs.size() * 2);
+
 
 		// Unlock all the now-empty queues and write out our temporary copies
 		lk.unlock();
@@ -642,6 +690,7 @@ void FPSciLogger::loggerThreadEntry()
 		recordNetworkedClients(networkedClients);
 
 		recordPingStatistics(pingStats);
+		recordRawRemoteFireInput(fireInputs);
 
 		insertRowsIntoDB(m_db, "Questions", questions);
 		insertRowsIntoDB(m_db, "Targets", targets);
@@ -666,6 +715,8 @@ FPSciLogger::FPSciLogger(const String& filename,
 	m_networkedClients.reserve(5000);
 
 	m_pingStatistics.reserve(5000);
+
+	m_rawRemoteFireInputs.reserve(5000);
 	
 	// Create the results file
 	initResultsFile(filename, subjectID, expConfigFilename, sessConfig, description);
