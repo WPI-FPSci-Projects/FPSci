@@ -1345,30 +1345,66 @@ void FPSciServerApp::simulateWeapons()
                 NetworkUtils::broadcastUnreliable(interactPacket, &m_unreliableSocket, clientAddresses);
             }
             // reverse Time Warp
+            shared_ptr<TargetEntity> target_NoTW;
             if (experimentConfig.timeWarpEnabled)
                 CurrentTimeFrameSetup();
             else
                 TimeWarpFrameSetup(input.m_frameNum);
             if (shooter != nullptr) { // Fire the weapon (again)
-                target = shooter->weapon->fire(targets, hitIdx, hitDist, info, dontHit, false);
+                target_NoTW = shooter->weapon->fire(targets, hitIdx, hitDist, info, dontHit, false);
                 fireInput.shooterPos = shooter->entity.get()->frame().translation;
             }
-            if (!isNull(target)) // Hit case
+            if (!isNull(target_NoTW)) // Hit case
             {
                 if (experimentConfig.timeWarpEnabled) {
                     noWarpHit = true;
-                    fireInput.targetID_No_TW = target->name().c_str();
+                    fireInput.targetID_No_TW = target_NoTW->name().c_str();
                 }
                 else {
                     timeWarpHit = true;
-                    fireInput.targetID_TW = target->name().c_str();
+                    fireInput.targetID_TW = target_NoTW->name().c_str();
                 }
             }
-            // log both results
+
+            // Shot around the corner check:
+            // if timewarp made a shot hit that no timewarp didn't,
+            // check if target was around the corner in no timewarp
+            int shotAroundCorner = false;
+            int visibility = -1;
+            if (experimentConfig.timeWarpEnabled && timeWarpHit && !noWarpHit)
+            {
+                visibility = TestVisibility(shooter->entity.get()->frame(), target, info);
+                shotAroundCorner = visibility == 0;
+            }
+
+            // log results
             fireInput.frameNum = input.m_frameNum;
             fireInput.shooterID = input.m_playerID.c_str();
             fireInput.hitTimeWarp = timeWarpHit;
             fireInput.hitNoTimeWarp = noWarpHit;
+            fireInput.isShotAroundTheCorner = shotAroundCorner;
+            String visibilityType = "";
+
+            switch (visibility) {
+                case(0): {
+                    visibilityType = "Not Visible";
+                    break;
+                }
+                case(1): {
+                    visibilityType = "Partially Visible";
+                    break;
+                }
+                case(2): {
+                    visibilityType = "Completely Visible";
+                    break;
+                }
+                default: {
+                    visibilityType = "Empty";
+                    break;
+                }
+            }
+
+            fireInput.visibilityType = visibilityType;
             sess->logger->logRawRemoteFireInput(fireInput);
 
             CurrentTimeFrameSetup();
@@ -1442,4 +1478,55 @@ GUniqueID FPSciServerApp::playerIDtoGUID(uint8 playerID)
         if (client->playerID == playerID)
             return client->guid;
     return GUniqueID::NONE(0);
+}
+
+// This function is modified from the Weapon::fire() function in the Weapon.cpp file
+int FPSciServerApp::TestVisibility(CoordinateFrame shooter_pos, shared_ptr<TargetEntity> target, Model::HitInfo& hitInfo)
+{
+    // cast a ray from the shooter to the target
+    Ray ray = Ray::fromOriginAndDirection(shooter_pos.translation, target->frame().translation - shooter_pos.translation);
+
+    // calculate the angle to adjust the ray by, from the target's bounding sphere
+    // should be sin (r/ distance)
+    // r = 1, distance can be calculated
+    float adjustmentAngle = asin(1 / (target->frame().translation - shooter_pos.translation).magnitude()) - 0.1f;
+
+    // make two adjusted rays, one to the left and one to the right, based on calculated angle
+    Ray ray1 = Ray::fromOriginAndDirection(shooter_pos.translation,
+                                           target->frame().translation - shooter_pos.translation);
+    Ray ray2 = Ray::fromOriginAndDirection(shooter_pos.translation,
+                                           target->frame().translation - shooter_pos.translation);
+    Matrix3 rotMat1 = Matrix3::fromAxisAngle(Vector3::unitY(), adjustmentAngle);
+    Matrix3 rotMat2 = Matrix3::fromAxisAngle(Vector3::unitY(), -adjustmentAngle);
+    Vector3 dir1 = Vector3(0.f, 0.f, -1.f) * rotMat1;
+    Vector3 dir2 = Vector3(0.f, 0.f, -1.f) * rotMat2;
+    ray1.set(ray1.origin(), ray1.direction() * dir1);
+    ray2.set(ray2.origin(), ray2.direction() * dir2);
+
+    float hitDist1 = finf();
+    float hitDist2 = finf();
+
+    // Check for closest hit (in scene, otherwise this ray hits the skybox)
+    float closest1 = finf();
+    float closest2 = finf();
+    Array<shared_ptr<Entity>> dontHit;
+    dontHit.append(target);
+    scene()->intersect(ray1, closest1, false, dontHit, hitInfo);
+    scene()->intersect(ray2, closest2, false, dontHit, hitInfo);
+    if (closest1 < finf()) { hitDist1 = closest1; }
+    if (closest2 < finf()) { hitDist2 = closest2; }
+
+    // Hit scan specific logic here (immediately do hit/miss determination)
+    int hits = 0;
+    // Check whether we hit the target
+    if (target->intersect(ray1, closest1, hitInfo))
+    {
+        hits++;
+    }
+    if (target->intersect(ray2, closest2, hitInfo))
+    {
+        hits++;
+    }
+    // miss logic
+    return hits;
 }

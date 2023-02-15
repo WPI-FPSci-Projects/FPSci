@@ -367,7 +367,7 @@ shared_ptr<TargetEntity> Weapon::fire(
 	Vector3 dir = Vector3(0.f, 0.f, -1.f) * rotMat;
 	ray.set(ray.origin(), m_camera->frame().rotation * dir);
 
-	// Check for closest hit (in scene, otherwise this ray hits the skybox)
+	// Check for closest hit (in scene first (for optimization?), otherwise this ray hits the skybox)
 	float closest = finf();
 	Array<shared_ptr<Entity>> dontHitItems = dontHit;
 	dontHitItems.append(m_currentMissDecals);
@@ -415,7 +415,7 @@ shared_ptr<TargetEntity> Weapon::fire(
 	// Hit scan specific logic here (immediately do hit/miss determination)
 	shared_ptr<TargetEntity> target = nullptr;
 	if(m_config->hitScan){
-		// Check whether we hit any targets
+		// Check whether we hit any targets between the camera and the closest scene(wall) hit location (for optimization?)
 		int closestIndex = -1;
 		for (int t = 0; t < targets.size(); ++t) {
 			if (targets[t]->intersect(ray, closest, hitInfo)) {
