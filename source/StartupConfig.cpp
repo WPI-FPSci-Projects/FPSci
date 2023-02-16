@@ -89,6 +89,7 @@ StartupConfig::StartupConfig(const Any& any) {
 		reader.getIfPresent("jsonAnyOutput", jsonAnyOutput);
 		reader.getIfPresent("pingEnabled", pingEnabled);
 		reader.getIfPresent("pingInterval", pingInterval);
+		reader.getIfPresent("pingIndicatorOnByDefault", pingIndicatorOnByDefault);
 		reader.getIfPresent("lowerFrameRateInBackground", lowerFrameRateInBackground);
 		
 		foundDefault = reader.getIfPresent("defaultExperiment", defaultExperiment);

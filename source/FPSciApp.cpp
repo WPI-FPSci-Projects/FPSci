@@ -135,6 +135,9 @@ void FPSciApp::initExperiment() {
 			m_pingStats.pingQueue.pushBack(0);
 			m_pingStats.rawPingQueue.pushBack(0);
 			experimentConfig.pingSMASize > 0 ? m_pingStats.smaRTTSize = experimentConfig.pingSMASize : m_pingStats.smaRTTSize = 5;
+
+			// Explicitly display ping if specified
+			renderPing = startupConfig.pingIndicatorOnByDefault;
 		}
 
 		try {
@@ -1132,7 +1135,7 @@ void FPSciApp::onNetwork() {
 
 							}
 							else {
-								logPrintf("WARNING: recieved a non-ping packet via sockets dedicated for ping.");
+								logPrintf("WARNING: received a non-ping packet via sockets dedicated for ping.");
 							}
 							inPacket = NetworkUtils::receivePing(&socket);
 						}
