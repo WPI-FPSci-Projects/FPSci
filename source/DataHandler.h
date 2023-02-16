@@ -126,7 +126,7 @@ namespace G3D {
 		Table<String, Vector3>* m_clientVectors = new Table<String, Vector3>;
 		Table<String, Matrix3>* m_clientHeading = new Table<String, Matrix3>;
 		Table<String, int8>* m_frameLag = new Table<String, int8>;
-		int m_pastFrames = 300;
+		int m_pastFrames = 800;
 		Table<uint32, CoordinateFrame>* m_historicalCFrames = new Table<uint32, CoordinateFrame>;
 
 	public:

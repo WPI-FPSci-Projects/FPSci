@@ -572,9 +572,9 @@ void FPSciServerApp::onNetwork()
             NetworkUtils::send(configPacket);
         }
 
-        for (auto client : m_connectedClients) {
-            client->camera->setFrame(client->entity->frame());
-        }
+    }
+    for (auto client : m_connectedClients) {
+        client->camera->setFrame(client->entity->frame());
     }
 }
 
@@ -1123,7 +1123,7 @@ void FPSciServerApp::onASBroadcast()
         Array<ENetAddress*> clientAddresses;
         for (NetworkUtils::ConnectedClient* c : m_connectedClients) {
             String name = c->guid.toString16();
-            int frameNum = m_dataHandler->lastValidFromFrameNum(name, m_networkFrameNum);
+            int frameNum = m_dataHandler->m_clientLastValid->get(name);
             updates.append(BatchEntityUpdatePacket::EntityUpdate(m_dataHandler->GetCFrame(frameNum, name), name, c->playerID, frameNum));
             clientAddresses.append(&c->unreliableAddress);
         }
@@ -1417,22 +1417,19 @@ void FPSciServerApp::simulateWeapons()
 void FPSciServerApp::snapBackPlayer(uint8 playerID)
 {
     // change the player's position to the last valid position
-    int snapBackFrameNum = m_dataHandler->lastValidFromFrameNum(
-          m_connectedClients[playerID]->guid.toString16(), 
-        m_dataHandler->m_clientLastValid->get((m_connectedClients[playerID]->guid.toString16())));
-    // snap back to the last valid position if not zero
+    int snapBackFrameNum = m_dataHandler->m_clientLastValid->get(m_connectedClients[playerID]->guid.toString16());
+    //    m_dataHandler->lastValidFromFrameNum(
+    //      m_connectedClients[playerID]->guid.toString16(), 
+    //    m_dataHandler->m_clientLastValid->get((m_connec`tedClients[playerID]->guid.toString16())));
+    //// snap back to the last valid position if not zero
     CoordinateFrame snapBackFrame = m_dataHandler->GetCFrame(snapBackFrameNum,
         m_connectedClients[playerID]->guid.toString16());
-    auto zeroFrame = new CoordinateFrame();
-    if (snapBackFrame != *zeroFrame)
-    {
-        m_dataHandler->UpdateCframe(m_connectedClients[playerID]->guid.toString16(), snapBackFrame, m_networkFrameNum, false);
-        m_connectedClients[playerID]->camera->setFrame(snapBackFrame);
-        m_connectedClients[playerID]->entity->setFrame(snapBackFrame);
-    }
-    else {
-        
-    }
+
+    m_dataHandler->UpdateCframe(m_connectedClients[playerID]->guid.toString16(), snapBackFrame, m_networkFrameNum, false);
+    m_dataHandler->ValidateData(m_connectedClients[playerID]->guid.toString16(), m_networkFrameNum);
+    m_connectedClients[playerID]->camera->setFrame(snapBackFrame);
+    m_connectedClients[playerID]->entity->setFrame(snapBackFrame);
+
 }
 
 void FPSciServerApp::TimeWarpFrameSetup(uint32 frameNum) {
