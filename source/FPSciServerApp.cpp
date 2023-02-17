@@ -177,11 +177,7 @@ void FPSciServerApp::onNetwork()
                     }*/
 
                     // Set up preliminary ping table once client connects
-                    uint16 cappedRTT = 0;
-                    uint16 cappedSMARTT = 0;
-                    uint16 cappedMinRTT = 0;
-                    uint16 cappedMaxRTT = 0;
-                    Array<uint16> rttStatsArray = { cappedRTT, cappedSMARTT, cappedMinRTT, cappedMaxRTT };
+                    Array<uint16> rttStatsArray = { 0, 0, 0, 0 };
                     m_clientRTTStatistics.set(inPacket->srcAddr().host, rttStatsArray);
 
                     break;
