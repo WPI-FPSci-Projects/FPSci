@@ -175,6 +175,15 @@ void FPSciServerApp::onNetwork()
                     /*if (outPacket->send() <= 0) {
                         debugPrintf("Failed to send the handshke reply\n");
                     }*/
+
+                    // Set up preliminary ping table once client connects
+                    uint16 cappedRTT = 0;
+                    uint16 cappedSMARTT = 0;
+                    uint16 cappedMinRTT = 0;
+                    uint16 cappedMaxRTT = 0;
+                    Array<uint16> rttStatsArray = { cappedRTT, cappedSMARTT, cappedMinRTT, cappedMaxRTT };
+                    m_clientRTTStatistics.set(inPacket->srcAddr().host, rttStatsArray);
+
                     break;
             }
             case BATCH_ENTITY_UPDATE: {
