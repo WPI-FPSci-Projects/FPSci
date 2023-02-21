@@ -54,7 +54,7 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 	if (serverApp != nullptr) {
 		for (NetworkUtils::ConnectedClient* client : serverApp->getConnectedClients()) {
 			//TODO should be accumulate? not sure, but doing this for now to prevent crash:
-			if (notNull(logger) && serverApp->getClientRTTStatistics().size() > 0) {
+			if (notNull(logger)) {
 
 				// Set up preliminary ping table once client connects
 				if (!serverApp->getClientRTTStatistics().containsKey(client->unreliableAddress.host)) {
