@@ -55,6 +55,13 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 		for (NetworkUtils::ConnectedClient* client : serverApp->getConnectedClients()) {
 			//TODO should be accumulate? not sure, but doing this for now to prevent crash:
 			if (notNull(logger) && serverApp->getClientRTTStatistics().size() > 0) {
+
+				// Set up preliminary ping table once client connects
+				if (!serverApp->getClientRTTStatistics().containsKey(client->unreliableAddress.host)) {
+					Array<uint16> rttStatsArray = { 0, 0, 0, 0 };
+					serverApp->getClientRTTStatistics().set(client->unreliableAddress.host, rttStatsArray);
+				}
+
 				logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, serverApp->getClientRTTStatistics().get(client->unreliableAddress.host), serverApp->m_networkFrameNum, client->frameNumber, client->guid));
 			}
 			else if (notNull(logger)) {
