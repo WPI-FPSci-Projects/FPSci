@@ -42,7 +42,7 @@ public:
 
     Array<NetworkUtils::ConnectedClient*> getConnectedClients() { return m_connectedClients; }
     void updateSession(const String& id, bool forceReload) override;
-    Table <uint32, Array<uint16>> getClientRTTStatistics() { return m_clientRTTStatistics; }
+    Table <uint32, Array<uint16>>* getClientRTTStatistics() { return &m_clientRTTStatistics; }
 
     // Authoritative server functions
     void checkFrameValidity(); ///< Checks if the current movements received from the clients are valid

@@ -57,12 +57,12 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 			if (notNull(logger)) {
 
 				// Set up preliminary ping table once client connects
-				if (!serverApp->getClientRTTStatistics().containsKey(client->unreliableAddress.host)) {
+				if (!serverApp->getClientRTTStatistics()->containsKey(client->unreliableAddress.host)) {
 					Array<uint16> rttStatsArray = { 0, 0, 0, 0 };
-					serverApp->getClientRTTStatistics().set(client->unreliableAddress.host, rttStatsArray);
+					serverApp->getClientRTTStatistics()->set(client->unreliableAddress.host, rttStatsArray);
 				}
 
-				logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, serverApp->getClientRTTStatistics().get(client->unreliableAddress.host), serverApp->m_networkFrameNum, client->frameNumber, client->guid));
+				logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, serverApp->getClientRTTStatistics()->get(client->unreliableAddress.host), serverApp->m_networkFrameNum, client->frameNumber, client->guid));
 			}
 			else if (notNull(logger)) {
 				logger->logFrameInfo(FrameInfo(FPSciLogger::getFileTime(), sdt, serverApp->m_networkFrameNum, client->frameNumber, client->guid));
