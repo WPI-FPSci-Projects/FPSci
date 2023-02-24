@@ -72,7 +72,7 @@ void G3D::ServerDataHandler::ValidateData(String playerID, int frameNum) {
 	m_DataInputs->get(playerID)->getCArray()[m_currentFrame - frameNum].SetValid(true);
 	int i = m_clientLastValid->get(playerID);
 	if (frameNum >= i){
-		m_clientLastValid->get(playerID) = frameNum;
+		m_clientLastValid->set(playerID, frameNum);
 	}
 }
 

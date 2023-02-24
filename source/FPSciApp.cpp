@@ -1213,14 +1213,9 @@ void FPSciApp::onNetwork() {
 										
 										if (e.frame.translation != m_dataHandler->m_historicalCFrames->get(e.frameNumber).translation)
 										{
-											debugPrintf("SAVVVVE ME  EEEEEE\n");
 											entity = (*scene()).typedEntity<PlayerEntity>("player");
 											// TODO: Also override all history items after this frame, up to the current one
 										}
-									}
-									else {
-										debugPrintf("SAVVVVE ME  EEEEEE\n");
-										entity = (*scene()).typedEntity<PlayerEntity>("player");
 									}
 								} else
 								{

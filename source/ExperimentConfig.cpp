@@ -27,6 +27,8 @@ ExperimentConfig::ExperimentConfig(const Any& any) : FpsConfig(any) {
 		reader.getIfPresent("placeboPingEnabled", placeboPingEnabled);
 		reader.getIfPresent("placeboPingType", placeboPingType);
 		reader.getIfPresent("placeboPingModifier", placeboPingModifier);
+		reader.getIfPresent("collisionEnabled", collisionEnabled);
+		
 
 		logPrintf("serverAddress is : %s:%d\n", serverAddress.c_str(), serverPort);
 		break;

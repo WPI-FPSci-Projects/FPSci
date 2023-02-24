@@ -1191,18 +1191,19 @@ void FPSciServerApp::checkFrameValidity()
         // Player to player collision detection
         // Check if two players are too close, based on body radius
         // If so, snap the players to the last valid positions
-        
-        for (auto& i2 : m_connectedClients)
-        {
-            shared_ptr<NetworkedEntity> e2 = i2->entity;
-            Point3 player2Pos = e2->frame().translation;
-            double dist = sqrt(pow(player1Pos.x - player2Pos.x, 2) + pow(player1Pos.y - player2Pos.y, 2) + pow(player1Pos.z - player2Pos.z, 2));
-            // Hardcoded to 1.0 * 2 m based on sphere parameters in PlayerEntity, maybe move to config later?
-            if (dist < 2 && e1->getPlayerID() != e2->getPlayerID()) {
-                debugPrintf("%d collided with %d\n", i1->playerID, i2->playerID);
-                snapBackPlayer(i1->playerID);
-                snapBackPlayer(i2->playerID);
-                valid = false;
+        if (experimentConfig.collisionEnabled) {
+            for (auto& i2 : m_connectedClients)
+            {
+                shared_ptr<NetworkedEntity> e2 = i2->entity;
+                Point3 player2Pos = e2->frame().translation;
+                double dist = sqrt(pow(player1Pos.x - player2Pos.x, 2) + pow(player1Pos.y - player2Pos.y, 2) + pow(player1Pos.z - player2Pos.z, 2));
+                // Hardcoded to 1.0 * 2 m based on sphere parameters in PlayerEntity, maybe move to config later?
+                if (dist < 2 && e1->getPlayerID() != e2->getPlayerID()) {
+                    debugPrintf("%d collided with %d\n", i1->playerID, i2->playerID);
+                    snapBackPlayer(i1->playerID);
+                    snapBackPlayer(i2->playerID);
+                    valid = false;
+                }
             }
         }
        
@@ -1423,13 +1424,16 @@ void FPSciServerApp::snapBackPlayer(uint8 playerID)
 {
     // change the player's position to the last valid position
     int snapBackFrameNum = m_dataHandler->m_clientLastValid->get(m_connectedClients[playerID]->guid.toString16());
-    //    m_dataHandler->lastValidFromFrameNum(
-    //      m_connectedClients[playerID]->guid.toString16(), 
-    //    m_dataHandler->m_clientLastValid->get((m_connec`tedClients[playerID]->guid.toString16())));
+    //int snapBackFrameNum = m_dataHandler->lastValidFromFrameNum(
+       //   m_connectedClients[playerID]->guid.toString16(), 
+       // m_dataHandler->m_clientLastValid->get((m_connectedClients[playerID]->guid.toString16())));
     //// snap back to the last valid position if not zero
+    CoordinateFrame currentFrame = m_connectedClients[playerID]->entity->frame();
     CoordinateFrame snapBackFrame = m_dataHandler->GetCFrame(snapBackFrameNum,
         m_connectedClients[playerID]->guid.toString16());
-
+    debugPrintf("Current Frame %d: %d %d %d\tSnap Back Frame %d: %d %d %d",
+        m_networkFrameNum, currentFrame.translation.x, currentFrame.translation.y, currentFrame.translation.z,
+        snapBackFrameNum, snapBackFrame.translation.x, snapBackFrame.translation.y, snapBackFrame.translation.z);
     m_dataHandler->UpdateCframe(m_connectedClients[playerID]->guid.toString16(), snapBackFrame, m_networkFrameNum, false);
     m_dataHandler->ValidateData(m_connectedClients[playerID]->guid.toString16(), m_networkFrameNum);
     m_connectedClients[playerID]->camera->setFrame(snapBackFrame);

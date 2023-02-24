@@ -29,6 +29,7 @@ public:
 	bool placeboPingEnabled = false;					///< Flag for enabling placebo (fake) ping values
 	int placeboPingType = 0;							///< Integer specifying the type of placebo ping: 0: fixed value, 1: additive modifier, 2: multiplicative modifier
 	int placeboPingModifier = 0;						///< Latency modifier value for placebo ping
+	bool collisionEnabled = false;
 
 	ExperimentConfig() { init(); }
 	ExperimentConfig(const Any& any);
