@@ -175,11 +175,6 @@ void FPSciServerApp::onNetwork()
                     /*if (outPacket->send() <= 0) {
                         debugPrintf("Failed to send the handshke reply\n");
                     }*/
-
-                    // Set up preliminary ping table once client connects
-                    Array<uint16> rttStatsArray = { 0, 0, 0, 0 };
-                    m_clientRTTStatistics.set(inPacket->srcAddr().host, rttStatsArray);
-
                     break;
             }
             case BATCH_ENTITY_UPDATE: {
@@ -223,12 +218,13 @@ void FPSciServerApp::onNetwork()
             case PING_DATA: {
                     PingDataPacket* pingDataPacket = static_cast<PingDataPacket*>(inPacket.get());
 
+                    GUniqueID playerID = pingDataPacket->m_playerID;
                     uint16 cappedRTT = pingDataPacket->m_latestRTT;
                     uint16 cappedSMARTT = pingDataPacket->m_smaRTT;
                     uint16 cappedMinRTT = pingDataPacket->m_minRTT;
                     uint16 cappedMaxRTT = pingDataPacket->m_maxRTT;
                     Array<uint16> rttStatsArray = { cappedRTT, cappedSMARTT, cappedMinRTT, cappedMaxRTT };
-                    m_clientRTTStatistics.set(inPacket->srcAddr().host, rttStatsArray);
+                    m_clientRTTStatistics.set(playerID, rttStatsArray);
                     break;
             }
             default:
@@ -1493,25 +1489,22 @@ GUniqueID FPSciServerApp::playerIDtoGUID(uint8 playerID)
 // This function is modified from the Weapon::fire() function in the Weapon.cpp file
 int FPSciServerApp::TestVisibility(CoordinateFrame shooter_pos, shared_ptr<TargetEntity> target, Model::HitInfo& hitInfo)
 {
+    const float eps = 0.1;
+
     // cast a ray from the shooter to the target
-    Ray ray = Ray::fromOriginAndDirection(shooter_pos.translation, target->frame().translation - shooter_pos.translation);
+    Ray ray = Ray::fromOriginAndDirection(shooter_pos.translation, (target->frame().translation - shooter_pos.translation) / (target->frame().translation - shooter_pos.translation).magnitude());
 
-    // calculate the angle to adjust the ray by, from the target's bounding sphere
-    // should be sin (r/ distance)
-    // r = 1, distance can be calculated
-    float adjustmentAngle = asin(1 / (target->frame().translation - shooter_pos.translation).magnitude()) - 0.1f;
+    // Horizontally orthogonal rays to the ray from the shooter to the target
+    Vector3 orthoDir1 = Vector3(-ray.direction().z * pow(1 - eps, 2), 0, ray.direction().x * pow(1 - eps, 2));
+    Vector3 orthoDir2 = Vector3(ray.direction().z * pow(1 - eps, 2), 0, -ray.direction().x * pow(1 - eps, 2));
 
-    // make two adjusted rays, one to the left and one to the right, based on calculated angle
-    Ray ray1 = Ray::fromOriginAndDirection(shooter_pos.translation,
-                                           target->frame().translation - shooter_pos.translation);
-    Ray ray2 = Ray::fromOriginAndDirection(shooter_pos.translation,
-                                           target->frame().translation - shooter_pos.translation);
-    Matrix3 rotMat1 = Matrix3::fromAxisAngle(Vector3::unitY(), adjustmentAngle);
-    Matrix3 rotMat2 = Matrix3::fromAxisAngle(Vector3::unitY(), -adjustmentAngle);
-    Vector3 dir1 = Vector3(0.f, 0.f, -1.f) * rotMat1;
-    Vector3 dir2 = Vector3(0.f, 0.f, -1.f) * rotMat2;
-    ray1.set(ray1.origin(), ray1.direction() * dir1);
-    ray2.set(ray2.origin(), ray2.direction() * dir2);
+    // Endpoints of orthogonal directions, serve as endpoints for the two simulated rays
+    Vector3 orthoRayEndpoint1 = target->frame().translation + orthoDir1;
+    Vector3 orthoRayEndpoint2 = target->frame().translation + orthoDir2;
+
+    // make two adjusted rays, one to the left and one to the right
+    Ray ray1 = Ray::fromOriginAndDirection(shooter_pos.translation, (orthoRayEndpoint1 - shooter_pos.translation) / (orthoRayEndpoint1 - shooter_pos.translation).magnitude());
+    Ray ray2 = Ray::fromOriginAndDirection(shooter_pos.translation, (orthoRayEndpoint2 - shooter_pos.translation) / (orthoRayEndpoint2 - shooter_pos.translation).magnitude());
 
     float hitDist1 = finf();
     float hitDist2 = finf();
