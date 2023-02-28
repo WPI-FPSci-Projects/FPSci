@@ -1166,7 +1166,7 @@ void FPSciApp::onNetwork() {
 				rttStats[2] = truncateToUInt16(m_pingStats.minPing);
 				rttStats[3] = truncateToUInt16(m_pingStats.maxPing);
 
-				pingDataPacket->populate(rttStats);
+				pingDataPacket->populate(m_playerGUID, rttStats);
 				NetworkUtils::send(pingDataPacket);
 			}
 		}

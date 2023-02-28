@@ -175,11 +175,6 @@ void FPSciServerApp::onNetwork()
                     /*if (outPacket->send() <= 0) {
                         debugPrintf("Failed to send the handshke reply\n");
                     }*/
-
-                    // Set up preliminary ping table once client connects
-                    Array<uint16> rttStatsArray = { 0, 0, 0, 0 };
-                    m_clientRTTStatistics.set(inPacket->srcAddr().host, rttStatsArray);
-
                     break;
             }
             case BATCH_ENTITY_UPDATE: {
@@ -223,12 +218,13 @@ void FPSciServerApp::onNetwork()
             case PING_DATA: {
                     PingDataPacket* pingDataPacket = static_cast<PingDataPacket*>(inPacket.get());
 
+                    GUniqueID playerID = pingDataPacket->m_playerID;
                     uint16 cappedRTT = pingDataPacket->m_latestRTT;
                     uint16 cappedSMARTT = pingDataPacket->m_smaRTT;
                     uint16 cappedMinRTT = pingDataPacket->m_minRTT;
                     uint16 cappedMaxRTT = pingDataPacket->m_maxRTT;
                     Array<uint16> rttStatsArray = { cappedRTT, cappedSMARTT, cappedMinRTT, cappedMaxRTT };
-                    m_clientRTTStatistics.set(inPacket->srcAddr().host, rttStatsArray);
+                    m_clientRTTStatistics.set(playerID, rttStatsArray);
                     break;
             }
             default:

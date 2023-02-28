@@ -842,8 +842,9 @@ public:
 	PacketType type() override { return PING_DATA; }
 	shared_ptr<GenericPacket> clone() override { return createShared<PingDataPacket>(*this); }
 
-	void populate(uint16 rttStats[]);
+	void populate(GUniqueID playerID, uint16 rttStats[]);
 
+	GUniqueID m_playerID;											/// Guid of the player
 	uint16 m_latestRTT;												/// Latest recorded RTT
 	uint16 m_smaRTT;												/// Simple Moving Average of RTT
 	uint16 m_minRTT;												/// Minimum recorded RTT

@@ -587,7 +587,8 @@ void PingPacket::deserialize(BinaryInput& inBuffer) {
  *PING DATA PACKET *
  *******************/
 
-void PingDataPacket::populate(uint16 rttStats[]) {
+void PingDataPacket::populate(GUniqueID playerID, uint16 rttStats[]) {
+	m_playerID = playerID;
 	m_latestRTT = rttStats[0];
 	m_smaRTT = rttStats[1];
 	m_minRTT = rttStats[2];
@@ -597,6 +598,7 @@ void PingDataPacket::populate(uint16 rttStats[]) {
 void PingDataPacket::serialize(BinaryOutput& outBuffer) {
 	GenericPacket::serialize(outBuffer);	// Call the super serialize
 
+	m_playerID.serialize(outBuffer);
 	outBuffer.writeUInt16(m_latestRTT);
 	outBuffer.writeUInt16(m_smaRTT);
 	outBuffer.writeUInt16(m_minRTT);
@@ -606,6 +608,7 @@ void PingDataPacket::serialize(BinaryOutput& outBuffer) {
 void PingDataPacket::deserialize(BinaryInput& inBuffer) {
 	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
 
+	m_playerID.deserialize(inBuffer);
 	m_latestRTT = inBuffer.readUInt16();
 	m_smaRTT = inBuffer.readUInt16();
 	m_minRTT = inBuffer.readUInt16();
