@@ -856,7 +856,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
                 m_peekersRoundConfigs[j].clientLatency = sessConfig->player.clientLatencyArray[j - peekersConfigIdx];   //TODO CHANGE MOVERATE WITH LATENCY
             }
             peekersConfigIdx += sessConfig->player.clientLatencyArray.size();
-            
+
         }
         else {
             // Defenders
@@ -879,17 +879,25 @@ void FPSciServerApp::preparePerRoundConfigs() {
     }
 
     /// Create all possible pairs of peeker vs defender matchups
-    
-    for (int batch = 0; batch < m_defendersRoundConfigs.size() / sessConfig->player.clientLatencyArray.size(); batch++) {
-        for (int pIdx = batch * sessConfig->player.clientLatencyArray.size(); pIdx < (batch + 1) * sessConfig->player.clientLatencyArray.size(); pIdx++) {
-            for (int dIdx = batch * sessConfig->player.clientLatencyArray.size(); dIdx < (batch + 1) * sessConfig->player.clientLatencyArray.size(); dIdx++) {
-                peekerDefenderConfigCombinationsIdx.push_back(std::make_pair(pIdx, dIdx));
+    if (!experimentConfig.isAuthoritativeServer) {
+        for (int batch = 0; batch < m_defendersRoundConfigs.size() / sessConfig->player.clientLatencyArray.size(); batch++) {
+            for (int pIdx = batch * sessConfig->player.clientLatencyArray.size(); pIdx < (batch + 1) * sessConfig->player.clientLatencyArray.size(); pIdx++) {
+                for (int dIdx = batch * sessConfig->player.clientLatencyArray.size(); dIdx < (batch + 1) * sessConfig->player.clientLatencyArray.size(); dIdx++) {
+                    peekerDefenderConfigCombinationsIdx.push_back(std::make_pair(pIdx, dIdx));
+                }
             }
         }
     }
+    else {
+        for (int batch = 0; batch < sessConfig->player.clientLatencyArray.size(); batch++) {
+            peekerDefenderConfigCombinationsIdx.push_back(std::make_pair(batch, batch));
+        }
+    }
+    
+    
 
     /// Set number of rounds
-    sessConfig->trials[0].count = peekerDefenderConfigCombinationsIdx.size() * 2;
+    sessConfig->trials[0].count = peekerDefenderConfigCombinationsIdx.size();
 
     /// Shuffle combinations
     for (int i = 0; i < peekerDefenderConfigCombinationsIdx.size(); i++)
