@@ -93,6 +93,8 @@ public:
 	int				selectedClientIdx = 0;						///< Indicates the index of the client that player configs will be propagated to
 	String			playerType = "";							///< Indicates what type of player it is (Peeker/Defender/Other)
 	float			clientLatency = 0.0f;						///< Clients latency over the network
+	int				placeboPingType = 1;						///< Integer specifying the type of placebo ping: 0: fixed value, 1: additive modifier, 2: multiplicative modifier
+	int				placeboPingModifier = 0;					///< Latency modifier value for placebo ping
 	Array <PlayerConfig>  clientPlayerConfigs;					///< Player config for all the clients
 
 	// For peekers and defenders per round config settings
@@ -104,6 +106,8 @@ public:
 	Array<float> restrictionBoxAngleArray = { 10.0f, 0.0f };									  ///< Rotates Peeker's/Defender's the restriction box (degrees)
 
 	Array<float> clientLatencyArray = { 0, 10, 20 };											  ///< Holds Peeker's/Defender's latency settings
+	Array<int> clientPlaceboPingTypeArray = { 1, 1, 1 };										  ///< Holds Peeker's/Defender's placebo ping types
+	Array<int> clientPlaceboPingModifierArray = { 0, 0, 0 };									  ///< Holds Peeker's/Defender's placebo ping modifiers
 
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;

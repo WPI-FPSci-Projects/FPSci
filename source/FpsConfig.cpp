@@ -273,6 +273,8 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("restrictionBoxAngleArray", restrictionBoxAngleArray);
 
 		reader.getIfPresent("clientLatencyArray", clientLatencyArray);
+		reader.getIfPresent("clientPlaceboPingTypeArray", clientPlaceboPingTypeArray);
+		reader.getIfPresent("clientPlaceboPingModifierArray", clientPlaceboPingModifierArray);
 
 		break;
 	default:

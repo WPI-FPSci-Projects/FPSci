@@ -854,6 +854,9 @@ void FPSciServerApp::preparePerRoundConfigs() {
                 m_peekersRoundConfigs[j].playerType = "PEEKER";
 
                 m_peekersRoundConfigs[j].clientLatency = sessConfig->player.clientLatencyArray[j - peekersConfigIdx];   //TODO CHANGE MOVERATE WITH LATENCY
+
+                m_peekersRoundConfigs[j].placeboPingType = sessConfig->player.clientPlaceboPingTypeArray[j - peekersConfigIdx];
+                m_peekersRoundConfigs[j].placeboPingModifier = sessConfig->player.clientPlaceboPingModifierArray[j - peekersConfigIdx];
             }
             peekersConfigIdx += sessConfig->player.clientLatencyArray.size();
 
@@ -873,6 +876,9 @@ void FPSciServerApp::preparePerRoundConfigs() {
                 m_defendersRoundConfigs[j].playerType = "DEFENDER";
 
                 m_defendersRoundConfigs[j].clientLatency = sessConfig->player.clientLatencyArray[j - defendersConfigIdx];   //TODO CHANGE MOVERATE WITH LATENCY
+
+                m_defendersRoundConfigs[j].placeboPingType = sessConfig->player.clientPlaceboPingTypeArray[j - defendersConfigIdx];
+                m_defendersRoundConfigs[j].placeboPingModifier = sessConfig->player.clientPlaceboPingModifierArray[j - defendersConfigIdx];
             }
             defendersConfigIdx += sessConfig->player.clientLatencyArray.size();
         }

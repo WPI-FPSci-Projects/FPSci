@@ -26,9 +26,7 @@ public:
 	int extrapolationType = 1;							///< Type of extrapolation to perform. 0 None, 1 linear, 2 quadratic
 	bool timeWarpEnabled = false;						///< Primary flag for enabling Time Warp latency compensation
 	Array<int> pingThresholds = { 300, 700 };			///< Thresholds for when the ping display updates its color values
-	bool placeboPingEnabled = false;					///< Flag for enabling placebo (fake) ping values
-	int placeboPingType = 0;							///< Integer specifying the type of placebo ping: 0: fixed value, 1: additive modifier, 2: multiplicative modifier
-	int placeboPingModifier = 0;						///< Latency modifier value for placebo ping
+	bool placeboPingEnabled = false;					///< Flag for enabling placebo (fake) ping values (type and modifiers are defined in FpsConfig.h)
 	bool collisionEnabled = false;
 
 	ExperimentConfig() { init(); }

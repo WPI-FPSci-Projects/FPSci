@@ -1148,7 +1148,7 @@ void FPSciApp::onNetwork() {
 				std::thread c2sPing_Th(c2sPing, m_pingSocket, m_pingServerAddress, m_pingInterval, std::ref(m_pinging));
 				c2sPing_Th.detach();
 
-				std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_pingStats), std::ref(m_pinging), std::ref(experimentConfig.placeboPingEnabled), std::ref(experimentConfig.placeboPingModifier), std::ref(experimentConfig.placeboPingType));
+				std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_pingStats), std::ref(m_pinging), std::ref(experimentConfig.placeboPingEnabled), std::ref(sessConfig->player.placeboPingModifier), std::ref(sessConfig->player.placeboPingType));
 				pingAck_Th.detach();
 
 				debugPrintf("Initialized ping threads\n");
@@ -1447,6 +1447,9 @@ void FPSciApp::onNetwork() {
 				sessConfig->networkedSessionProgress = typedPacket->m_networkedSessionProgress;
 
 				sessConfig->player.clientLatency = typedPacket->m_playerConfig->clientLatency;
+
+				sessConfig->player.placeboPingType = typedPacket->m_playerConfig->placeboPingType;
+				sessConfig->player.placeboPingModifier = typedPacket->m_playerConfig->placeboPingModifier;
 
 				//Set Latency
 				NetworkUtils::setAddressLatency(m_unreliableServerAddress, sessConfig->player.clientLatency);

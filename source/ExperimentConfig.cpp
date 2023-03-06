@@ -26,8 +26,6 @@ ExperimentConfig::ExperimentConfig(const Any& any) : FpsConfig(any) {
 		reader.getIfPresent("timeWarpEnabled", timeWarpEnabled);		
 		reader.getIfPresent("pingThresholds", pingThresholds);
 		reader.getIfPresent("placeboPingEnabled", placeboPingEnabled);
-		reader.getIfPresent("placeboPingType", placeboPingType);
-		reader.getIfPresent("placeboPingModifier", placeboPingModifier);
 		reader.getIfPresent("collisionEnabled", collisionEnabled);
 		
 

@@ -440,6 +440,9 @@ void SendPlayerConfigPacket::serialize(BinaryOutput& outBuffer) {
 	outBuffer.writeFloat32(m_networkedSessionProgress);
 
 	outBuffer.writeFloat32(selectedConfig.clientLatency);
+
+	outBuffer.writeInt32(selectedConfig.placeboPingType);
+	outBuffer.writeInt32(selectedConfig.placeboPingModifier);
 }
 
 void SendPlayerConfigPacket::deserialize(BinaryInput& inBuffer) {
@@ -486,6 +489,9 @@ void SendPlayerConfigPacket::deserialize(BinaryInput& inBuffer) {
 	m_networkedSessionProgress = inBuffer.readFloat32();
 
 	m_playerConfig->clientLatency = inBuffer.readFloat32();
+
+	m_playerConfig->placeboPingType = inBuffer.readInt32();
+	m_playerConfig->placeboPingModifier = inBuffer.readInt32();
 }
 
 
