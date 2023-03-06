@@ -37,6 +37,7 @@ public:
 	bool	pingEnabled = true;									///< Primary flag for enabling ping
 	int		pingInterval = 1000;								///< Interval (in ms) to send ping packets at
 	bool	pingIndicatorOnByDefault = false;					///< Specifies whether the ping indicator is visible on game startup
+	bool	lcIndicatorOnByDefault = false;						///< Specifies whether the latency compensation indicator is visible on game startup
 
 	ConfigFiles defaultExperiment = ConfigFiles::defaults();	///< Setup default list
 	Array<ConfigFiles> experimentList;							///< List of configs (for various experiments)

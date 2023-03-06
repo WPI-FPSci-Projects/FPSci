@@ -271,6 +271,7 @@ void FPSciApp::draw2DElements(RenderDevice* rd, Vector2 resolution) {
 
 	updateFPSIndicator(rd, resolution);				// FPS display (faster than the full stats widget)
 	updatePingIndicator(rd, resolution);			// Ping display
+	drawLCDebugIndicator(rd, resolution);			// Enabled Latency Compensations
 
 	// Handle recording indicator
 	if (notNull(waypointManager) && waypointManager->recordMotion) {
@@ -456,6 +457,22 @@ void FPSciApp::updatePingIndicator(RenderDevice* rd, Vector2 resolution) {
 		outputFont->draw2D(rd, msgSMA, Point2(0.01f * resolution.x, 0.095f * resolution.y).floor(), floor(15.0f * scale), getColor(m_pingStats.smaPing));
 		outputFont->draw2D(rd, msgMin, Point2(0.01f * resolution.x, 0.12f * resolution.y).floor(), floor(15.0f * scale), getColor(m_pingStats.minPing));
 		outputFont->draw2D(rd, msgMax, Point2(0.01f * resolution.x, 0.145f * resolution.y).floor(), floor(15.0f * scale), getColor(m_pingStats.maxPing));
+	}
+}
+
+void FPSciApp::drawLCDebugIndicator(RenderDevice* rd, Vector2 resolution) {
+	if (renderLCDebug) {
+		
+		//Enabled Latency Compensations:
+		String leEnabled = startupConfig.pingEnabled && renderPing ? "LE " : "";
+		String lcEnabled = experimentConfig.concealShotSound ? "LC " : "";
+		String twEnabled = experimentConfig.timeWarpEnabled ? "T " : "";
+		String exEnabled = experimentConfig.extrapolationEnabled ? "E" : "";
+
+		String enabledLCs = leEnabled + lcEnabled + twEnabled + exEnabled;
+		
+		const float scale = resolution.x / 1920.0f;
+		outputFont->draw2D(rd, enabledLCs, Point2(0.035f * resolution.x, 0.0475f * resolution.y).floor(), floor(15.0f * scale), Color3::yellow());
 	}
 }
 

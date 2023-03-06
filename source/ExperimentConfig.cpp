@@ -19,6 +19,7 @@ ExperimentConfig::ExperimentConfig(const Any& any) : FpsConfig(any) {
 		reader.getIfPresent("numPlayers", numPlayers);
 		reader.getIfPresent("isNetworked", isNetworked);
 		reader.getIfPresent("isAuthoritativeServer", isAuthoritativeServer);
+		reader.getIfPresent("concealShotSound", concealShotSound);
 		reader.getIfPresent("pastFrame", pastFrame);
 		reader.getIfPresent("extrapolationEnabled", extrapolationEnabled);
 		reader.getIfPresent("extrapolationType", extrapolationType);

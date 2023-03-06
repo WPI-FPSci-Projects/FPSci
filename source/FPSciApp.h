@@ -286,6 +286,7 @@ public:
 
 	bool renderFPS = false;		   ///< Control flag used to draw (or not draw) FPS information to the display
 	bool renderPing = false;	   ///< Flag that determines whether or not to display ping / packet RTT
+	bool renderLCDebug = false;	   ///< Flag that determines whether or not to display if certain latency compensation techniques are enabled
 	int displayLagFrames = 0;	   ///< Count of frames of latency to add
 	float lastSetFrameRate = 0.0f; ///< Last set frame rate
 	const int numReticles = 55;	   ///< Total count of reticles available to choose from
@@ -385,6 +386,7 @@ public:
 	void drawClickIndicator(RenderDevice* rd, String mode, Vector2 resolution); ///< Draw the click-to-photon click indicator
 	void updateFPSIndicator(RenderDevice* rd, Vector2 resolution);				///< Update and draw a (custom) frame time indicator (developer mode feature)
 	void updatePingIndicator(RenderDevice* rd, Vector2 resolution);				///< Update and display the current ping or packet RTT
+	void drawLCDebugIndicator(RenderDevice* rd, Vector2 resolution);			///< Draw the debug element indicating which latency compensations are enabled
 	void drawFeedbackMessage(RenderDevice* rd);									///< Draw a user feedback message (at full render device resolution)
 
 	void updateShaderBuffers(); ///< Regenerate buffers (for configured shaders)

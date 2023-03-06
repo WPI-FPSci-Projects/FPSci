@@ -307,7 +307,7 @@ PlayerControls::PlayerControls(SessionConfig& config, std::function<void()> expo
 	moveTo(Vector2(440, 300));
 }
 
-RenderControls::RenderControls(FPSciApp* app, SessionConfig& config, bool& drawFps, bool& drawPing, const int numReticles, float& brightness,
+RenderControls::RenderControls(FPSciApp* app, SessionConfig& config, bool& drawFps, bool& drawPing, bool& drawLCDebug, const int numReticles, float& brightness,
 	const shared_ptr<GuiTheme>& theme, const int maxFrameDelay, const float minFrameRate, const float maxFrameRate, float width, float height) :
 	GuiWindow("Render Controls", theme, Rect2D::xywh(5,5,width,height), GuiTheme::NORMAL_WINDOW_STYLE, GuiWindow::HIDE_ON_CLOSE), m_app(app)
 {
@@ -344,10 +344,18 @@ RenderControls::RenderControls(FPSciApp* app, SessionConfig& config, bool& drawF
 	auto pingPane = pane->addPane("Ping/Packet RTT");
 	pingPane->beginRow(); {
 		pingPane->addCheckBox("Show Ping", &drawPing);
-		if (!app->startupConfig.pingEnabled) {
+		if (!app->startupConfig.pingEnabled || !app->experimentConfig.isNetworked) {
 			pingPane->setEnabled(false);
 		}
 	}pingPane->endRow();
+
+	auto lcPane = pane->addPane("Latency Compensations Debug");
+	lcPane->beginRow(); {
+		lcPane->addCheckBox("Show enabled latency compensations", &drawLCDebug);
+		if (!app->experimentConfig.isNetworked) {
+			lcPane->setEnabled(false);
+		}
+	}lcPane->endRow();
 
 	auto menuPane = pane->addPane("User Menu");
 	menuPane->beginRow(); {

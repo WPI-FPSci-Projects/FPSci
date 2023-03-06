@@ -140,6 +140,9 @@ void FPSciApp::initExperiment() {
 			renderPing = startupConfig.pingIndicatorOnByDefault;
 		}
 
+		// Display active latency compensations if specified
+		renderLCDebug = startupConfig.lcIndicatorOnByDefault;
+
 		try {
 			m_playerGUID = GUniqueID::create();
 		}
@@ -485,7 +488,7 @@ void FPSciApp::updateControls(bool firstSession) {
 		rect = m_renderControls->rect();
 		removeWidget(m_renderControls);
 	}
-	m_renderControls = RenderControls::create(this, *sessConfig, renderFPS, renderPing, numReticles, sceneBrightness, theme, MAX_HISTORY_TIMING_FRAMES);
+	m_renderControls = RenderControls::create(this, *sessConfig, renderFPS, renderPing, renderLCDebug, numReticles, sceneBrightness, theme, MAX_HISTORY_TIMING_FRAMES);
 	m_renderControls->setVisible(visible);
 	if (!rect.isEmpty())
 		m_renderControls->setRect(rect);
