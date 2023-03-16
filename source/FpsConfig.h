@@ -108,6 +108,7 @@ public:
 	Array<float> clientLatencyArray = { 0, 10, 20 };											  ///< Holds Peeker's/Defender's latency settings
 	Array<int> clientPlaceboPingTypeArray = { 1, 1, 1 };										  ///< Holds Peeker's/Defender's placebo ping types
 	Array<int> clientPlaceboPingModifierArray = { 0, 0, 0 };									  ///< Holds Peeker's/Defender's placebo ping modifiers
+
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;
 };
