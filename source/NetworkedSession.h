@@ -69,6 +69,14 @@ struct NetworkedClient {
 	uint32		remoteFrame = 0;
 	PresentationState	state;
 	PlayerActionType	action = PlayerActionType::None;
+	int roundNum;
+
+	// Latency Compensations
+	bool twEnabled;
+	bool leEnabled;
+	bool lcEnabled;
+	bool eEnabled;
+
 
 	NetworkedClient() {};
 
@@ -81,7 +89,7 @@ struct NetworkedClient {
 		playerID = id;
 	}
 
-	NetworkedClient(FILETIME t, Point2 playerViewDirection, Point3 playerPosition, GUniqueID id, uint32 local_frame, uint32 remote_frame, PresentationState playerState, PlayerActionType playerAction) {
+	NetworkedClient(FILETIME t, Point2 playerViewDirection, Point3 playerPosition, GUniqueID id, uint32 local_frame, uint32 remote_frame, PresentationState playerState, PlayerActionType playerAction, int rNum, bool tw, bool le, bool lc, bool e) {
 		time = t;
 		viewDirection = playerViewDirection;
 		position = playerPosition;
@@ -90,7 +98,11 @@ struct NetworkedClient {
 		playerID = id;
 		state = playerState;
 		action = playerAction;
-
+		roundNum = rNum;
+		twEnabled = tw;
+		leEnabled = le;
+		lcEnabled = lc;
+		eEnabled = e;
 	}
 	
 	inline bool noChangeFrom(const NetworkedClient& other) const {
@@ -171,6 +183,6 @@ public:
 	void feedbackStart();
 	void endSession();
 	void accumulateFrameInfo(RealTime t, float sdt, float idt) override;
-	void logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame, PlayerActionType action);
-	void logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame);
+	void logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame, PlayerActionType action, int rNum, bool tw, bool le, bool lc, bool e);
+	void logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame, int rNum, bool tw, bool le, bool lc, bool e);
 };

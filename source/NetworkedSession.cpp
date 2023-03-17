@@ -48,7 +48,7 @@ void NetworkedSession::onSimulation(RealTime rdt, SimTime sdt, SimTime idt)
 	Array<shared_ptr<NetworkedEntity>> entityArray;
 	m_app->scene()->getTypedEntityArray<NetworkedEntity>(entityArray);
 	for (std::shared_ptr<NetworkedEntity> client : entityArray) {
-		logNetworkedEntity(client, m_app->frameNumFromID(GUniqueID::fromString16(client->name())));
+		logNetworkedEntity(client, m_app->frameNumFromID(GUniqueID::fromString16(client->name())), m_app->sessConfig->numberOfRoundsPlayed, m_app->experimentConfig.timeWarpEnabled, m_app->renderPing, m_app->experimentConfig.concealShotSound, m_app->experimentConfig.extrapolationEnabled);
 	}
 	FPSciServerApp* serverApp = dynamic_cast<FPSciServerApp*> (m_app);
 	if (serverApp != nullptr) {
@@ -164,17 +164,17 @@ void NetworkedSession::endSession() {
 	m_app->quitRequest();
 }
 
-void NetworkedSession::logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame) {
-	logNetworkedEntity(entity, remoteFrame, PlayerActionType::None);
+void NetworkedSession::logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame, int rNum, bool tw, bool le, bool lc, bool e) {
+	logNetworkedEntity(entity, remoteFrame, PlayerActionType::None, rNum, tw, le, lc, e);
 }
 
-void NetworkedSession::logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame, PlayerActionType action)
+void NetworkedSession::logNetworkedEntity(shared_ptr<NetworkedEntity> entity, uint32 remoteFrame, PlayerActionType action, int rNum, bool tw, bool le, bool lc, bool e)
 {
 	if (notNull(logger)) {
 		Point2 dir = entity->getLookAzEl();
 		Point3 loc = entity->frame().translation;
 		GUniqueID id = GUniqueID::fromString16(entity->name());
-		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_networkFrameNum, remoteFrame, currentState, action);
+		NetworkedClient nc = NetworkedClient(FPSciLogger::getFileTime(), dir, loc, id, m_app->m_networkFrameNum, remoteFrame, currentState, action, rNum, tw, le, lc, e);
 		logger->logNetworkedClient(nc);
 
 		//debugPrintf("Logged...");

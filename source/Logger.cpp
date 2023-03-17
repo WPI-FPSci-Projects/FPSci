@@ -506,6 +506,11 @@ void FPSciLogger::createNetworkedClientTable() {
 		{ "event", "text" },
 		{ "state", "text" },
 		{ "player_id", "text" },
+		{ "round_number", "real" },
+		{ "timewarp_enabled", "boolean" },
+		{ "latency_exposure_enabled", "boolean" },
+		{ "latency_concealment_enabled", "boolean" },
+		{ "exrapolation_enabled", "boolean" },
 	};
 	createTableInDB(m_db, "Client_States", clientColumns);
 }
@@ -538,6 +543,11 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 		"'" + actionStr + "'",
 		"'" + stateStr + "'",
 		"'" + client.playerID.toString16() + "'",
+		String(std::to_string(client.roundNum)),
+		client.twEnabled ? "true" : "false",
+		client.leEnabled ? "true" : "false",
+		client.lcEnabled ? "true" : "false",
+		client.eEnabled ? "true" : "false"
 		};
 		rows.append(networkedClientValues);
 	}
