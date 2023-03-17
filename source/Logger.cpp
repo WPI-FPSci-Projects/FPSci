@@ -65,6 +65,7 @@ void FPSciLogger::initResultsFile(const String& filename,
 		createQuestionsTable();
 		createUsersTable();
 		createNetworkedClientTable();
+		createPlayerConfigTable();
 		createPingStatisticsTable();
 		createRawRemoteFireInputTable();
 	}
@@ -554,6 +555,14 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 	insertRowsIntoDB(m_db, "Client_States", rows);
 }
 
+void FPSciLogger::createPlayerConfigTable() {
+	// TODO, implement once config is finalized
+}
+
+void FPSciLogger::logPlayerConfig(const PlayerConfig& playerConfig, const GUniqueID& id, int trialNumber) {
+	// TODO, implement once config is finalized
+}
+
 void FPSciLogger::createPingStatisticsTable() {
 	Columns clientPingColumns = {
 		{"time", "text"},
@@ -684,6 +693,10 @@ void FPSciLogger::loggerThreadEntry()
 		networkedClients.swap(m_networkedClients, networkedClients);
 		m_networkedClients.reserve(networkedClients.size() * 2);
 
+		decltype(m_playerConfigs) playerConfigs;
+		playerConfigs.swap(m_playerConfigs, playerConfigs);
+		m_playerConfigs.reserve(playerConfigs.size() * 2);
+
 		decltype(m_pingStatistics) pingStats;
 		pingStats.swap(m_pingStatistics, pingStats);
 		m_pingStatistics.reserve(pingStats.size() * 2);
@@ -710,6 +723,7 @@ void FPSciLogger::loggerThreadEntry()
 		insertRowsIntoDB(m_db, "Targets", targets);
 		insertRowsIntoDB(m_db, "Users", users);
 		insertRowsIntoDB(m_db, "Trials", trials);
+		insertRowsIntoDB(m_db, "PlayerConfigs", playerConfigs);
 
 		lk.lock();
 	}

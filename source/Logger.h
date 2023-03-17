@@ -30,6 +30,7 @@ public:
 	using QuestionResult = RowEntry;
 	using TrialValues = RowEntry;
 	using UserValues = RowEntry;
+	using PlayerValues = RowEntry;
 
 protected:
 	sqlite3* m_db = nullptr;						///< The db used for logging
@@ -60,6 +61,7 @@ protected:
 	Array<TrialValues> m_trials;						///< Trial ID, start/end time etc.
 	Array<UserValues> m_users;
 	Array<NetworkedClient> m_networkedClients;
+	Array<PlayerValues> m_playerConfigs;
 	Array<LoggedPingStatistics> m_pingStatistics;
 	Array<RawRemoteFireInput> m_rawRemoteFireInputs;
 
@@ -73,7 +75,9 @@ protected:
 			queueBytes(m_targets) +
 			queueBytes(m_trials) + 
 			queueBytes(m_networkedClients) +
-			queueBytes(m_pingStatistics);
+			queueBytes(m_playerConfigs) + 
+			queueBytes(m_pingStatistics) + 
+			queueBytes(m_rawRemoteFireInputs);
 	}
 
 	template<typename ItemType> void addToQueue(Array<ItemType>& queue, const ItemType& item)
@@ -137,6 +141,7 @@ protected:
 	void createQuestionsTable();
 	void createUsersTable();
 	void createNetworkedClientTable();
+	void createPlayerConfigTable();
 	void createPingStatisticsTable();
 	void createRawRemoteFireInputTable();
 
@@ -173,6 +178,7 @@ public:
 	void logTargetTypes(const Array<shared_ptr<TargetConfig>>& targets);
 
 	void logNetworkedClient(const NetworkedClient& client) { addToQueue(m_networkedClients, client); }
+	void logPlayerConfig(const PlayerConfig& playerConfig, const GUniqueID& id, int trialNumber);
 
 	void logPingStatistics(const LoggedPingStatistics& pingStats) { addToQueue(m_pingStatistics, pingStats); }
 	void logRawRemoteFireInput(const RawRemoteFireInput& fireInput) { addToQueue(m_rawRemoteFireInputs, fireInput); }
