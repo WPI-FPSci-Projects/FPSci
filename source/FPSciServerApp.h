@@ -21,6 +21,8 @@ protected:
     Table <uint32, Array<uint16>> m_clientRTTStatistics;                //> Table mapping RTT statistics values recorded for each client (0: latest RTT, 1: SMA, 2: minimum RTT, 3: maximum RTT)
     Array <NetworkUtils::ConnectedClient*> m_connectedClients;          //> List of all connected clients and all atributes needed to comunicate with them
 
+    float m_tw_type;
+
     uint8 m_historicalPlayerCount = 0;
     ///> Number of players that have ever connected to the server, used for assigning playerIDs
 

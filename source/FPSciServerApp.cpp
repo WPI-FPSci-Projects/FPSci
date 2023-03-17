@@ -146,6 +146,10 @@ void FPSciServerApp::initExperiment() {
 
     sessConfig->numberOfRoundsPlayed = 0;
     sessConfig->isNetworked = &experimentConfig.isNetworked;
+
+    srand(time(NULL));
+    m_tw_type = rand() % 2;
+    
 }
 
 void FPSciServerApp::onNetwork()
@@ -444,8 +448,8 @@ void FPSciServerApp::onNetwork()
                         if (m_clientsReady >= experimentConfig.numPlayers)
                         {
                             if (sessConfig->numberOfRoundsPlayed % 4 == 0) {
-
-                                if (sessConfig->numberOfRoundsPlayed % 2 == 0)
+                                bool tw = m_tw_type == 1 ? sessConfig->numberOfRoundsPlayed < sessConfig->trials[0].count / 2 : sessConfig->numberOfRoundsPlayed >= sessConfig->trials[0].count / 2;
+                                if (tw)
                                     experimentConfig.timeWarpEnabled = true;
                                 else
                                     experimentConfig.timeWarpEnabled = false;
@@ -474,7 +478,8 @@ void FPSciServerApp::onNetwork()
                             }
                             else {
 
-                                if (sessConfig->numberOfRoundsPlayed % 2 == 0)
+                                bool tw = m_tw_type == 1 ? sessConfig->numberOfRoundsPlayed < sessConfig->trials[0].count / 2 : sessConfig->numberOfRoundsPlayed >= sessConfig->trials[0].count / 2;
+                                if (tw)
                                     experimentConfig.timeWarpEnabled = true;
                                 else
                                     experimentConfig.timeWarpEnabled = false;
