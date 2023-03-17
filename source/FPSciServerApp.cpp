@@ -458,75 +458,140 @@ void FPSciServerApp::onNetwork()
             case READY_UP_CLIENT: {
                     m_clientsReady++;
                     debugPrintf("Connected Number of Clients: %d\nReady Clients: %d\n", m_connectedClients.length(), m_clientsReady);
-                    
+
                         if (m_clientsReady >= experimentConfig.numPlayers)
                         {
-                            if (sessConfig->numberOfRoundsPlayed % 4 == 0) {
-                                experimentConfig.timeWarpEnabled = m_tw_type == 1 ? sessConfig->numberOfRoundsPlayed < sessConfig->trials[0].count / 2 : sessConfig->numberOfRoundsPlayed >= sessConfig->trials[0].count / 2;
+                            if (sessConfig->player.roleShuffleEnabled) {
+                                if (sessConfig->numberOfRoundsPlayed % 4 == 0) {
+                                    experimentConfig.timeWarpEnabled = m_tw_type == 1 ? sessConfig->numberOfRoundsPlayed < sessConfig->trials[0].count / 2 : sessConfig->numberOfRoundsPlayed >= sessConfig->trials[0].count / 2;
 
-                                m_clientFirstRoundPeeker = rand() % 2;
-                                // Make them instantly spawn to the new location
-                                m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].respawnToPos = true;
-                                m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].respawnToPos = true;
+                                    m_clientFirstRoundPeeker = rand() % 2;
+                                    // Make them instantly spawn to the new location
+                                    m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].respawnToPos = true;
+                                    m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].respawnToPos = true;
 
-                                m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].timeWarpEnabled = experimentConfig.timeWarpEnabled;
-                                m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].timeWarpEnabled = experimentConfig.timeWarpEnabled;
+                                    m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].timeWarpEnabled = experimentConfig.timeWarpEnabled;
+                                    m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].timeWarpEnabled = experimentConfig.timeWarpEnabled;
 
-                                shared_ptr<SendPlayerConfigPacket> outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[m_clientFirstRoundPeeker]->peer);
-                                outPacket->populate(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first], sessConfig->networkedSessionProgress);
-                                NetworkUtils::send(outPacket);
-                                outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[!m_clientFirstRoundPeeker]->peer);
-                                outPacket->populate(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second], sessConfig->networkedSessionProgress);
-                                NetworkUtils::send(outPacket);
+                                    shared_ptr<SendPlayerConfigPacket> outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[m_clientFirstRoundPeeker]->peer);
+                                    outPacket->populate(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first], sessConfig->networkedSessionProgress);
+                                    NetworkUtils::send(outPacket);
+                                    outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[!m_clientFirstRoundPeeker]->peer);
+                                    outPacket->populate(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second], sessConfig->networkedSessionProgress);
+                                    NetworkUtils::send(outPacket);
 
-                                // Set Latency 
-                                NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->peer->address, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].clientLatency);
-                                NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->unreliableAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].clientLatency);
-                                NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->pingAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].clientLatency);
+                                    // Set Latency 
+                                    NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->peer->address, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->unreliableAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->pingAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].clientLatency);
 
 
-                                NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->peer->address, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].clientLatency);
-                                NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].clientLatency);
-                                NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->pingAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->peer->address, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->pingAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].clientLatency);
 
-                                //Log configs
-                                sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
-                                sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                                    //Log configs
+                                    sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                                    sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                                }   
+                                else {
+
+                                    bool tw = m_tw_type == 1 ? sessConfig->numberOfRoundsPlayed < sessConfig->trials[0].count / 2 : sessConfig->numberOfRoundsPlayed >= sessConfig->trials[0].count / 2;
+                                    if (tw)
+                                        experimentConfig.timeWarpEnabled = true;
+                                    else
+                                        experimentConfig.timeWarpEnabled = false;
+
+                                    // Make them instantly spawn to the new location
+                                    m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].respawnToPos = true;
+                                    m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].respawnToPos = true;
+
+                                    m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].timeWarpEnabled = experimentConfig.timeWarpEnabled;
+                                    m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].timeWarpEnabled = experimentConfig.timeWarpEnabled;
+
+                                    shared_ptr<SendPlayerConfigPacket> outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[!m_clientFirstRoundPeeker]->peer);
+                                    outPacket->populate(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first], sessConfig->networkedSessionProgress);
+                                    NetworkUtils::send(outPacket);
+                                    outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[m_clientFirstRoundPeeker]->peer);
+                                    outPacket->populate(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second], sessConfig->networkedSessionProgress);
+                                    NetworkUtils::send(outPacket);
+
+                                    // Set Latency 
+                                    NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->peer->address, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->unreliableAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->pingAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].clientLatency);
+
+                                    NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->peer->address, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->pingAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].clientLatency);
+
+                                    //Log configs
+                                    sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                                    sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                                }
                             }
                             else {
+                                if (sessConfig->numberOfRoundsPlayed < sessConfig->trials[0].count / 2) {
+                                    experimentConfig.timeWarpEnabled = !experimentConfig.timeWarpEnabled;
 
-                                bool tw = m_tw_type == 1 ? sessConfig->numberOfRoundsPlayed < sessConfig->trials[0].count / 2 : sessConfig->numberOfRoundsPlayed >= sessConfig->trials[0].count / 2;
-                                if (tw)
-                                    experimentConfig.timeWarpEnabled = true;
-                                else
-                                    experimentConfig.timeWarpEnabled = false;
+                                    m_clientFirstRoundPeeker = sessConfig->player.client1StartsAsRunner;
+                                    // Make them instantly spawn to the new location
+                                    m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].respawnToPos = true;
+                                    m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].respawnToPos = true;
 
-                                // Make them instantly spawn to the new location
-                                m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].respawnToPos = true;
-                                m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].respawnToPos = true;
+                                    m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].timeWarpEnabled = experimentConfig.timeWarpEnabled;
+                                    m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].timeWarpEnabled = experimentConfig.timeWarpEnabled;
 
-                                m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].timeWarpEnabled = experimentConfig.timeWarpEnabled;
-                                m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].timeWarpEnabled = experimentConfig.timeWarpEnabled;
+                                    shared_ptr<SendPlayerConfigPacket> outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[m_clientFirstRoundPeeker]->peer);
+                                    outPacket->populate(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], sessConfig->networkedSessionProgress);
+                                    NetworkUtils::send(outPacket);
+                                    outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[!m_clientFirstRoundPeeker]->peer);
+                                    outPacket->populate(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], sessConfig->networkedSessionProgress);
+                                    NetworkUtils::send(outPacket);
 
-                                shared_ptr<SendPlayerConfigPacket> outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[!m_clientFirstRoundPeeker]->peer);
-                                outPacket->populate(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first], sessConfig->networkedSessionProgress);
-                                NetworkUtils::send(outPacket);
-                                outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[m_clientFirstRoundPeeker]->peer);
-                                outPacket->populate(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second], sessConfig->networkedSessionProgress);
-                                NetworkUtils::send(outPacket);
+                                    // Set Latency 
+                                    NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->peer->address, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->pingAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
 
-                                // Set Latency 
-                                NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->peer->address, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].clientLatency);
-                                NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->unreliableAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].clientLatency);
-                                NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->pingAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->peer->address, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->pingAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
 
-                                NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->peer->address, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].clientLatency);
-                                NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].clientLatency);
-                                NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->pingAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second].clientLatency);
+                                    //Log configs
+                                    sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                                    sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                                }
+                                else {
 
-                                //Log configs
-                                sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
-                                sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                                    experimentConfig.timeWarpEnabled = !experimentConfig.timeWarpEnabled;
+                                    // Make them instantly spawn to the new location
+                                    m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].first].respawnToPos = true;
+                                    m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].second].respawnToPos = true;
+
+                                    m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].first].timeWarpEnabled = experimentConfig.timeWarpEnabled;
+                                    m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].second].timeWarpEnabled = experimentConfig.timeWarpEnabled;
+
+                                    shared_ptr<SendPlayerConfigPacket> outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[!m_clientFirstRoundPeeker]->peer);
+                                    outPacket->populate(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].first], sessConfig->networkedSessionProgress);
+                                    NetworkUtils::send(outPacket);
+                                    outPacket = GenericPacket::createReliable<SendPlayerConfigPacket>(m_connectedClients[m_clientFirstRoundPeeker]->peer);
+                                    outPacket->populate(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].second], sessConfig->networkedSessionProgress);
+                                    NetworkUtils::send(outPacket);
+
+                                    // Set Latency 
+                                    NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->peer->address, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].first].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->unreliableAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].first].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->pingAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].first].clientLatency);
+
+                                    NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->peer->address, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].second].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].second].clientLatency);
+                                    NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->pingAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].second].clientLatency);
+
+                                    //Log configs
+                                    sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                                    sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                                }
                             }
                             shared_ptr<StartSessionPacket> startSessPacket = GenericPacket::createForBroadcast<StartSessionPacket>();
                             startSessPacket->populate(m_networkFrameNum);
@@ -952,7 +1017,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
     
 
     /// Set number of rounds
-    sessConfig->trials[0].count = peekerDefenderConfigCombinationsIdx.size() * 2; // For Time Warp
+    sessConfig->trials[0].count = peekerDefenderConfigCombinationsIdx.size() * 4; // For Time Warp we need to multiply by 4. 
 
     /// Shuffle combinations
     for (int i = 0; i < peekerDefenderConfigCombinationsIdx.size(); i++)
