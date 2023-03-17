@@ -428,6 +428,15 @@ void FPSciServerApp::onNetwork()
                         NetworkUtils::broadcastReliable(respawnPacket, m_localHost);
                         shared_ptr<AddPointPacket> pointPacket = GenericPacket::createReliable<AddPointPacket>(client->peer);
                         NetworkUtils::send(pointPacket);
+                        for (auto killClient : m_connectedClients)
+                        {
+                            if (killClient->guid != client->guid)
+                            {
+                                shared_ptr<DecrementPointPacket> killPacket = GenericPacket::createReliable<DecrementPointPacket>(killClient->peer);
+                                NetworkUtils::send(killPacket);
+                                break;
+                            }
+                        }
                     }
                     // Notify every player of the hit
                     shared_ptr<PlayerInteractPacket> interactPacket = GenericPacket::createForBroadcast<PlayerInteractPacket>();
@@ -1369,6 +1378,11 @@ void FPSciServerApp::simulateWeapons()
                         {
                             shared_ptr<AddPointPacket> pointPacket = GenericPacket::createReliable<AddPointPacket>(client->peer);
                             NetworkUtils::send(pointPacket);
+                        }
+                        else {
+                            // Send the kill packet to the other client
+                            shared_ptr<DecrementPointPacket> killPacket = GenericPacket::createReliable<DecrementPointPacket>(client->peer);
+                            NetworkUtils::send(killPacket);
                         }
                     }
                 }

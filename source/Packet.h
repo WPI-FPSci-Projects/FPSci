@@ -35,6 +35,7 @@ enum PacketType {
 
 	SEND_PLAYER_CONFIG,
 	ADD_POINTS,
+	DECREMENT_POINTS,
 	RESET_CLIENT_ROUND,
 	CLIENT_FEEDBACK_START,
 	CLIENT_SESSION_END,
@@ -632,6 +633,27 @@ protected:
 public:
 	PacketType type() override { return ADD_POINTS; }
 	shared_ptr<GenericPacket> clone() override { return createShared<AddPointPacket>(*this); }
+
+	/** This Packet has no content and as such does not have a populate method */
+
+protected:
+	void serialize(BinaryOutput& outBuffer) override;
+	void deserialize(BinaryInput& inBuffer) override;
+};
+
+/** TODO: Add comment here for packet description
+
+*/
+class DecrementPointPacket : public GenericPacket {
+protected:
+	DecrementPointPacket() : GenericPacket() {}
+	DecrementPointPacket(ENetAddress srcAddr, BinaryInput& inBuffer) : GenericPacket(srcAddr) { this->deserialize(inBuffer); }
+	DecrementPointPacket(ENetPeer* destPeer) : GenericPacket(destPeer) {}
+	DecrementPointPacket(ENetSocket* srcSocket, ENetAddress* destAddr) : GenericPacket(srcSocket, destAddr) {}
+
+public:
+	PacketType type() override { return DECREMENT_POINTS; }
+	shared_ptr<GenericPacket> clone() override { return createShared<DecrementPointPacket>(*this); }
 
 	/** This Packet has no content and as such does not have a populate method */
 

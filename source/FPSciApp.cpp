@@ -1472,10 +1472,21 @@ void FPSciApp::onNetwork() {
 				}
 				break;
 			}
+			case DECREMENT_POINTS: {
+				sessConfig->clientDeath++;
+				debugPrintf("I GOT HIT! Death added!\n");
+				scene()->typedEntity<PlayerEntity>("player")->respawn();
+				/*if (experimentConfig.concealShotSound)
+				{
+					weapon->playSound(true, true);
+				}*/
+				break;
+			}
 			case RESET_CLIENT_ROUND: {
 				netSess.get()->resetRound();
 				scene()->typedEntity<PlayerEntity>("player")->respawn();
 				sessConfig->clientScore = 0;
+				sessConfig->clientDeath = 0;
 				break;
 			}
 			case CLIENT_FEEDBACK_START: {

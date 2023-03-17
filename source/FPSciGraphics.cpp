@@ -578,18 +578,35 @@ void FPSciApp::drawHUD(RenderDevice *rd, Vector2 resolution) {
 		}
 
 		const double score = sess->getScore();
-		String score_string;
+		const double death = sess->getDeathCount();
+		String score_string = "K: ";
+
 		if (score < 1e3) {
-			score_string = format("%d", (int)G3D::round(score));
+			score_string += format("%d", (int)G3D::round(score));
 		}
 		else if (score > 1e3 && score < 1e6) {
-			score_string = format("%dk", (int)G3D::round(score / 1e3));
+			score_string += format("%dk", (int)G3D::round(score / 1e3));
 		}
 		else if (score > 1e6 && score < 1e9) {
-			score_string = format("%dM", (int)G3D::round(score / 1e6));
+			score_string += format("%dM", (int)G3D::round(score / 1e6));
 		}
 		else if (score > 1e9) {
-			score_string = format("%dB", (int)G3D::round(score / 1e9));
+			score_string += format("%dB", (int)G3D::round(score / 1e9));
+		}
+
+		score_string += "  D: ";
+
+		if (death < 1e3) {
+			score_string += format("%d", (int)G3D::round(death));
+		}
+		else if (death > 1e3 && death < 1e6) {
+			score_string += format("%dk", (int)G3D::round(death / 1e3));
+		}
+		else if (death > 1e6 && death < 1e9) {
+			score_string += format("%dM", (int)G3D::round(death / 1e6));
+		}
+		else if (death > 1e9) {
+			score_string += format("%dB", (int)G3D::round(death / 1e9));
 		}
 
 		if (sessConfig->hud.bannerTimerMode != "none" && (sess->inTask() || (sessConfig->isNetworked != nullptr && *sessConfig->isNetworked))) {

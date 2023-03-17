@@ -174,6 +174,7 @@ public:
 	bool				closeOnComplete = false;		///< Close application on session completed?
 	bool*				isNetworked = nullptr;			///< Checks if its a networked session or not
 	int					clientScore = 0;				///< Keeps track of clients score
+	int					clientDeath = 0;				///< Keeps track of how many time client got hit
 	int					hitsToKill = 1;
 	int					networkLatency = 0;				///< Amount of latenecy to add to all network packets
 	int					numberOfRoundsPlayed = 0;		///< Tracks the number of rounds played by the clients
@@ -474,6 +475,7 @@ public:
 	float getRemainingTrialTime();
 	float getProgress();
 	double getScore();
+	double getDeathCount();
 	String getFeedbackMessage();
 
 	/** queues action with given name to insert into database when trial completes

@@ -514,6 +514,18 @@ void AddPointPacket::deserialize(BinaryInput& inBuffer) {
 	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
 }
 
+/**************************
+ *DECREMENT POINTS PACKET *
+ **************************/
+
+void DecrementPointPacket::serialize(BinaryOutput& outBuffer) {
+	GenericPacket::serialize(outBuffer);	// Call the super serialize
+}
+
+void DecrementPointPacket::deserialize(BinaryInput& inBuffer) {
+	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
+}
+
 
 /****************************
  *RESET CLIENT ROUND PACKET *
