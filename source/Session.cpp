@@ -731,6 +731,12 @@ double Session::getScore() {
 	return 100.0 * m_totalRemainingTime;
 }
 
+double Session::getDeathCount() {
+	if (m_config->isNetworked != nullptr && *m_config->isNetworked)
+		return (float)m_config->clientDeath;
+	return 0;
+}
+
 String Session::formatCommand(const String& input) {
 	const char delimiter = '%';			///< Start of all valid substrings
 	String formatted = input;			///< Output string

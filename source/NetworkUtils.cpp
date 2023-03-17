@@ -63,6 +63,9 @@ shared_ptr<GenericPacket> NetworkUtils::createTypedPacket(PacketType type, ENetA
 	case PacketType::ADD_POINTS:
 		return GenericPacket::createReceive<AddPointPacket>(srcAddr, inBuffer);
 		break;
+	case PacketType::DECREMENT_POINTS:
+		return GenericPacket::createReceive<DecrementPointPacket>(srcAddr, inBuffer);
+		break;
 	case PacketType::RESET_CLIENT_ROUND:
 		return GenericPacket::createReceive<ResetClientRoundPacket>(srcAddr, inBuffer);
 		break;
