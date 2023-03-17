@@ -95,6 +95,7 @@ public:
 	float			clientLatency = 0.0f;						///< Clients latency over the network
 	int				placeboPingType = 1;						///< Integer specifying the type of placebo ping: 0: fixed value, 1: additive modifier, 2: multiplicative modifier
 	int				placeboPingModifier = 0;					///< Latency modifier value for placebo ping
+	bool			timeWarpEnabled = false;					///< Boolean to indicate if the server Time Warp is enabled or not
 	Array <PlayerConfig>  clientPlayerConfigs;					///< Player config for all the clients
 
 	// For peekers and defenders per round config settings

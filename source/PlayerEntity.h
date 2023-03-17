@@ -103,6 +103,8 @@ public:
     bool* propagatePlayerConfigsToSelectedClient = nullptr; ///< Checks if propagating player configs to one client is enabled or not
     bool* readFromFile = nullptr;                   ///< When true, the server will read from config and send the data to the clients
 
+    bool* timeWarpEnabled = nullptr;                ///< When true, it means time warp is enabled. This will be used to display hud info at client side
+
     int* selectedClientIdx = nullptr;               ///< Indicates to the index of the client thats currently selected
 
     Array <PlayerConfig>* clientPlayerConfigs = nullptr;  ///< Holds config for connected clients

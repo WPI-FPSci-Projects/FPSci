@@ -787,6 +787,7 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->readFromFile = &sessConfig->player.readFromFile;
 	player->selectedClientIdx = &sessConfig->player.selectedClientIdx;
 	player->clientPlayerConfigs = &sessConfig->player.clientPlayerConfigs;
+	player->timeWarpEnabled = &sessConfig->player.timeWarpEnabled;
 	// Respawn player
 	player->respawn();
 	updateMouseSensitivity();
@@ -1450,7 +1451,10 @@ void FPSciApp::onNetwork() {
 
 				sessConfig->player.placeboPingType = typedPacket->m_playerConfig->placeboPingType;
 				sessConfig->player.placeboPingModifier = typedPacket->m_playerConfig->placeboPingModifier;
+				sessConfig->player.timeWarpEnabled = typedPacket->m_playerConfig->timeWarpEnabled;
 
+				experimentConfig.timeWarpEnabled = typedPacket->m_playerConfig->timeWarpEnabled; // FOR HUD ONLY
+				
 				//Set Latency
 				NetworkUtils::setAddressLatency(m_unreliableServerAddress, sessConfig->player.clientLatency);
 				NetworkUtils::setAddressLatency(typedPacket->srcAddr(), sessConfig->player.clientLatency);
