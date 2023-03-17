@@ -296,10 +296,11 @@ public:
 	shared_ptr<GenericPacket> clone() override { return createShared<RegisterClientPacket>(*this); }
 
 	/** Fills in the member varibales from the parameters (Must be called prior to calling send()) */
-	void populate(ENetPeer* peer, GUniqueID guid, uint16 portNum);
+	void populate(ENetPeer* peer, GUniqueID guid, uint16 portNum, uint16 pingPortNum);
 
 	ENetPeer* m_peer;								///< Peer for the connecting client
 	uint16 m_portNum;								///< Port number the client is listening on for the unreliable channel
+	uint16 m_pingPortNum;							///< Port for ping packets
 	GUniqueID m_guid;								///< GUID of the client (Same as the name of the NetworkedTarget entity that represents them)
 
 protected:
