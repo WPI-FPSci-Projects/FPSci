@@ -96,6 +96,10 @@ public:
 	int				placeboPingType = 1;						///< Integer specifying the type of placebo ping: 0: fixed value, 1: additive modifier, 2: multiplicative modifier
 	int				placeboPingModifier = 0;					///< Latency modifier value for placebo ping
 	bool			timeWarpEnabled = false;					///< Boolean to indicate if the server Time Warp is enabled or not
+
+	bool			roleShuffleEnabled = true;					///< Roles will be shuffled and altered each round if true, else, half of round one client will hold same role and vice versa
+	bool			client1StartsAsRunner = true;				///< Client 1 will start as runner in the first half. (Role shuffle needs to be disabled to activate this)
+
 	Array <PlayerConfig>  clientPlayerConfigs;					///< Player config for all the clients
 
 	// For peekers and defenders per round config settings

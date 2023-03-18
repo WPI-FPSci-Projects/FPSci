@@ -276,6 +276,9 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("clientPlaceboPingTypeArray", clientPlaceboPingTypeArray);
 		reader.getIfPresent("clientPlaceboPingModifierArray", clientPlaceboPingModifierArray);
 
+		reader.getIfPresent("roleShuffleEnabled", roleShuffleEnabled);
+		reader.getIfPresent("client1StartsAsRunner", client1StartsAsRunner);
+
 		break;
 	default:
 		throw format("Did not recognize settings version: %d", settingsVersion);
