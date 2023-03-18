@@ -556,11 +556,78 @@ void FPSciLogger::recordNetworkedClients(const Array<NetworkedClient>& clients) 
 }
 
 void FPSciLogger::createPlayerConfigTable() {
-	// TODO, implement once config is finalized
+	Columns playerColumns = {
+		{"time", "text"},
+		{"trial_id", "real"},
+		{"player_id", "text"},
+		{"moveRate", "real"},
+		{"respawnPosX", "real"},
+		{"respawnPosY", "real"},
+		{"respawnPosZ", "real"},
+		{"respawnHeading", "real"},
+		{"movementRestrictionX", "real"},
+		{"movementRestrictionZ", "real"},
+		{"restrictedMovementEnabled", "boolean"},
+		{"restrictionBoxAngle", "real"},
+		{"counterStrafing", "boolean"},
+		{"selectedClientIdx", "integer"},
+		{"playerType", "text"},
+		{"clientLatency", "real"},
+		{"clientPlaceboPingType", "text"},
+		{"clientPlaceboPingModifier", "text"},
+		{"timeWarpOn", "boolean"}
+	};
+	createTableInDB(m_db, "PlayerConfigs", playerColumns);
 }
 
 void FPSciLogger::logPlayerConfig(const PlayerConfig& playerConfig, const GUniqueID& id, int trialNumber) {
-	// TODO, implement once config is finalized
+	const String time = genUniqueTimestamp();
+	/*Any emptyAny = Any(Any::TABLE);
+	emptyAny = playerConfig.addToAny(emptyAny);*/
+
+	String placeboType;
+	switch (playerConfig.placeboPingType) {
+	case 0: {
+		placeboType = "Replace";
+		break;
+	}
+	case 1: {
+		placeboType = "Additive";
+		break;
+	}
+	case 2: {
+		placeboType = "Multiplicative";
+		break;
+	}
+	default: {
+		placeboType = "Invalid";
+		break;
+	}
+
+	}
+
+	RowEntry row = {
+		"'" + time + "'",
+		String(std::to_string(trialNumber)),
+		"'" + id.toString16() + "'",
+		String(std::to_string(playerConfig.moveRate)),
+		String(std::to_string(playerConfig.respawnPos.x)),
+		String(std::to_string(playerConfig.respawnPos.y)),
+		String(std::to_string(playerConfig.respawnPos.z)),
+		String(std::to_string(playerConfig.respawnHeading)),
+		String(std::to_string(playerConfig.movementRestrictionX)),
+		String(std::to_string(playerConfig.movementRestrictionZ)),
+		String(std::to_string(playerConfig.restrictedMovementEnabled)),
+		String(std::to_string(playerConfig.restrictionBoxAngle)),
+		String(std::to_string(playerConfig.counterStrafing)),
+		String(std::to_string(playerConfig.selectedClientIdx)),
+		"'" + playerConfig.playerType + "'",
+		String(std::to_string(playerConfig.clientLatency)),
+		"'" + placeboType + "'",
+		String(std::to_string(playerConfig.placeboPingModifier)),
+		playerConfig.timeWarpEnabled ? "true" : "false",
+	};
+	m_playerConfigs.append(row);
 }
 
 void FPSciLogger::createPingStatisticsTable() {
