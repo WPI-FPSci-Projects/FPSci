@@ -574,7 +574,7 @@ void FPSciLogger::createPlayerConfigTable() {
 		{"playerType", "text"},
 		{"clientLatency", "real"},
 		{"clientPlaceboPingType", "text"},
-		{"clientPlaceboPingModifier", "int"},
+		{"clientPlaceboPingModifier", "text"},
 		{"timeWarpOn", "boolean"}
 	};
 	createTableInDB(m_db, "PlayerConfigs", playerColumns);
