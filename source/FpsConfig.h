@@ -93,7 +93,7 @@ public:
 	int				selectedClientIdx = 0;						///< Indicates the index of the client that player configs will be propagated to
 	String			playerType = "";							///< Indicates what type of player it is (Peeker/Defender/Other)
 	float			clientLatency = 0.0f;						///< Clients latency over the network
-	int				placeboPingType = 1;						///< Integer specifying the type of placebo ping: 0: fixed value, 1: additive modifier, 2: multiplicative modifier
+	int				placeboPingType = 1;						///< Integer specifying the type of placebo ping: -1: don't display ping for round, 0: fixed value, 1: additive modifier, 2: multiplicative modifier
 	int				placeboPingModifier = 0;					///< Latency modifier value for placebo ping
 	bool			timeWarpEnabled = false;					///< Boolean to indicate if the server Time Warp is enabled or not
 

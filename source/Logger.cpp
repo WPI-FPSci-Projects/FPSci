@@ -587,6 +587,10 @@ void FPSciLogger::logPlayerConfig(const PlayerConfig& playerConfig, const GUniqu
 
 	String placeboType;
 	switch (playerConfig.placeboPingType) {
+	case -1: {
+		placeboType = "Ping Hidden";
+		break;
+	}
 	case 0: {
 		placeboType = "Replace";
 		break;

@@ -423,7 +423,7 @@ void FPSciApp::updateFPSIndicator(RenderDevice* rd, Vector2 resolution) {
 }
 
 void FPSciApp::updatePingIndicator(RenderDevice* rd, Vector2 resolution) {
-	if (renderPing) {
+	if (renderPing && sessConfig->player.placeboPingType != -1) {
 
 		Array<int> thresholds = experimentConfig.pingThresholds;
 
@@ -464,7 +464,7 @@ void FPSciApp::drawLCDebugIndicator(RenderDevice* rd, Vector2 resolution) {
 	if (renderLCDebug) {
 		
 		//Enabled Latency Compensations:
-		String leEnabled = startupConfig.pingEnabled && renderPing ? "LE " : "";
+		String leEnabled = startupConfig.pingEnabled && renderPing && sessConfig->player.placeboPingType != -1 ? "LE " : "";
 		String lcEnabled = experimentConfig.concealShotSound ? "LC " : "";
 		String twEnabled = experimentConfig.timeWarpEnabled ? "T " : "";
 		String exEnabled = experimentConfig.extrapolationEnabled ? "E" : "";
