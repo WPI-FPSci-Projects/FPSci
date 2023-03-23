@@ -79,7 +79,7 @@ public:
 	bool			accelerationEnabled = false;				///< Enables/Disables the acceleration/deceleration functionality (default is false (disabled))
 	float			movementAcceleration = 12.0f;				///< Player acceleration during movement (defaults to 12.0)
 	float			movementDeceleration = 22.0f;				///< Player deceleration while stopping (defaults to 12.0)
-	Point3			respawnPos = Point3(-46.0f, -2.3f, 0.0f);	///< Player respawn position (defualts to -46, -2.3, 0)
+	Point3			respawnPos = Point3(0.0f, 1.0f, -20.0f);	///< Player respawn position (defualts to 0.0f, 1.0f, -20.0f)
 	float			respawnHeading = 0.0f;						///< Players respawn heading. (Defaults to 0 degree)
 	bool			respawnToPos = false;						///< If true, player will respawn to respawnPos. (defaults to false)
 	float			movementRestrictionX = 5.0f;				///< Player's restricted movement span along X
@@ -104,7 +104,7 @@ public:
 	Array <PlayerConfig>  clientPlayerConfigs;					///< Player config for all the clients
 
 	// For peekers and defenders per round config settings
-	Array<Point3> respawnPosArray = { Point3(-42.0f, -2.3f, 0.0f), Point3(-46.0f, -2.3f, 0.0f) }; ///< Holds Peeker's/Defender's spawn position
+	Array<Point3> respawnPosArray = { Point3(0, 1, -20), Point3(0, 1, -5) };					  ///< Holds Peeker's/Defender's spawn position "respawnPosArray": [Point3(0, 1, -20), Point3(0, 1, -5)],
 	Array<float> respawnHeadingArray = { 0.0f, 90.0f };											  ///< Holds Peeker's/Defender's respawn heading
 	Array<float> movementRestrictionXArray = { 3.0f, 2.0f };									  ///< Holds Peeker's/Defender's restricted movement span along X 
 	Array<float> movementRestrictionZArray = { 3.0f, 2.0f };								      ///< Holds Peeker's/Defender's restricted movement span along Z

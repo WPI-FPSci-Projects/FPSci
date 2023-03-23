@@ -368,7 +368,7 @@ void FPSciServerApp::onNetwork()
                 // move the client to a different location
                 // TODO: Make this smart not just some test code
                 if (m_connectedClients.length() % 2 == 0) {
-                    Point3 position = Point3(-46, -2.3, 0);
+                    Point3 position = Point3(0.0, 1.1, -5); 
                     float heading = 90;
                     shared_ptr<SetSpawnPacket> setSpawnPacket = GenericPacket::createReliable<SetSpawnPacket>(newClient->peer);
                     setSpawnPacket->populate(position, heading);
