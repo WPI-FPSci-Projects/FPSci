@@ -522,8 +522,8 @@ void FPSciServerApp::onNetwork()
                             NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->pingAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
 
                             //Log configs
-                            sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
-                            sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                            sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                            sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
                         }
                         else {
 
@@ -552,8 +552,8 @@ void FPSciServerApp::onNetwork()
                             NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->pingAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].second].clientLatency);
 
                             //Log configs
-                            sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].first], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
-                            sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 4].second], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                            sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].first], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
+                            sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].second], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
                         }
                     }
                     shared_ptr<StartSessionPacket> startSessPacket = GenericPacket::createForBroadcast<StartSessionPacket>();
@@ -928,6 +928,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
                 m_peekersRoundConfigs[j].respawnHeading = sessConfig->player.respawnHeadingArray[i];
                 m_peekersRoundConfigs[j].restrictedMovementEnabled = sessConfig->player.restrictedMovementEnabledArray[i];
                 m_peekersRoundConfigs[j].restrictionBoxAngle = sessConfig->player.restrictionBoxAngleArray[i];
+                m_peekersRoundConfigs[j].moveRate = sessConfig->player.moveRateArray[i];
                 m_peekersRoundConfigs[j].playerType = "RUNNER";
 
                 m_peekersRoundConfigs[j].clientLatency = sessConfig->player.clientLatencyArray[j - peekersConfigIdx];   //TODO CHANGE MOVERATE WITH LATENCY
@@ -949,6 +950,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
                 m_defendersRoundConfigs[j].movementRestrictionX = sessConfig->player.movementRestrictionXArray[i];
                 m_defendersRoundConfigs[j].movementRestrictionZ = sessConfig->player.movementRestrictionZArray[i];
                 m_defendersRoundConfigs[j].restrictedMovementEnabled = sessConfig->player.restrictedMovementEnabledArray[i];
+                m_defendersRoundConfigs[j].moveRate = sessConfig->player.moveRateArray[i];
                 m_defendersRoundConfigs[j].restrictionBoxAngle = sessConfig->player.restrictionBoxAngleArray[i];
                 m_defendersRoundConfigs[j].playerType = "SHOOTER";
 

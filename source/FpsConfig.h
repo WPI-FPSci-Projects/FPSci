@@ -106,7 +106,8 @@ public:
 	Array<Point3> respawnPosArray = { Point3(-42.0f, -2.3f, 0.0f), Point3(-46.0f, -2.3f, 0.0f) }; ///< Holds Peeker's/Defender's spawn position
 	Array<float> respawnHeadingArray = { 0.0f, 90.0f };											  ///< Holds Peeker's/Defender's respawn heading
 	Array<float> movementRestrictionXArray = { 3.0f, 2.0f };									  ///< Holds Peeker's/Defender's restricted movement span along X 
-	Array<float> movementRestrictionZArray = { 3.0f, 2.0f };								      ///< Holds Peeker's/Defender's restricted movement span along Z 
+	Array<float> movementRestrictionZArray = { 3.0f, 2.0f };								      ///< Holds Peeker's/Defender's restricted movement span along Z
+	Array<float> moveRateArray = {7.0f,7.0f};														      ///< Holds the move rate for different roles
 	Array<bool>	 restrictedMovementEnabledArray = {true, true};									  ///< If true, Peeker's/Defender's movement will be restricted along X and Z
 	Array<float> restrictionBoxAngleArray = { 10.0f, 0.0f };									  ///< Rotates Peeker's/Defender's the restriction box (degrees)
 
