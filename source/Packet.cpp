@@ -448,6 +448,7 @@ void SendPlayerConfigPacket::serialize(BinaryOutput& outBuffer) {
 	outBuffer.writeInt32(selectedConfig.placeboPingModifier);
 
 	outBuffer.writeBool8(selectedConfig.timeWarpEnabled);
+	outBuffer.writeBool8(selectedConfig.clientCanShoot);
 }
 
 void SendPlayerConfigPacket::deserialize(BinaryInput& inBuffer) {
@@ -499,6 +500,7 @@ void SendPlayerConfigPacket::deserialize(BinaryInput& inBuffer) {
 	m_playerConfig->placeboPingModifier = inBuffer.readInt32();
 
 	m_playerConfig->timeWarpEnabled = inBuffer.readBool8();
+	m_playerConfig->clientCanShoot = inBuffer.readBool8();
 }
 
 

@@ -788,6 +788,7 @@ void FPSciApp::initPlayer(bool setSpawnPosition) {
 	player->selectedClientIdx = &sessConfig->player.selectedClientIdx;
 	player->clientPlayerConfigs = &sessConfig->player.clientPlayerConfigs;
 	player->timeWarpEnabled = &sessConfig->player.timeWarpEnabled;
+	player->clientCanShoot = &sessConfig->player.clientCanShoot;
 	// Respawn player
 	player->respawn();
 	updateMouseSensitivity();
@@ -1452,6 +1453,8 @@ void FPSciApp::onNetwork() {
 				sessConfig->player.placeboPingType = typedPacket->m_playerConfig->placeboPingType;
 				sessConfig->player.placeboPingModifier = typedPacket->m_playerConfig->placeboPingModifier;
 				sessConfig->player.timeWarpEnabled = typedPacket->m_playerConfig->timeWarpEnabled;
+				sessConfig->player.clientCanShoot = typedPacket->m_playerConfig->clientCanShoot;
+				
 
 				experimentConfig.timeWarpEnabled = typedPacket->m_playerConfig->timeWarpEnabled; // FOR HUD ONLY
 				
@@ -1520,103 +1523,106 @@ void FPSciApp::onSimulation(RealTime rdt, SimTime sdt, SimTime idt) {
 
 	bool stateCanFire = sess->currentState == PresentationState::trialTask || (experimentConfig.isNetworked) && !m_userSettingsWindow->visible();
 
-	// These variables will be used to fire after the various weapon styles populate them below
-	int numShots = 0;
-	float damagePerShot = +weapon->damagePerShot();
-	RealTime newLastFireTime = currentRealTime;
+	
+	if (sessConfig->player.clientCanShoot)
+	{
+		// These variables will be used to fire after the various weapon styles populate them below
+		int numShots = 0;
+		float damagePerShot = +weapon->damagePerShot();
+		RealTime newLastFireTime = currentRealTime;
 
-	if (shootButtonJustPressed && stateCanFire && !weapon->canFire(currentRealTime))
-	{
-		// Invalid click since the weapon isn't ready to fire
-		sess->accumulatePlayerAction(PlayerActionType::FireCooldown);
-	}
-	else if (shootButtonJustPressed && !weapon->config()->autoFire && weapon->canFire(currentRealTime) && stateCanFire)
-	{
-		// Discrete weapon fires a single shot with normal damage at the current time
-		numShots = 1;
-		// These copy the above defaults, but are here for clarity
-		damagePerShot = weapon->damagePerShot();
-		newLastFireTime = currentRealTime;
-	}
-	else if (weapon->config()->autoFire && !weapon->config()->isContinuous() && !shootButtonUp && stateCanFire)
-	{
-		// Autofire weapon should create shots until currentRealTime with normal damage
-		if (shootButtonJustPressed)
+		if (shootButtonJustPressed && stateCanFire && !weapon->canFire(currentRealTime))
 		{
-			// If the button was just pressed, fire one bullet half way through
-			weapon->setLastFireTime(m_lastOnSimulationRealTime + rdt * 0.5f);
+			// Invalid click since the weapon isn't ready to fire
+			sess->accumulatePlayerAction(PlayerActionType::FireCooldown);
+		}
+		else if (shootButtonJustPressed && !weapon->config()->autoFire && weapon->canFire(currentRealTime) && stateCanFire)
+		{
+			// Discrete weapon fires a single shot with normal damage at the current time
 			numShots = 1;
+			// These copy the above defaults, but are here for clarity
+			damagePerShot = weapon->damagePerShot();
+			newLastFireTime = currentRealTime;
 		}
-		// Add on bullets until the frame time
-		int newShots = weapon->numShotsUntil(currentRealTime);
-		numShots += newShots;
-		newLastFireTime = weapon->lastFireTime() + (float)(newShots)*weapon->config()->firePeriod;
-		// This copies the above default, but are here for clarity
-		damagePerShot = weapon->damagePerShot();
-	}
-	else if (weapon->config()->isContinuous() && (!shootButtonUp || shootButtonJustReleased) && stateCanFire)
-	{
-		// Continuous weapon should have been firing continuously, but since we do sampled simulation
-		// this approximates continuous fire by releasing a single "megabullet"
-		// with power that matches the elapsed time at the current
-		numShots = 1;
-
-		// If the button was just pressed, assume the duration should begin half way through
-		if (shootButtonJustPressed)
+		else if (weapon->config()->autoFire && !weapon->config()->isContinuous() && !shootButtonUp && stateCanFire)
 		{
-			weapon->setLastFireTime(m_lastOnSimulationRealTime + rdt * 0.5f);
-		}
-		// If the shoot button just released, assume the fire ended half way through
-		newLastFireTime = shootButtonJustReleased ? m_lastOnSimulationRealTime + rdt * 0.5f : currentRealTime;
-		RealTime fireDuration = weapon->fireDurationUntil(newLastFireTime);
-		damagePerShot = (float)fireDuration * weapon->config()->damagePerSecond;
-	}
-
-	// Actually shoot here
-	m_currentWeaponDamage = damagePerShot; // pass this to the callback where weapon damage is applied
-	bool shotFired = false;
-	for (int shotId = 0; shotId < numShots; shotId++)
-	{
-		Array<shared_ptr<Entity>> dontHit;
-		dontHit.append(m_explosions);
-		dontHit.append(sess->unhittableTargets());
-		Model::HitInfo info;
-		float hitDist = finf();
-		int hitIdx = -1;
-
-		shared_ptr<TargetEntity> target = weapon->fire(sess->hittableTargets(), hitIdx, hitDist, info, dontHit, false); // Fire the weapon
-		if (isNull(target))																								// Miss case
-		{
-			// Play scene hit sound
-			if (!weapon->config()->isContinuous() && notNull(m_sceneHitSound))
+			// Autofire weapon should create shots until currentRealTime with normal damage
+			if (shootButtonJustPressed)
 			{
-				m_sceneHitSound->play(sessConfig->audio.sceneHitSoundVol);
+				// If the button was just pressed, fire one bullet half way through
+				weapon->setLastFireTime(m_lastOnSimulationRealTime + rdt * 0.5f);
+				numShots = 1;
 			}
+			// Add on bullets until the frame time
+			int newShots = weapon->numShotsUntil(currentRealTime);
+			numShots += newShots;
+			newLastFireTime = weapon->lastFireTime() + (float)(newShots)*weapon->config()->firePeriod;
+			// This copies the above default, but are here for clarity
+			damagePerShot = weapon->damagePerShot();
 		}
-		shotFired = true;
-	}
-	if (shotFired)
-	{
-		weapon->setLastFireTime(newLastFireTime);
+		else if (weapon->config()->isContinuous() && (!shootButtonUp || shootButtonJustReleased) && stateCanFire)
+		{
+			// Continuous weapon should have been firing continuously, but since we do sampled simulation
+			// this approximates continuous fire by releasing a single "megabullet"
+			// with power that matches the elapsed time at the current
+			numShots = 1;
+
+			// If the button was just pressed, assume the duration should begin half way through
+			if (shootButtonJustPressed)
+			{
+				weapon->setLastFireTime(m_lastOnSimulationRealTime + rdt * 0.5f);
+			}
+			// If the shoot button just released, assume the fire ended half way through
+			newLastFireTime = shootButtonJustReleased ? m_lastOnSimulationRealTime + rdt * 0.5f : currentRealTime;
+			RealTime fireDuration = weapon->fireDurationUntil(newLastFireTime);
+			damagePerShot = (float)fireDuration * weapon->config()->damagePerSecond;
+		}
+
+		// Actually shoot here
+		m_currentWeaponDamage = damagePerShot; // pass this to the callback where weapon damage is applied
+		bool shotFired = false;
+		for (int shotId = 0; shotId < numShots; shotId++)
+		{
+			Array<shared_ptr<Entity>> dontHit;
+			dontHit.append(m_explosions);
+			dontHit.append(sess->unhittableTargets());
+			Model::HitInfo info;
+			float hitDist = finf();
+			int hitIdx = -1;
+
+			shared_ptr<TargetEntity> target = weapon->fire(sess->hittableTargets(), hitIdx, hitDist, info, dontHit, false); // Fire the weapon
+			if (isNull(target))																								// Miss case
+			{
+				// Play scene hit sound
+				if (!weapon->config()->isContinuous() && notNull(m_sceneHitSound))
+				{
+					m_sceneHitSound->play(sessConfig->audio.sceneHitSoundVol);
+				}
+			}
+			shotFired = true;
+		}
+		if (shotFired)
+		{
+			weapon->setLastFireTime(newLastFireTime);
 #		if !defined FPSciServerMode
-		if (experimentConfig.isNetworked && experimentConfig.isAuthoritativeServer)
-		{
-			// Send fire report if server authoritative weapon simulation
-			if (sess->currentState == networkedSessionRoundStart)
+			if (experimentConfig.isNetworked && experimentConfig.isAuthoritativeServer)
 			{
-				shared_ptr<ReportFirePacket> outPacket = GenericPacket::createReliable<ReportFirePacket>(m_serverPeer);
-				outPacket->populate(m_networkFrameNum, true, m_playerGUID);
-				debugPrintf("%d\n", m_networkFrameNum);
-				NetworkUtils::send(outPacket);
+				// Send fire report if server authoritative weapon simulation
+				if (sess->currentState == networkedSessionRoundStart)
+				{
+					shared_ptr<ReportFirePacket> outPacket = GenericPacket::createReliable<ReportFirePacket>(m_serverPeer);
+					outPacket->populate(m_networkFrameNum, true, m_playerGUID);
+					debugPrintf("%d\n", m_networkFrameNum);
+					NetworkUtils::send(outPacket);
+				}
 			}
-		}
 #		endif
+		}
+		if (!experimentConfig.concealShotSound)
+		{
+			weapon->playSound(shotFired, shootButtonUp);
+		}
 	}
-	if (!experimentConfig.concealShotSound)
-	{
-		weapon->playSound(shotFired, shootButtonUp);
-	}
-
 	// TODO (or NOTTODO): The following can be cleared at the cost of one more level of inheritance.
 	sess->onSimulation(rdt, sdt, idt);
 

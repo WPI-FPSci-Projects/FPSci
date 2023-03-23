@@ -107,6 +107,8 @@ public:
 
     int* selectedClientIdx = nullptr;               ///< Indicates to the index of the client thats currently selected
 
+    bool* clientCanShoot = nullptr;                 ///< While true, client will be allowed to shoot
+
     Array <PlayerConfig>* clientPlayerConfigs = nullptr;  ///< Holds config for connected clients
 
     /** \brief Computes all triangles that could be hit during a

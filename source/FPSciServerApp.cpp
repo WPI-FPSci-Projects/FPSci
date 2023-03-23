@@ -497,7 +497,7 @@ void FPSciServerApp::onNetwork()
                         if (sessConfig->numberOfRoundsPlayed < sessConfig->trials[0].count / 2) {
                             experimentConfig.timeWarpEnabled = !experimentConfig.timeWarpEnabled;
 
-                            m_clientFirstRoundPeeker = sessConfig->player.client1StartsAsRunner;
+                            m_clientFirstRoundPeeker = !sessConfig->player.client1StartsAsRunner;
                             // Make them instantly spawn to the new location
                             m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].respawnToPos = true;
                             m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].respawnToPos = true;
@@ -927,6 +927,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
                 m_peekersRoundConfigs[j].movementRestrictionZ = sessConfig->player.movementRestrictionZArray[i];
                 m_peekersRoundConfigs[j].respawnHeading = sessConfig->player.respawnHeadingArray[i];
                 m_peekersRoundConfigs[j].restrictedMovementEnabled = sessConfig->player.restrictedMovementEnabledArray[i];
+                m_peekersRoundConfigs[j].clientCanShoot = sessConfig->player.clientCanShootArray[i];
                 m_peekersRoundConfigs[j].restrictionBoxAngle = sessConfig->player.restrictionBoxAngleArray[i];
                 m_peekersRoundConfigs[j].moveRate = sessConfig->player.moveRateArray[i];
                 m_peekersRoundConfigs[j].playerType = "RUNNER";
@@ -950,6 +951,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
                 m_defendersRoundConfigs[j].movementRestrictionX = sessConfig->player.movementRestrictionXArray[i];
                 m_defendersRoundConfigs[j].movementRestrictionZ = sessConfig->player.movementRestrictionZArray[i];
                 m_defendersRoundConfigs[j].restrictedMovementEnabled = sessConfig->player.restrictedMovementEnabledArray[i];
+                m_defendersRoundConfigs[j].clientCanShoot = sessConfig->player.clientCanShootArray[i];
                 m_defendersRoundConfigs[j].moveRate = sessConfig->player.moveRateArray[i];
                 m_defendersRoundConfigs[j].restrictionBoxAngle = sessConfig->player.restrictionBoxAngleArray[i];
                 m_defendersRoundConfigs[j].playerType = "SHOOTER";

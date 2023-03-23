@@ -269,6 +269,8 @@ void PlayerConfig::load(FPSciAnyTableReader reader, int settingsVersion) {
 		reader.getIfPresent("respawnHeadingArray", respawnHeadingArray);
 		reader.getIfPresent("movementRestrictionXArray", movementRestrictionXArray);
 		reader.getIfPresent("moveRateArray", moveRateArray);
+		reader.getIfPresent("clientCanShootArray", clientCanShootArray);
+
 		reader.getIfPresent("movementRestrictionZArray", movementRestrictionZArray);
 		reader.getIfPresent("restrictedMovementEnabledArray", restrictedMovementEnabledArray);
 		reader.getIfPresent("restrictionBoxAngleArray", restrictionBoxAngleArray);

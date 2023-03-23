@@ -99,6 +99,7 @@ public:
 
 	bool			roleShuffleEnabled = true;					///< Roles will be shuffled and altered each round if true, else, half of round one client will hold same role and vice versa
 	bool			client1StartsAsRunner = true;				///< Client 1 will start as runner in the first half. (Role shuffle needs to be disabled to activate this)
+	bool			clientCanShoot = true;						///< Indicates if the client can shoot or not
 
 	Array <PlayerConfig>  clientPlayerConfigs;					///< Player config for all the clients
 
@@ -107,13 +108,15 @@ public:
 	Array<float> respawnHeadingArray = { 0.0f, 90.0f };											  ///< Holds Peeker's/Defender's respawn heading
 	Array<float> movementRestrictionXArray = { 3.0f, 2.0f };									  ///< Holds Peeker's/Defender's restricted movement span along X 
 	Array<float> movementRestrictionZArray = { 3.0f, 2.0f };								      ///< Holds Peeker's/Defender's restricted movement span along Z
-	Array<float> moveRateArray = {7.0f,7.0f};														      ///< Holds the move rate for different roles
+	Array<float> moveRateArray = {7.0f,7.0f};													  ///< Holds the move rate for different roles
 	Array<bool>	 restrictedMovementEnabledArray = {true, true};									  ///< If true, Peeker's/Defender's movement will be restricted along X and Z
 	Array<float> restrictionBoxAngleArray = { 10.0f, 0.0f };									  ///< Rotates Peeker's/Defender's the restriction box (degrees)
+	Array<bool>  clientCanShootArray = { true, true };											  ///< Holds values for Peeker's/Defender's shooting ability
 
 	Array<float> clientLatencyArray = { 0, 10, 20 };											  ///< Holds Peeker's/Defender's latency settings
 	Array<int> clientPlaceboPingTypeArray = { 1, 1, 1 };										  ///< Holds Peeker's/Defender's placebo ping types
 	Array<int> clientPlaceboPingModifierArray = { 0, 0, 0 };									  ///< Holds Peeker's/Defender's placebo ping modifiers
+	
 
 	void load(FPSciAnyTableReader reader, int settingsVersion = 1);
 	Any addToAny(Any a, bool forceAll = false) const;
