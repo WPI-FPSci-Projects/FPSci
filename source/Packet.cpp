@@ -149,25 +149,22 @@ void DestroyEntityPacket::deserialize(BinaryInput& inBuffer) {
  * Regisger Client Packet *
  **************************/
 
-void RegisterClientPacket::populate(ENetPeer* peer, GUniqueID guid, uint16 portNum, uint16 pingPortNum) {
+void RegisterClientPacket::populate(ENetPeer* peer, GUniqueID guid, uint16 portNum) {
 	m_peer = peer;
 	m_guid = guid;
 	m_portNum = portNum;
-	m_pingPortNum = pingPortNum;
 }
 
 void RegisterClientPacket::serialize(BinaryOutput& outBuffer) {
 	GenericPacket::serialize(outBuffer);	// Call the super serialize
 	m_guid.serialize(outBuffer);
 	outBuffer.writeUInt16(m_portNum);
-	outBuffer.writeUInt16(m_pingPortNum);
 }
 
 void RegisterClientPacket::deserialize(BinaryInput& inBuffer) {
 	GenericPacket::deserialize(inBuffer);	// Call the super deserialize
 	m_guid.deserialize(inBuffer);
 	m_portNum = inBuffer.readUInt16();
-	m_pingPortNum = inBuffer.readUInt16();
 }
 
 /*****************************
