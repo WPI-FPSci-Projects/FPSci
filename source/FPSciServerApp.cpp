@@ -560,11 +560,11 @@ void FPSciServerApp::onNetwork()
                     startSessPacket->populate(m_networkFrameNum);
                     NetworkUtils::broadcastReliable(startSessPacket, m_localHost);
                     m_clientFeedbackSubmitted = 0;
-                    m_dataHandler = new ServerDataHandler();
-                    m_dataHandler->SetParameters(experimentConfig.pastFrame);
-                    for (auto c : m_connectedClients) {
-                        m_dataHandler->AddNewClient(c->guid.toString16());
-                    }
+                    //m_dataHandler = new ServerDataHandler();
+                    //m_dataHandler->SetParameters(experimentConfig.pastFrame);
+                    //for (auto c : m_connectedClients) {
+                    //    m_dataHandler->AddNewClient(c->guid.toString16());
+                    //}
                     netSess.get()->startRound();
                     debugPrintf("All PLAYERS ARE READY!\n");
                 }
