@@ -1303,7 +1303,7 @@ void FPSciApp::onNetwork() {
 				debugPrintf("\tPort: %i\n", localAddress.port);
 				debugPrintf("\tHost: %s\n", ipStr);
 				shared_ptr<RegisterClientPacket> registrationPacket = GenericPacket::createReliable<RegisterClientPacket>(m_serverPeer);
-				registrationPacket->populate(m_serverPeer, m_playerGUID, localAddress.port);
+				registrationPacket->populate(m_serverPeer, m_playerGUID, localAddress.port, m_pingServerAddress.port);
 				NetworkUtils::send(registrationPacket);
 				//registrationPacket->send();
 				break;

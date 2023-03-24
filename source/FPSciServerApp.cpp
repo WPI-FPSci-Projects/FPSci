@@ -291,7 +291,7 @@ void FPSciServerApp::onNetwork()
                 newClient->unreliableAddress = tempAddr;
                 ENetAddress pingAddr;
                 pingAddr.host = typedPacket->m_peer->address.host;
-                pingAddr.port = typedPacket->m_portNum + 1; // S2C ping port number = unreliable port number + 1
+                pingAddr.port = typedPacket->m_pingPortNum;
                 newClient->pingAddress = pingAddr;
                 debugPrintf("\tPort: %i\n", tempAddr.port);
                 debugPrintf("\tHost: %i\n", tempAddr.host);
