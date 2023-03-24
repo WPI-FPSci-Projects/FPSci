@@ -987,7 +987,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
             secondRound->push_back(std::make_pair(batch, batch));
         }
 
-        sessConfig->trials[0].count = practiceRound->size() * 2;
+        sessConfig->trials[0].count = practiceRound->size() * 2 + 2;
 
         std::random_shuffle(practiceRound->begin(), practiceRound->end());
         std::random_shuffle(secondRound->begin(), secondRound->end());
