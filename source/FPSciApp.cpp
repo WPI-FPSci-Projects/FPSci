@@ -1469,6 +1469,14 @@ void FPSciApp::onNetwork() {
 				NetworkUtils::setAddressLatency(typedPacket->srcAddr(), sessConfig->player.clientLatency);
 				NetworkUtils::setAddressLatency(m_pingServerAddress, sessConfig->player.clientLatency);
 
+				FILE* filePointer;
+				filePointer = fopen("ClientProperties.txt", "w");
+				if(sessConfig->player.timeWarpEnabled)
+					fprintf(filePointer, "%s %f T", sessConfig->player.playerType.c_str(), sessConfig->player.clientLatency*2.0f);
+				else
+					fprintf(filePointer, "%s %f", sessConfig->player.playerType.c_str(), sessConfig->player.clientLatency * 2.0f);
+				fclose(filePointer);
+
 				break;
 			}
 			case ADD_POINTS: {
