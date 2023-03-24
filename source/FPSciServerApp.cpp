@@ -289,10 +289,6 @@ void FPSciServerApp::onNetwork()
                 tempAddr.host = typedPacket->m_peer->address.host;
                 tempAddr.port = typedPacket->m_portNum;
                 newClient->unreliableAddress = tempAddr;
-                ENetAddress pingAddr;
-                pingAddr.host = typedPacket->m_peer->address.host;
-                pingAddr.port = typedPacket->m_pingPortNum;
-                newClient->pingAddress = pingAddr;
                 debugPrintf("\tPort: %i\n", tempAddr.port);
                 debugPrintf("\tHost: %i\n", tempAddr.host);
 
@@ -307,7 +303,6 @@ void FPSciServerApp::onNetwork()
                 /* Set the amount of latency to add */
                 NetworkUtils::setAddressLatency(addr, sessConfig->networkLatency);
                 NetworkUtils::setAddressLatency(typedPacket->srcAddr(), sessConfig->networkLatency);
-                NetworkUtils::setAddressLatency(pingAddr, sessConfig->networkLatency);
                 //registrationReply->send();
                 debugPrintf("\tRegistered client: %s\n", newClient->guid.toString16());
                 debugPrintf("\tPlayer ID: %i\n", newClient->playerID);
@@ -482,13 +477,10 @@ void FPSciServerApp::onNetwork()
                         // Set Latency 
                         NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->peer->address, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed].first].clientLatency);
                         NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->unreliableAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed].first].clientLatency);
-                        NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->pingAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed].first].clientLatency);
-
-
+                        
                         NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->peer->address, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed].second].clientLatency);
                         NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed].second].clientLatency);
-                        NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->pingAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed].second].clientLatency);
-
+                        
                         //Log configs
                         sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed].first], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
                         sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed].second], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
@@ -515,12 +507,10 @@ void FPSciServerApp::onNetwork()
                             // Set Latency 
                             NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->peer->address, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].clientLatency);
                             NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->unreliableAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].clientLatency);
-                            NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->pingAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first].clientLatency);
-
+                            
                             NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->peer->address, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
                             NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
-                            NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->pingAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second].clientLatency);
-
+                            
                             //Log configs
                             sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].first], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
                             sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[sessConfig->numberOfRoundsPlayed / 2].second], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
@@ -545,12 +535,10 @@ void FPSciServerApp::onNetwork()
                             // Set Latency 
                             NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->peer->address, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].first].clientLatency);
                             NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->unreliableAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].first].clientLatency);
-                            NetworkUtils::setAddressLatency(m_connectedClients[!m_clientFirstRoundPeeker]->pingAddress, m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].first].clientLatency);
-
+                            
                             NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->peer->address, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].second].clientLatency);
                             NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->unreliableAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].second].clientLatency);
-                            NetworkUtils::setAddressLatency(m_connectedClients[m_clientFirstRoundPeeker]->pingAddress, m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].second].clientLatency);
-
+                            
                             //Log configs
                             sess->logger->logPlayerConfig(m_peekersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].first], m_connectedClients[!m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
                             sess->logger->logPlayerConfig(m_defendersRoundConfigs[peekerDefenderConfigCombinationsIdx[(sessConfig->numberOfRoundsPlayed / 2) % sessConfig->trials[0].count / 2].second], m_connectedClients[m_clientFirstRoundPeeker]->guid, sessConfig->numberOfRoundsPlayed);
@@ -1224,7 +1212,6 @@ void FPSciServerApp::updateSession(const String& id, bool forceReload) {
             /* Set the latency for every client that is currently connected */
             NetworkUtils::setAddressLatency(client->peer->address, sessConfig->networkLatency);
             NetworkUtils::setAddressLatency(client->unreliableAddress, sessConfig->networkLatency);
-            NetworkUtils::setAddressLatency(client->pingAddress, sessConfig->networkLatency);
         }
     }
 }

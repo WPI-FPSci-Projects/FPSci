@@ -132,7 +132,6 @@ public:
 		ENetPeer* peer;
 		GUniqueID guid;
 		ENetAddress unreliableAddress;
-		ENetAddress pingAddress;
 		uint32 frameNumber;
 		uint8 playerID;
 		shared_ptr<NetworkedEntity> entity;

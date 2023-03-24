@@ -1077,9 +1077,15 @@ void FPSciApp::onNetwork() {
 					}
 				};
 
-				auto pingAck = [](ENetSocket socket, NetworkUtils::PingStatistics& stats, bool& pinging, bool& usingPlacebo, int& pingModifier, int& modifierType) {
+				auto pingAck = [](ENetSocket socket, NetworkUtils::PingStatistics& stats, bool& pinging, bool& usingPlacebo, int& pingModifier, int& modifierType, float& artLatency) {
 
-					auto updateStatistics = [stats](Queue<long long>* pingQueue, long long* smaPing, long long* minPing, long long* maxPing, long long& rtt) {
+					auto updateStatistics = [stats](Queue<long long>* pingQueue, long long* smaPing, long long* minPing, long long* maxPing, long long& rtt, float& artLatency) {
+
+						// Mimic dual sided delay
+						if (artLatency > 0) { 
+							rtt += artLatency;
+						}
+
 						pingQueue->pushBack(rtt);
 
 						// Update the simple moving average for RTT
@@ -1115,7 +1121,7 @@ void FPSciApp::onNetwork() {
 								PingPacket* pingPacket = static_cast<PingPacket*>(inPacket.get());
 								long long rtt = pingPacket->m_RTT;
 
-								updateStatistics(&stats.rawPingQueue, &stats.rawSMAPing, &stats.rawMinPing, &stats.rawMaxPing, rtt);
+								updateStatistics(&stats.rawPingQueue, &stats.rawSMAPing, &stats.rawMinPing, &stats.rawMaxPing, rtt, artLatency);
 
 								// Placebo modifier
 								if (usingPlacebo) {
@@ -1135,8 +1141,8 @@ void FPSciApp::onNetwork() {
 										default: break;
 									}
 								}
-
-								updateStatistics(&stats.pingQueue, &stats.smaPing, &stats.minPing, &stats.maxPing, rtt);
+								float f = 0.0F;
+								updateStatistics(&stats.pingQueue, &stats.smaPing, &stats.minPing, &stats.maxPing, rtt, f);
 
 							}
 							else {
@@ -1150,7 +1156,7 @@ void FPSciApp::onNetwork() {
 				std::thread c2sPing_Th(c2sPing, m_pingSocket, m_pingServerAddress, m_pingInterval, std::ref(m_pinging));
 				c2sPing_Th.detach();
 
-				std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_pingStats), std::ref(m_pinging), std::ref(experimentConfig.placeboPingEnabled), std::ref(sessConfig->player.placeboPingModifier), std::ref(sessConfig->player.placeboPingType));
+				std::thread pingAck_Th(pingAck, m_pingSocket, std::ref(m_pingStats), std::ref(m_pinging), std::ref(experimentConfig.placeboPingEnabled), std::ref(sessConfig->player.placeboPingModifier), std::ref(sessConfig->player.placeboPingType), std::ref(sessConfig->player.clientLatency));
 				pingAck_Th.detach();
 
 				debugPrintf("Initialized ping threads\n");
@@ -1303,7 +1309,7 @@ void FPSciApp::onNetwork() {
 				debugPrintf("\tPort: %i\n", localAddress.port);
 				debugPrintf("\tHost: %s\n", ipStr);
 				shared_ptr<RegisterClientPacket> registrationPacket = GenericPacket::createReliable<RegisterClientPacket>(m_serverPeer);
-				registrationPacket->populate(m_serverPeer, m_playerGUID, localAddress.port, m_pingServerAddress.port);
+				registrationPacket->populate(m_serverPeer, m_playerGUID, localAddress.port);
 				NetworkUtils::send(registrationPacket);
 				//registrationPacket->send();
 				break;
