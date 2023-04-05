@@ -1185,6 +1185,9 @@ void FPSciApp::onNetwork() {
 		Array<BatchEntityUpdatePacket::EntityUpdate> updates;
 		updates.append(BatchEntityUpdatePacket::EntityUpdate(scene()->entity("player")->frame(), m_playerGUID.toString16(), m_playerID, m_networkFrameNum));
 		updatePacket->populate(updates, BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME);
+		std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+		debugPrintf("move command client: player %s\ttime stamp %lld\tLocal Frame %d\n", m_playerGUID.toString16(),
+			(long long int) t2.time_since_epoch().count(), m_networkFrameNum);
 		NetworkUtils::send(updatePacket);
 		//updatePacket->send();
 		// record CFrames locally
@@ -2140,6 +2143,10 @@ void FPSciApp::missEvent() {
 			{
 				shared_ptr<PlayerInteractPacket> outPacket = GenericPacket::createUnreliable<PlayerInteractPacket>(&m_unreliableSocket, &m_unreliableServerAddress);
 				outPacket->populate(m_networkFrameNum, Miss, m_playerGUID);
+				std::chrono::high_resolution_clock::time_point t2 =  std::chrono::high_resolution_clock::now();
+				debugPrintf("fire command client: player %s\ttime stamp %lld\tLocal Frame %d\t", m_playerGUID.toString16(), 
+					(long long int) t2.time_since_epoch().count(), m_networkFrameNum);
+					
 				NetworkUtils::send(outPacket);
 				//outPacket->send();
 			}

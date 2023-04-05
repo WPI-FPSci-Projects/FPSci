@@ -207,6 +207,9 @@ void FPSciServerApp::onNetwork()
                             break;
                         case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
                             //entity->setFrame(e.frame);
+                            std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+                            debugPrintf("move command server: player %s\ttime stamp %lld\tLocal Frame %d\t Client Frame %d\n", m_playerGUID.toString16(),
+                                (long long int) t2.time_since_epoch().count(), m_networkFrameNum, e.frameNumber);
                             updateEntityAndCamera(entity, &e.frame);
                             if (m_dataHandler != nullptr) {
                                 m_dataHandler->UpdateCframe(e.name, e.frame, e.frameNumber, true);
@@ -220,6 +223,9 @@ void FPSciServerApp::onNetwork()
             case PLAYER_INTERACT: {
                 PlayerInteractPacket* typedPacket = static_cast<PlayerInteractPacket*> (inPacket.get());
                 shared_ptr<NetworkedEntity> clientEntity = scene()->typedEntity<NetworkedEntity>(typedPacket->m_actorID.toString16());
+                std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+                debugPrintf("fire command server: player %s\ttime stamp %lld\tLocal Frame %d\t Client Frame %d\n", m_playerGUID.toString16(),
+                    (long long int) t2.time_since_epoch().count(), m_networkFrameNum, typedPacket->m_frameNumber);
                 RemotePlayerAction rpa = RemotePlayerAction();
                 rpa.time = sess->logger->getFileTime();
                 rpa.viewDirection = clientEntity->getLookAzEl();
