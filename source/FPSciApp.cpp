@@ -2301,6 +2301,7 @@ void FPSciApp::onCleanup() {
 
 /** Overridden (optimized) oneFrame() function to improve latency */
 void FPSciApp::oneFrame() {
+	std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 	// Count this frame (for shaders)
 	m_frameNumber++;
 
@@ -2558,6 +2559,9 @@ void FPSciApp::oneFrame() {
 	{
 		window()->popLoopBody();
 	}
+	std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+	auto ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+	debugPrintf("TIME FOR FRAME %d %d\n", m_networkFrameNum, ms_int);
 }
 
 FPSciApp::Settings::Settings(const StartupConfig& startupConfig, int argc, const char* argv[]) {

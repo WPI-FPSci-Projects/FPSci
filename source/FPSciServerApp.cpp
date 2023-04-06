@@ -208,7 +208,7 @@ void FPSciServerApp::onNetwork()
                         case BatchEntityUpdatePacket::NetworkUpdateType::REPLACE_FRAME:
                             //entity->setFrame(e.frame);
                             std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-                            debugPrintf("move command server: player %s\ttime stamp %lld\tLocal Frame %d\t Client Frame %d\n", m_playerGUID.toString16(),
+                            debugPrintf("move command server: player %s\ttime stamp %lld\tLocal Frame %d\t Client Frame %d\n", e.name,
                                 (long long int) t2.time_since_epoch().count(), m_networkFrameNum, e.frameNumber);
                             updateEntityAndCamera(entity, &e.frame);
                             if (m_dataHandler != nullptr) {
