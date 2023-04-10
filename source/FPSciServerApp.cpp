@@ -959,6 +959,8 @@ void FPSciServerApp::preparePerRoundConfigs() {
         }
     }
 
+    peekerDefenderConfigCombinationsIdx.push_back(std::make_pair(0, 0));
+
     /// Create all possible pairs of peeker vs defender matchups
     if (!sessConfig->player.roleShuffleEnabled) {
         for (int batch = 0; batch < m_defendersRoundConfigs.size() / sessConfig->player.clientLatencyArray.size(); batch++) {
@@ -976,7 +978,7 @@ void FPSciServerApp::preparePerRoundConfigs() {
         for (int i = 0; i < peekerDefenderConfigCombinationsIdx.size(); i++)
             debugPrintf("COMBINATION BEFORE SHUFFLE p%d d%d\n", peekerDefenderConfigCombinationsIdx[i].first, peekerDefenderConfigCombinationsIdx[i].second);
 
-        std::random_shuffle(peekerDefenderConfigCombinationsIdx.begin(), peekerDefenderConfigCombinationsIdx.end());
+        std::random_shuffle(peekerDefenderConfigCombinationsIdx.begin()+1, peekerDefenderConfigCombinationsIdx.end());
 
         for (int i = 0; i < peekerDefenderConfigCombinationsIdx.size(); i++)
             debugPrintf("COMBINATION AFTER SHUFFLE p%d d%d\n", peekerDefenderConfigCombinationsIdx[i].first, peekerDefenderConfigCombinationsIdx[i].second);
@@ -1268,48 +1270,52 @@ void FPSciServerApp::onASBroadcast()
 
 void FPSciServerApp::checkFrameValidity()
 {
+
     for (auto& i1 : m_connectedClients)
     {
 
         bool valid = true;
-        shared_ptr<NetworkedEntity> e1 = i1->entity;
-        Vector3 player1Pos = e1->frame().translation;
-
-        // Player displacement check
-        // Check if a player is moving too quickly, based on player max speed and frame rate
-        // If so, snap the player to the last valid position
-        CoordinateFrame pastFrame = m_dataHandler->GetCFrame(
-            m_dataHandler->m_clientLastValid->get(i1->guid.toString16()),
-            i1->guid.toString16());
-        CoordinateFrame currentFrame = e1->frame();
-        float dist = (currentFrame.translation - pastFrame.translation).length();
-        float maxDist = 0.012; // magic number
-        // 0.0114698 is calculated moving average of player speed in game units when moveRate is 7m/s
-        int framesElapsed = 1; //TODO: get frames elapsed since last valid frame
-        auto zeroFrame = new CoordinateFrame();
-        if (dist > maxDist * framesElapsed && pastFrame.translation != zeroFrame->translation &&
-            m_dataHandler->m_respawnLocations->contains(player1Pos))
+        if (sessConfig->player.roleShuffleEnabled)
         {
-            logPrintf("Player %d moved too far in the past %d frames. Moving back to last valid position.\n", i1->playerID, framesElapsed);
-            snapBackPlayer(i1->playerID);
-            valid = false;
-        }
+            shared_ptr<NetworkedEntity> e1 = i1->entity;
+            Vector3 player1Pos = e1->frame().translation;
 
-        // Player to player collision detection
-        // Check if two players are too close, based on body radius
-        // If so, snap the players to the last valid positions
-        if (experimentConfig.collisionEnabled) {
-            for (auto& i2 : m_connectedClients)
+            // Player displacement check
+            // Check if a player is moving too quickly, based on player max speed and frame rate
+            // If so, snap the player to the last valid position
+            CoordinateFrame pastFrame = m_dataHandler->GetCFrame(
+                m_dataHandler->m_clientLastValid->get(i1->guid.toString16()),
+                i1->guid.toString16());
+            CoordinateFrame currentFrame = e1->frame();
+            float dist = (currentFrame.translation - pastFrame.translation).length();
+            float maxDist = 0.012; // magic number
+            // 0.0114698 is calculated moving average of player speed in game units when moveRate is 7m/s
+            int framesElapsed = 1; //TODO: get frames elapsed since last valid frame
+            auto zeroFrame = new CoordinateFrame();
+            if (dist > maxDist * framesElapsed && pastFrame.translation != zeroFrame->translation &&
+                m_dataHandler->m_respawnLocations->contains(player1Pos))
             {
-                shared_ptr<NetworkedEntity> e2 = i2->entity;
-                Point3 player2Pos = e2->frame().translation;
-                double dist = sqrt(pow(player1Pos.x - player2Pos.x, 2) + pow(player1Pos.y - player2Pos.y, 2) + pow(player1Pos.z - player2Pos.z, 2));
-                // Hardcoded to 1.0 * 2 m based on sphere parameters in PlayerEntity, maybe move to config later?
-                if (dist < 2 && e1->getPlayerID() != e2->getPlayerID()) {
-                    debugPrintf("%d collided with %d\n", i1->playerID, i2->playerID);
-                    snapBackPlayer(i1->playerID);
-                    snapBackPlayer(i2->playerID);
-                    valid = false;
+                logPrintf("Player %d moved too far in the past %d frames. Moving back to last valid position.\n", i1->playerID, framesElapsed);
+                snapBackPlayer(i1->playerID);
+                valid = false;
+            }
+
+            // Player to player collision detection
+            // Check if two players are too close, based on body radius
+            // If so, snap the players to the last valid positions
+            if (experimentConfig.collisionEnabled) {
+                for (auto& i2 : m_connectedClients)
+                {
+                    shared_ptr<NetworkedEntity> e2 = i2->entity;
+                    Point3 player2Pos = e2->frame().translation;
+                    double dist = sqrt(pow(player1Pos.x - player2Pos.x, 2) + pow(player1Pos.y - player2Pos.y, 2) + pow(player1Pos.z - player2Pos.z, 2));
+                    // Hardcoded to 1.0 * 2 m based on sphere parameters in PlayerEntity, maybe move to config later?
+                    if (dist < 2 && e1->getPlayerID() != e2->getPlayerID()) {
+                        debugPrintf("%d collided with %d\n", i1->playerID, i2->playerID);
+                        snapBackPlayer(i1->playerID);
+                        snapBackPlayer(i2->playerID);
+                        valid = false;
+                    }
                 }
             }
         }
